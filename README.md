@@ -61,6 +61,10 @@ To change these, edit `tools/update-catalog.mjs`, run `npm run update-catalog` a
 
 Settings (polling intervals, the game server address, the loot thresholds) are in `src/core/settings.js`. Any of them can be overridden without a code change by adding a Worker variable with the same name in capitals, for example `API_BASE` or `LEGENDS_MINUTES`, under the Worker's **Settings → Variables and Secrets** in the Cloudflare dashboard.
 
+## Logo and icons
+
+All icons are built from one master image. Put `mark.png` (and optionally `favicon-16.png` and `logo.png`) in `design/`, run `python3 tools/build-icons.py` (needs Python 3 and Pillow), and push. The output in `public/icons/` covers the browser tab (`favicon.ico`, `icon.svg`), iPhone and Android home screens (`apple-touch-icon.png`, `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`), the site header (`logo.png`) and link previews (`og.png`). Blank canvases, drawing guides and a preview of every output are in `design/templates/`; its `README.txt` explains the sizes.
+
 ## Logs and data
 
 - **Logs:** Cloudflare dashboard → Workers & Pages → openeye → Logs. Collector progress and any errors show up there.
@@ -75,7 +79,8 @@ Settings (polling intervals, the game server address, the loot thresholds) are i
 ## Project layout
 
 ```
-public/          the website: HTML, CSS, JavaScript, fonts, and catalog/ (item and class data, sprites)
+public/          the website: HTML, CSS, JavaScript, fonts, icons/, and catalog/ (item and class data, sprites)
+design/          logo source files and icon templates
 src/worker.js    Cloudflare entry point
 src/core/        shared logic: collector, API, database schema, game API client, settings
 src/node/        local server and SQLite adapter (development and tests only)
