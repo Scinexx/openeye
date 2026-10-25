@@ -23,6 +23,7 @@ OpenEye is a RealmEye-style tracker for Open RotMG, the open-source recreation o
 - **Latest loot** showing rare untiered drops and top-tier items as players find them
 - **Loot history** of every item players have looted, filterable by tier, item type, time range and player
 - **Item browser** with who found each item first and who died wearing it
+- **In-game item tooltips**: hover any item icon to see the same tooltip the game shows, built by the same rules as the 2012 client
 - **Bot separation**: the server's bots are kept out of rankings, loot and the player graveyard
 - **Live server status** with current and 24-hour peak player counts
 
@@ -84,7 +85,7 @@ npm run local      # runs without Cloudflare, using Node and a SQLite file
 
 | Script | Purpose |
 | --- | --- |
-| `npm run update-catalog` | Rebuilds item names, tiers, sprites and classes from the OpenRotMG repositories after a game update |
+| `npm run update-catalog` | Rebuilds item names, tiers, tooltips, sprites and classes from the OpenRotMG repositories after a game update |
 | `python3 tools/build-icons.py` | Rebuilds every icon (favicon, app icons, header logo, link preview) from `design/mark.png` |
 
 ### Configuration
@@ -116,6 +117,6 @@ test/              Test suite and fake game server
 
 ## Credits
 
-Item and class sprites and game data come from the [Open RotMG](https://github.com/OpenRotMG) project. Fonts are [Pixelify Sans](https://fonts.google.com/specimen/Pixelify+Sans) and [Atkinson Hyperlegible](https://fonts.google.com/specimen/Atkinson+Hyperlegible), both under the SIL Open Font License. See [`THIRD_PARTY.md`](THIRD_PARTY.md) for details.
+Item and class sprites and game data come from the [Open RotMG](https://github.com/OpenRotMG) project. Fonts are [Pixelify Sans](https://fonts.google.com/specimen/Pixelify+Sans), [Atkinson Hyperlegible](https://fonts.google.com/specimen/Atkinson+Hyperlegible) and [Source Sans 3](https://fonts.google.com/specimen/Source+Sans+3), all under the SIL Open Font License. See [`THIRD_PARTY.md`](THIRD_PARTY.md) for details.
 
 OpenEye is a fan project by Cramshon. It is not run by or affiliated with the Open RotMG developers.

@@ -74,8 +74,8 @@ function bag(item) {
 function itemSprite(id, scale = 2, {missing = false} = {}) {
   const it = ITEMS.get(id);
   const size = 16 * scale;
-  if (!it?.sprite) return h`<span class="sprite none" style="width:${size}px;height:${size}px"></span>`;
-  return h`<span class="sprite${missing ? ' missing' : ''}" style="width:${size}px;height:${size}px;background-size:${320 * scale}px auto;background-position:-${it.sprite.x * scale}px -${it.sprite.y * scale}px"></span>`;
+  if (!it?.sprite) return h`<span class="sprite none" ${it ? raw(`data-tip="${Number(id)}"`) : ''} style="width:${size}px;height:${size}px"></span>`;
+  return h`<span class="sprite${missing ? ' missing' : ''}" data-tip="${id}" style="width:${size}px;height:${size}px;background-size:${320 * scale}px auto;background-position:-${it.sprite.x * scale}px -${it.sprite.y * scale}px"></span>`;
 }
 function itemSlot(id, scale = 2, opts = {}) {
   const size = 16 * scale;
@@ -83,7 +83,7 @@ function itemSlot(id, scale = 2, opts = {}) {
   const it = ITEMS.get(id);
   const t = tierInfo(it);
   const title = it ? `${it.name}${t.label ? ` (${t.label})` : ''}` : `Unknown item ${id}`;
-  return h`<a class="slot ${bag(it)}" href="/item/${id}" data-link title="${title}" aria-label="${title}">${itemSprite(id, scale, opts)}</a>`;
+  return h`<a class="slot ${bag(it)}" href="/item/${id}" data-link aria-label="${title}">${itemSprite(id, scale, opts)}</a>`;
 }
 function classSprite(classId, size = 32) {
   const c = CLASSES.get(classId);
@@ -105,6 +105,149 @@ const playerLink = (name, stars) => h`<span class="player">${starIcon(stars)}<a 
 const ownerLink = d => (d.is_bot ? h`<span class="who">${d.name} <span class="badge bot" title="A computer-controlled character run by the game server">Bot</span></span>` : playerLink(d.player ?? d.name, d.player_stars));
 const discordIcon = id => (id ? h`<a class="discord" href="https://discord.com/users/${id}" rel="noopener" title="Discord account linked" aria-label="Discord profile"><svg viewBox="0 0 16 12" width="16" height="12" aria-hidden="true"><path fill="#8b9cf7" d="M13.5 1A13 13 0 0 0 10.3 0l-.4.8a12 12 0 0 0-3.8 0L5.7 0a13 13 0 0 0-3.2 1C.4 4 0 7 .2 9.9A13 13 0 0 0 4.1 12l.8-1.3a8 8 0 0 1-1.3-.6l.3-.2a9 9 0 0 0 8.2 0l.3.2-1.3.6.8 1.3a13 13 0 0 0 3.9-2c.3-3.4-.5-6.3-2.3-8.9ZM5.4 8.3c-.8 0-1.4-.7-1.4-1.6s.6-1.6 1.4-1.6 1.4.7 1.4 1.6-.6 1.6-1.4 1.6Zm5.2 0c-.8 0-1.4-.7-1.4-1.6s.6-1.6 1.4-1.6S12 5.8 12 6.7s-.6 1.6-1.4 1.6Z"/></svg></a>` : '');
 const gear = (equipment, scale = 2, count = 4) => h`<span class="gear">${(equipment ?? []).slice(0, count).map(id => itemSlot(id, scale))}</span>`;
+
+// ---------- in-game item tooltips ----------
+// The text of each tooltip is built from the game data by tools/tooltip.mjs, which is a
+// port of the 2012 client's EquipmentToolTip. This part only draws it the way the client
+// does: same box, colours, sizes, spacing, icon treatment and mouse-following position.
+const TIP = {data: null, el: null, for: null, sheet: null, icons: new Map()};
+// The tooltip boxes are sized from their text, so wait for the tooltip font as well.
+const loadTips = () => (TIP.data ??= Promise.all([
+  staticJson('/catalog/tooltips.json'),
+  ...['14px', '16px', '700 16px'].map(f => document.fonts?.load(`${f} "Tooltip Sans"`).catch(() => {}))
+]).then(([tips]) => tips, () => { TIP.data = null; return {}; }));
+const tipColor = c => (/^#[0-9a-f]{6}$/i.test(c ?? '') ? c : '#b3b3b3');
+
+// ObjectLibrary.getRedrawnTextureFromType(type, 60, true): the 8x8 sprite scaled 3x on a
+// 48px canvas, darkened towards the bottom, outlined in black, given a soft shadow, then
+// cropped by 4px on every side.
+function tipIcon(canvas, item) {
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, 40, 40);
+  if (!item?.sprite) return;
+  const draw = () => {
+    let icon = TIP.icons.get(item.id);
+    if (!icon) {
+      const src = document.createElement('canvas');
+      src.width = src.height = 8;
+      const s = src.getContext('2d');
+      s.drawImage(TIP.sheet, item.sprite.x + 4, item.sprite.y + 4, 8, 8, 0, 0, 8, 8);
+      const px = s.getImageData(0, 0, 8, 8).data;
+      const tex = new ImageData(48, 48), d = tex.data;
+      for (let y = 0; y < 48; y++) {
+        // GlowRedrawer's gradient: nothing above the middle, up to 0x28 subtracted at the bottom.
+        const g = Math.max(0, ((y + 0.5) / 48 * 255 - 127) / 128 * 0x28);
+        for (let x = 0; x < 48; x++) {
+          const sx = Math.floor((x - 12) / 3), sy = Math.floor((y - 12) / 3);
+          if (sx < 0 || sy < 0 || sx > 7 || sy > 7) continue;
+          const i = (sy * 8 + sx) * 4, o = (y * 48 + x) * 4;
+          if (!px[i + 3]) continue;
+          d[o] = Math.max(0, px[i] - g); d[o + 1] = Math.max(0, px[i + 1] - g); d[o + 2] = Math.max(0, px[i + 2] - g); d[o + 3] = px[i + 3];
+        }
+      }
+      // OUTLINE_FILTER: black glow, 1.4px blur at full strength, 80% alpha.
+      const solid = Uint8Array.from({length: 48 * 48}, (_, i) => d[i * 4 + 3] > 0);
+      for (let y = 0; y < 48; y++) for (let x = 0; x < 48; x++) {
+        if (solid[y * 48 + x]) continue;
+        let near = false;
+        for (let dy = -1; dy <= 1 && !near; dy++) for (let dx = -1; dx <= 1 && !near; dx++) near = solid[(y + dy) * 48 + x + dx] === 1 && x + dx >= 0 && x + dx < 48;
+        if (near) d[(y * 48 + x) * 4 + 3] = 204;
+      }
+      const flat = document.createElement('canvas');
+      flat.width = flat.height = 48;
+      flat.getContext('2d').putImageData(tex, 0, 0);
+      icon = document.createElement('canvas');
+      icon.width = icon.height = 48;
+      const c = icon.getContext('2d');
+      // GLOW_FILTER: black, 30% alpha at strength 2, 12px blur.
+      c.shadowColor = 'rgba(0,0,0,0.6)';
+      c.shadowBlur = 7;
+      c.drawImage(flat, 0, 0);
+      TIP.icons.set(item.id, icon);
+    }
+    ctx.clearRect(0, 0, 40, 40);
+    ctx.drawImage(icon, -4, -4);
+  };
+  if (TIP.sheet?.complete) return draw();
+  if (!TIP.sheet) { TIP.sheet = new Image(); TIP.sheet.src = '/catalog/items.png'; }
+  TIP.sheet.addEventListener('load', draw, {once: true});
+}
+
+const tipLines = lines => lines.map(line => h`<div>${line.length ? line.map(([text, color]) => (color ? h`<span style="color:${tipColor(color)}">${text}</span>` : text)) : raw('&#8203;')}</div>`);
+const tipBreak = () => raw('<div class="itip-line" aria-hidden="true"><svg width="226" height="8" viewBox="0 0 226 8"><path d="M4 0l4 4-4 4-4-4zM222 0l4 4-4 4-4-4zM4 3h218v2H4z"/></svg></div>');
+
+async function showTip(target, x, y) {
+  TIP.for = target;
+  const id = Number(target.dataset.tip);
+  const tip = (await loadTips())[id];
+  if (TIP.for !== target || !tip) return;
+  if (!TIP.el) {
+    TIP.el = document.createElement('div');
+    TIP.el.className = 'itip';
+    TIP.el.setAttribute('role', 'tooltip');
+    document.body.append(TIP.el);
+  }
+  const el = TIP.el;
+  el.innerHTML = String(h`
+    <div class="itip-head"><canvas width="40" height="40"></canvas>
+      <div class="itip-name"><div class="itip-title">${tip.t}</div>${tip.r ? h`<div class="itip-tier"${tip.r === 'UT' ? raw(' style="color:#8a2be2"') : ''}>${tip.r}</div>` : ''}</div></div>
+    <div class="itip-desc">${tip.d}</div>
+    ${tip.e.length ? h`${tipBreak()}<div class="itip-fx">${tipLines(tip.e)}</div>` : ''}
+    ${tip.x.length ? h`${tipBreak()}<div class="itip-req">${tip.x.map(([text, color, bold]) => h`<div style="color:${tipColor(color)}${bold ? ';font-weight:700' : ''}">${text}</div>`)}</div>` : ''}`);
+  tipIcon(el.querySelector('canvas'), ITEMS.get(id));
+  el.hidden = false;
+  // SimpleText.updateMetrics(): the title and description boxes grow by 4px for every line.
+  for (const [sel, lh] of [['.itip-title', 19], ['.itip-desc', 17]]) {
+    const box = el.querySelector(sel);
+    box.style.height = '';
+    const lines = Math.max(1, Math.round((box.getBoundingClientRect().height - 4) / lh));
+    box.style.height = `${lines * (lh + 4)}px`;
+  }
+  // A title taller than the icon sticks out above it, and the box grows to fit.
+  const name = el.querySelector('.itip-name');
+  el.style.paddingTop = `${6 + Math.max(0, (name.offsetHeight - 40) / 2)}px`;
+  moveTip(x, y);
+}
+// ToolTip.position(): right of the mouse on the left half of the screen, left of it on the
+// right half; below it in the top third, above it otherwise; never closer than 12px to an edge.
+function moveTip(mx, my) {
+  const el = TIP.el;
+  if (!el || el.hidden) return;
+  const w = el.offsetWidth, hgt = el.offsetHeight, vw = document.documentElement.clientWidth, vh = window.innerHeight;
+  let x = mx < vw / 2 ? mx + 6 : mx - w - 7;
+  let y = my < vh / 3 ? my + 6 : my - hgt - 7;
+  x = Math.max(6, Math.min(x, vw - w - 6));
+  y = Math.max(6, Math.min(y, vh - hgt - 6));
+  el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+}
+function hideTip() {
+  TIP.for = null;
+  if (TIP.el) TIP.el.hidden = true;
+}
+const tipTarget = node => {
+  const el = node?.closest?.('.slot, [data-tip]');
+  return el?.matches('[data-tip]') ? el : el?.querySelector('[data-tip]') ?? null;
+};
+document.addEventListener('pointerover', e => {
+  if (e.pointerType === 'touch') return;
+  const t = tipTarget(e.target);
+  if (t && t !== TIP.for) showTip(t, e.clientX, e.clientY);
+});
+document.addEventListener('pointermove', e => { if (TIP.for) moveTip(e.clientX, e.clientY); });
+document.addEventListener('pointerout', e => {
+  if (!TIP.for) return;
+  const from = tipTarget(e.target), to = tipTarget(e.relatedTarget);
+  if (from === TIP.for && to !== TIP.for) hideTip();
+});
+document.addEventListener('focusin', e => {
+  const t = e.target.matches?.(':focus-visible') ? tipTarget(e.target) : null;
+  if (!t) return;
+  const r = t.getBoundingClientRect();
+  showTip(t, r.right, r.bottom);
+});
+document.addEventListener('focusout', hideTip);
+document.addEventListener('pointerdown', hideTip);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') hideTip(); });
 
 // ---------- small SVG charts ----------
 function sparkline(points, {width = 220, height = 36} = {}) {
@@ -322,7 +465,7 @@ async function player(name) {
     document.getElementById('col-grid').innerHTML = String(h`${ids.map(id => {
       const it = ITEMS.get(id);
       const title = `${it?.name ?? id}${found.has(id) ? `, found ${day(found.get(id))}` : ', not found yet'}`;
-      return h`<a class="slot ${found.has(id) ? bag(it) : ''}" href="/item/${id}" data-link title="${title}" aria-label="${title}">${itemSprite(id, 2, {missing: !found.has(id)})}</a>`;
+      return h`<a class="slot ${found.has(id) ? bag(it) : ''}" href="/item/${id}" data-link aria-label="${title}">${itemSprite(id, 2, {missing: !found.has(id)})}</a>`;
     })}`);
   };
   document.getElementById('col-sort').addEventListener('change', drawCollection);
@@ -695,6 +838,7 @@ const routes = [
 
 const TITLES = {rankings: 'Rankings', graveyard: 'Legends graveyard', legends: 'Legends', loot: 'Loot', items: 'Items', about: 'About'};
 async function route() {
+  hideTip();
   const path = location.pathname;
   for (const [re, fn, nav] of routes) {
     const m = path.match(re);

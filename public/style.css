@@ -6,6 +6,10 @@
 @font-face { font-family: "OpenEye Digits"; src: url(/fonts/atkinson-hyperlegible-latin-700-normal.woff2) format("woff2"); font-weight: 700; font-display: swap; unicode-range: U+0030-0039, U+002C, U+002E, U+0025, U+002B; }
 @font-face { font-family: "Atkinson Hyperlegible"; src: url(/fonts/atkinson-hyperlegible-latin-400-normal.woff2) format("woff2"); font-weight: 400; font-display: swap; }
 @font-face { font-family: "Atkinson Hyperlegible"; src: url(/fonts/atkinson-hyperlegible-latin-700-normal.woff2) format("woff2"); font-weight: 700; font-display: swap; }
+/* Item tooltips use the game's own font, Myriad Pro, when it is installed, and the
+   closely related Source Sans 3 otherwise. */
+@font-face { font-family: "Tooltip Sans"; src: local("Myriad Pro"), local("MyriadPro-Regular"), url(/fonts/source-sans-3-latin-400-normal.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Tooltip Sans"; src: local("Myriad Pro Bold"), local("MyriadPro-Bold"), url(/fonts/source-sans-3-latin-700-normal.woff2) format("woff2"); font-weight: 700; font-display: swap; }
 
 :root {
   /* Nexus stone */
@@ -340,3 +344,36 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--fame); }
 .legend-links { display: inline-flex; gap: 10px; }
 .legend-links button { font: 0.85rem var(--body); color: var(--bone-dim); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .legend-links button:hover { color: var(--fame); }
+
+/* ---------- in-game item tooltip (EquipmentToolTip.as, ToolTip.as) ----------
+   Content is 234px wide with a 6px border area around it: a #363636 box with 4px cut
+   corners, a 1px #9B9B9B outline and a 16px black drop shadow. */
+.itip {
+  position: fixed; left: 0; top: 0; z-index: 1000; pointer-events: none;
+  width: 246px; padding: 6px; box-sizing: border-box;
+  font: 400 14px/17px "Tooltip Sans", "Myriad Pro", sans-serif; color: #b3b3b3;
+  letter-spacing: 0; text-align: left; overflow-wrap: break-word;
+  display: flex; flex-direction: column; align-items: flex-start;
+  filter: drop-shadow(0 0 8px #000);
+  --cut: polygon(4px 0, calc(100% - 4px) 0, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 0 calc(100% - 4px), 0 4px);
+}
+.itip[hidden] { display: none; }
+.itip-title, .itip-tier, .itip-desc, .itip-fx, .itip-req { white-space: pre-wrap; }
+.itip::before, .itip::after { content: ""; position: absolute; z-index: -1; clip-path: var(--cut); }
+.itip::before { inset: 0; background: #9b9b9b; }
+.itip::after { inset: 1px; background: #363636; }
+.itip-head { position: relative; width: 234px; height: 40px; flex: none; }
+.itip-head canvas { position: absolute; left: 0; top: 0; width: 40px; height: 40px; image-rendering: pixelated; }
+.itip-name { position: absolute; left: 44px; top: 50%; transform: translateY(-50%); display: flex; align-items: flex-start; }
+.itip-title, .itip-tier { box-sizing: border-box; padding: 2px; font-size: 16px; line-height: 19px; color: #fff; }
+.itip-title { width: 156px; font-weight: 700; }
+.itip-tier { width: 30px; white-space: nowrap; }
+.itip-desc, .itip-fx, .itip-req { box-sizing: border-box; margin-left: 4px; padding: 2px; }
+.itip-desc { width: 230px; margin-top: 2px; }
+.itip-fx { width: 186px; margin-top: 8px; }
+.itip-req { width: 226px; margin-top: 8px; }
+.itip-req > div { padding-left: 10px; text-indent: -10px; }
+.itip-title, .itip-desc, .itip-fx, .itip-req { text-shadow: 0 0 6px rgba(0, 0, 0, .5); }
+/* LineBreakDesign: a black 2px bar with a diamond at each end, 8px below the text above. */
+.itip-line { position: relative; height: 0; margin-top: 8px; flex: none; }
+.itip-line svg { position: absolute; left: 4px; top: -4px; fill: #000; }

@@ -7,6 +7,7 @@
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import {join, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {parseElement, equipmentTooltip} from './tooltip.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'public', 'catalog');
@@ -63,7 +64,7 @@ const xml = await get(SOURCES.objects);
 const sheet = JSON.parse(await get(SOURCES.items));
 const sheetById = new Map(sheet.map(i => [i.id, i]));
 const objects = [...xml.matchAll(/<Object type="(0x[0-9a-fA-F]+)" id="([^"]+)">([\s\S]*?)<\/Object>/g)]
-  .map(([, type, id, body]) => ({type: parseInt(type, 16), id: unescape(id), body}));
+  .map(([src, type, id, body]) => ({type: parseInt(type, 16), id: unescape(id), body, src}));
 
 const items = [];
 for (const o of objects) {
@@ -140,6 +141,18 @@ for (const o of objects) {
 }
 classes.sort((a, b) => a.id - b.id);
 
+// In-game hover tooltips, built the way the client builds them (see tooltip.mjs).
+const displayName = el => el.children.find(c => c.tag === 'DisplayId')?.text || el.attrs.id;
+const playerClasses = objects.filter(o => /<Class>Player<\/Class>/.test(o.body)).map(o => {
+  const el = parseElement(o.src);
+  return {name: displayName(el), slotTypes: (tag(o.body, 'SlotTypes') ?? '').split(',').map(s => Number(s.trim()))};
+});
+const tooltips = {};
+for (const o of objects) {
+  if (/<Item\s*\/>/.test(o.body)) tooltips[o.type] = equipmentTooltip(parseElement(o.src), {classes: playerClasses, displayName});
+}
+
+await writeFile(join(out, 'tooltips.json'), JSON.stringify(tooltips));
 await writeFile(join(out, 'items.png'), await get(SOURCES.sheet, true));
 await writeFile(join(out, 'items.json'), JSON.stringify(items));
 await writeFile(join(out, 'classes.json'), JSON.stringify(classes, null, 1));
