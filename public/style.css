@@ -271,7 +271,7 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--fame); }
 .catalog a.unfound .title { color: var(--bone-dim); }
 .item-hero { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; margin-bottom: 24px; }
 .item-hero .slot { padding: 8px; }
-.tier { font-family: var(--display); }
+.tier { font-family: var(--body); font-weight: 700; }
 .tier.ut { color: var(--bag-white); }
 .tier.high { color: var(--bag-purple); }
 .tier.low { color: #c9a277; }
@@ -330,7 +330,7 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--fame); }
 .chip { position: relative; cursor: pointer; }
 .chip input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .chip span {
-  display: block; text-align: center; padding: 6px 0; font: 0.8rem var(--display); color: var(--muted); white-space: nowrap;
+  display: block; text-align: center; padding: 6px 0; font: 700 0.8rem var(--body); color: var(--muted); white-space: nowrap;
   background: var(--stone-deep); border: 2px solid var(--bevel-dark);
 }
 .chip input:checked + span { color: var(--fame); border-color: #6e5a22; background: #2f2c25; }
