@@ -468,6 +468,7 @@ async function loot() {
     common: params.get('common') !== '0',
     days: LOOT_DAYS.some(([v]) => v === params.get('days')) ? params.get('days') : '0',
     player: params.get('player') ?? '',
+    item: params.get('item') ?? '',
     page: Math.max(1, Number(params.get('page')) || 1)
   };
   const box = (group, value, label, checked) =>
@@ -479,6 +480,10 @@ async function loot() {
       <form class="panel loot-filters" id="loot-filters" aria-label="Filters">
         <header><h2>Filters</h2><a href="/loot" data-link>Reset</a></header>
         <div class="panel-body stack" style="gap:18px">
+          <fieldset><legend>Item</legend>
+            <label class="sr" for="loot-item">Item name</label>
+            <input id="loot-item" type="search" placeholder="Any item" maxlength="40" spellcheck="false" value="${state.item}">
+          </fieldset>
           <fieldset><legend>Tier <span class="legend-links"><button type="button" data-tiers="all">All</button><button type="button" data-tiers="none">None</button></span></legend>
             <div class="chips" style="grid-template-columns:repeat(${Math.ceil(LOOT_TIER.length / 2)}, 1fr)">${LOOT_TIER.map(([v, l]) => h`<label class="chip"><input type="checkbox" data-group="tier" value="${v}" ${state.tier.has(v) ? raw('checked') : ''}><span>${l}</span></label>`)}</div>
             ${box('common', '1', 'Include common UTs', state.common)}
@@ -504,6 +509,7 @@ async function loot() {
     if (state.type.size !== LOOT_TYPE.length) q.set('type', [...state.type].join(','));
     if (!state.common) q.set('common', '0');
     if (state.days !== '0') q.set('days', state.days);
+    if (state.item.trim()) q.set('item', state.item.trim());
     if (state.player.trim()) q.set('player', state.player.trim());
     if (state.page > 1) q.set('page', state.page);
     return q.toString();
@@ -570,10 +576,12 @@ async function loot() {
     load();
   });
   let typing;
-  document.getElementById('loot-player').addEventListener('input', e => {
-    clearTimeout(typing);
-    typing = setTimeout(() => { state.player = e.target.value; state.page = 1; load(); }, 300);
-  });
+  for (const [id, key] of [['loot-player', 'player'], ['loot-item', 'item']]) {
+    document.getElementById(id).addEventListener('input', e => {
+      clearTimeout(typing);
+      typing = setTimeout(() => { state[key] = e.target.value; state.page = 1; load(); }, 300);
+    });
+  }
   load();
 }
 

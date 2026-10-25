@@ -119,6 +119,11 @@ test('loot history filters by tier, type, common items, player and time', async 
   assert.ok(mine.total > 0 && mine.rows.every(r => r.name === name), 'player filter is case-insensitive and exact');
   assert.equal((await get('?player=NobodyAtAll')).total, 0);
   assert.ok((await get('?days=1')).total <= all.total);
+  const named = await get('?item=RING');
+  assert.ok(named.total > 0);
+  assert.ok(named.rows.every(r => catalog.get(r.item).name.toLowerCase().includes('ring')), 'item search ignores case');
+  assert.ok(named.rows.some(r => !catalog.get(r.item).name.toLowerCase().startsWith('ring')), 'matches in the middle of a name too');
+  assert.equal((await get('?item=zzzz-no-such-item')).total, 0);
 
   const page2 = await get('?page=2');
   if (all.total > 50) assert.notDeepEqual(page2.rows[0], all.rows[0]);

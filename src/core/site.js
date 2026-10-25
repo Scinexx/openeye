@@ -69,7 +69,7 @@ export function makeApi(db, catalog, settings) {
   const lootMeta = new Map(catalog.items.map(i => {
     const tier = i.untiered ? 'ut' : i.tier !== null && i.slot !== 10 ? String(i.tier) : null;
     const type = LOOT_TYPES.find(([, slots]) => slots.includes(i.slot))?.[0] ?? 'consumable';
-    return [i.id, {tier, type, common: !!i.commonUt}];
+    return [i.id, {tier, type, common: !!i.commonUt, name: i.name.toLowerCase()}];
   }));
   const lootTiers = ['ut', ...[...new Set([...lootMeta.values()].map(m => m.tier).filter(t => t && t !== 'ut'))]
     .sort((a, b) => Number(a) - Number(b))];
@@ -191,11 +191,14 @@ export function makeApi(db, catalog, settings) {
     return {span, rows: rows.map(parseDeath), updated: Number(await getMeta(db, 'last_ok:legends') ?? 0) || null};
   }
 
-  /** All-time history of collected items, newest first, with tier, type, time and player filters. */
-  async function loot({page = 1, tiers, types, common = false, days = 0, player = '', per = 50}) {
+  /** All-time history of collected items, newest first, with item name, tier, type, time and player filters. */
+  async function loot({page = 1, tiers, types, common = false, days = 0, player = '', item = '', per = 50}) {
     // Items without a tier (potions and the like) only show when no tier filter is applied.
     const everyTier = lootTiers.every(t => tiers.has(t));
-    const ids = [...lootMeta].filter(([, m]) => (m.tier === null ? everyTier : tiers.has(m.tier)) && types.has(m.type) && (common || !m.common))
+    // The item search matches anywhere in the name, ignoring case ("ring" finds "Snake Eye Ring").
+    const needle = item.toLowerCase();
+    const ids = [...lootMeta].filter(([, m]) => (m.tier === null ? everyTier : tiers.has(m.tier)) && types.has(m.type) && (common || !m.common)
+      && (!needle || m.name.includes(needle)))
       .map(([id]) => id);
     const where = ['c.item IN (SELECT value FROM json_each(?))'];
     const args = [JSON.stringify(ids)];
@@ -266,7 +269,8 @@ export async function routeApi(api, url) {
       types: listParam(url, 'type', LOOT_TYPES.map(([t]) => t)),
       common: url.searchParams.get('common') !== '0',
       days: [1, 7, 30].includes(Number(url.searchParams.get('days'))) ? Number(url.searchParams.get('days')) : 0,
-      player: (url.searchParams.get('player') ?? '').trim().slice(0, 20)
+      player: (url.searchParams.get('player') ?? '').trim().slice(0, 20),
+      item: (url.searchParams.get('item') ?? '').trim().slice(0, 40)
     });
   }
   if (p === '/api/items') return api.items();
