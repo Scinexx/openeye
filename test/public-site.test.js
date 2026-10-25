@@ -90,7 +90,7 @@ test('files outside the site cannot be read', async () => {
 });
 
 
-test('loot history filters by rarity, type, common items, player and time', async () => {
+test('loot history filters by tier, type, common items, player and time', async () => {
   const get = async qs => (await fetch(`${base}/api/loot${qs}`)).json();
   const all = await get('');
   const total = (await one(t.db, 'SELECT COUNT(*) n FROM collection_items')).n;
@@ -98,23 +98,21 @@ test('loot history filters by rarity, type, common items, player and time', asyn
   assert.ok(all.rows.every((r, i, a) => i === 0 || a[i - 1].found_at >= r.found_at), 'newest first');
   assert.ok(all.rows.length <= 50);
 
-  const ut = await get('?rarity=ut&common=0');
+  const ut = await get('?tier=ut&common=0');
   assert.ok(ut.rows.length > 0);
   for (const r of ut.rows) {
     const it = catalog.get(r.item);
     assert.ok(it.untiered && !it.commonUt, `${it.name} should be a rare untiered item`);
   }
-  const withCommon = await get('?rarity=ut');
+  const withCommon = await get('?tier=ut');
   assert.ok(withCommon.total >= ut.total);
 
   const rings = await get('?type=ring');
   assert.ok(rings.rows.every(r => catalog.get(r.item).slot === 9));
-  const top = await get('?rarity=top&type=weapon');
-  // Top tier = the best tier that can drop, or anything above it.
-  const best = {};
-  for (const it of catalog.values()) if (it.topTier) best[it.slot] = it.tier;
-  assert.ok(top.rows.length > 0);
-  assert.ok(top.rows.every(r => { const it = catalog.get(r.item); return [1, 2, 3, 8, 17].includes(it.slot) && it.tier >= best[it.slot]; }));
+  const top = await get('?tier=12&type=weapon');
+  assert.ok(top.rows.every(r => { const it = catalog.get(r.item); return [1, 2, 3, 8, 17].includes(it.slot) && it.tier === 12; }));
+  const lowTiers = await get('?tier=0,1,2&type=weapon,armor');
+  assert.ok(lowTiers.rows.every(r => [0, 1, 2].includes(catalog.get(r.item).tier)));
 
   const name = all.rows[0].name;
   const mine = await get(`?player=${encodeURIComponent(name.toLowerCase())}`);
@@ -126,7 +124,10 @@ test('loot history filters by rarity, type, common items, player and time', asyn
   if (all.total > 50) assert.notDeepEqual(page2.rows[0], all.rows[0]);
   const botAccounts = new Set((await rows(t.db, 'SELECT DISTINCT account FROM deaths d WHERE NOT EXISTS (SELECT 1 FROM players p WHERE p.account = d.account)')).map(r => r.account));
   assert.ok(all.rows.every(r => !botAccounts.has(r.account)), 'no bot loot');
-  assert.equal((await get('?rarity=nonsense')).total, 0, 'unknown values select nothing');
+  assert.equal((await get('?tier=nonsense&type=weapon')).total, 0, 'unknown values select nothing');
+  const potions = await get('?type=consumable');
+  assert.ok(potions.total > 0, 'with every tier selected, consumables with no tier show');
+  assert.equal((await get('?type=consumable&tier=ut')).total, 0, 'narrowing tiers hides items with no tier');
 });
 
 // Runs last: it uses up this test client's request allowance.

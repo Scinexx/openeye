@@ -314,7 +314,7 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--fame); }
 .tabs.compact button { padding: 6px 10px; font-size: 0.95rem; }
 
 /* Loot history */
-.loot-layout { display: grid; grid-template-columns: 250px 1fr; gap: 24px; align-items: start; }
+.loot-layout { display: grid; grid-template-columns: 290px 1fr; gap: 24px; align-items: start; }
 @media (max-width: 860px) { .loot-layout { grid-template-columns: 1fr; } }
 .loot-filters fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
 .loot-filters legend { font: 400 1rem var(--display); color: var(--bone-dim); margin-bottom: 8px; padding: 0; }
@@ -325,3 +325,18 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--fame); }
 .check { display: flex; align-items: center; gap: 10px; cursor: pointer; }
 .check input { width: 18px; height: 18px; margin: 0; accent-color: var(--fame); }
 #loot-results .who .slot { padding: 1px; }
+/* Tier toggles: two rows of compact chips */
+.chips { display: grid; gap: 3px; margin-bottom: 6px; }
+.chip { position: relative; cursor: pointer; }
+.chip input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.chip span {
+  display: block; text-align: center; padding: 6px 0; font: 0.8rem var(--display); color: var(--muted); white-space: nowrap;
+  background: var(--stone-deep); border: 2px solid var(--bevel-dark);
+}
+.chip input:checked + span { color: var(--fame); border-color: #6e5a22; background: #2f2c25; }
+.chip input:focus-visible + span { outline: 2px solid var(--fame); outline-offset: 1px; }
+.chip:hover span { color: var(--bone); }
+.loot-filters legend { display: flex; width: 100%; justify-content: space-between; align-items: baseline; }
+.legend-links { display: inline-flex; gap: 10px; }
+.legend-links button { font: 0.85rem var(--body); color: var(--bone-dim); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.legend-links button:hover { color: var(--fame); }

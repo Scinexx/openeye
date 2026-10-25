@@ -447,18 +447,22 @@ async function legends(span) {
 }
 
 // ---------- loot history ----------
-const LOOT_RARITY = [['ut', 'Untiered'], ['top', 'Top tier'], ['high', 'One below top'], ['low', 'Lower tiers'], ['other', 'No tier']];
 const LOOT_TYPE = [['weapon', 'Weapons'], ['ability', 'Abilities'], ['armor', 'Armor'], ['ring', 'Rings'], ['consumable', 'Consumables']];
 const LOOT_DAYS = [['0', 'All time'], ['30', 'Last 30 days'], ['7', 'Last 7 days'], ['1', 'Last 24 hours']];
 
 async function loot() {
+  // Tier toggles: UT plus every tier that appears among collectible items.
+  const {collectible} = await get('/api/items');
+  const LOOT_TIER = [['ut', 'UT'], ...[...new Set(collectible.map(id => ITEMS.get(id))
+    .filter(it => it && !it.untiered && it.tier !== null && it.slot !== 10).map(it => it.tier))]
+    .sort((a, b) => a - b).map(t => [String(t), `T${t}`])];
   const params = new URLSearchParams(location.search);
   const listFrom = (name, all) => {
     const raw = params.get(name);
     return new Set(raw === null ? all.map(([v]) => v) : raw.split(',').filter(v => all.some(([a]) => a === v)));
   };
   const state = {
-    rarity: listFrom('rarity', LOOT_RARITY),
+    tier: listFrom('tier', LOOT_TIER),
     type: listFrom('type', LOOT_TYPE),
     common: params.get('common') !== '0',
     days: LOOT_DAYS.some(([v]) => v === params.get('days')) ? params.get('days') : '0',
@@ -474,9 +478,9 @@ async function loot() {
       <form class="panel loot-filters" id="loot-filters" aria-label="Filters">
         <header><h2>Filters</h2><a href="/loot" data-link>Reset</a></header>
         <div class="panel-body stack" style="gap:18px">
-          <fieldset><legend>Rarity</legend>
-            ${LOOT_RARITY.map(([v, l]) => box('rarity', v, l, state.rarity.has(v)))}
-            ${box('common', '1', 'Include common untiered', state.common)}
+          <fieldset><legend>Tier <span class="legend-links"><button type="button" data-tiers="all">All</button><button type="button" data-tiers="none">None</button></span></legend>
+            <div class="chips" style="grid-template-columns:repeat(${Math.ceil(LOOT_TIER.length / 2)}, 1fr)">${LOOT_TIER.map(([v, l]) => h`<label class="chip"><input type="checkbox" data-group="tier" value="${v}" ${state.tier.has(v) ? raw('checked') : ''}><span>${l}</span></label>`)}</div>
+            ${box('common', '1', 'Include common UTs', state.common)}
           </fieldset>
           <fieldset><legend>Type</legend>${LOOT_TYPE.map(([v, l]) => box('type', v, l, state.type.has(v)))}</fieldset>
           <fieldset><legend>When</legend>
@@ -495,7 +499,7 @@ async function loot() {
   const form = document.getElementById('loot-filters');
   const query = () => {
     const q = new URLSearchParams();
-    if (state.rarity.size !== LOOT_RARITY.length) q.set('rarity', [...state.rarity].join(','));
+    if (state.tier.size !== LOOT_TIER.length) q.set('tier', [...state.tier].join(','));
     if (state.type.size !== LOOT_TYPE.length) q.set('type', [...state.type].join(','));
     if (!state.common) q.set('common', '0');
     if (state.days !== '0') q.set('days', state.days);
@@ -509,8 +513,8 @@ async function loot() {
     history.replaceState({}, '', `/loot${qs ? `?${qs}` : ''}`);
     const mine = ++seq;
     const results = document.getElementById('loot-results');
-    if (!state.rarity.size || !state.type.size) {
-      results.innerHTML = String(h`<p class="empty">Pick at least one rarity and one type.</p>`);
+    if (!state.type.size) {
+      results.innerHTML = String(h`<p class="empty">Pick at least one item type.</p>`);
       return;
     }
     let d;
@@ -545,9 +549,16 @@ async function loot() {
   };
 
   form.addEventListener('submit', e => e.preventDefault());
+  form.querySelectorAll('[data-tiers]').forEach(b => b.addEventListener('click', () => {
+    const on = b.dataset.tiers === 'all';
+    state.tier = new Set(on ? LOOT_TIER.map(([v]) => v) : []);
+    form.querySelectorAll('[data-group="tier"]').forEach(c => { c.checked = on; });
+    state.page = 1;
+    load();
+  }));
   form.addEventListener('change', e => {
     const el = e.target;
-    if (el.dataset.group === 'rarity' || el.dataset.group === 'type') {
+    if (el.dataset.group === 'tier' || el.dataset.group === 'type') {
       state[el.dataset.group][el.checked ? 'add' : 'delete'](el.value);
     } else if (el.dataset.group === 'common') {
       state.common = el.checked;

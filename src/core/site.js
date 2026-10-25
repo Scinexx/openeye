@@ -45,7 +45,6 @@ export const LOOT_TYPES = [
   ['ring', [9]],
   ['consumable', [10]]
 ];
-export const LOOT_RARITIES = ['ut', 'top', 'high', 'low', 'other'];
 const listParam = (url, name, allowed) => {
   const raw = url.searchParams.get(name);
   return new Set(raw === null ? allowed : raw.split(',').filter(v => allowed.includes(v)));
@@ -66,19 +65,14 @@ export function makeApi(db, catalog, settings) {
   const untiered = new Set(catalog.items.filter(i => i.untiered).map(i => i.id));
   const rankedCount = async () => (await one('SELECT COUNT(*) AS n FROM players WHERE listed = 1')).n;
 
-  // ---- loot history filters: each item gets a rarity and a type ----
-  const topTier = {};
-  for (const i of catalog.items) if (i.topTier) topTier[i.slot] = i.tier;
+  // ---- loot history filters: each item gets a tier ('ut', '0', '1', ... or null) and a type ----
   const lootMeta = new Map(catalog.items.map(i => {
-    let rarity = 'other';
-    if (i.untiered) rarity = 'ut';
-    else if (i.tier !== null && i.slot !== 10) {
-      const top = topTier[i.slot];
-      rarity = top === undefined ? 'low' : i.tier >= top ? 'top' : i.tier === top - 1 ? 'high' : 'low';
-    }
+    const tier = i.untiered ? 'ut' : i.tier !== null && i.slot !== 10 ? String(i.tier) : null;
     const type = LOOT_TYPES.find(([, slots]) => slots.includes(i.slot))?.[0] ?? 'consumable';
-    return [i.id, {rarity, type, common: !!i.commonUt}];
+    return [i.id, {tier, type, common: !!i.commonUt}];
   }));
+  const lootTiers = ['ut', ...[...new Set([...lootMeta.values()].map(m => m.tier).filter(t => t && t !== 'ut'))]
+    .sort((a, b) => Number(a) - Number(b))];
 
   async function status() {
     const since = now() - 86400;
@@ -197,9 +191,12 @@ export function makeApi(db, catalog, settings) {
     return {span, rows: rows.map(parseDeath), updated: Number(await getMeta(db, 'last_ok:legends') ?? 0) || null};
   }
 
-  /** All-time history of collected items, newest first, with rarity, type, time and player filters. */
-  async function loot({page = 1, rarities, types, common = false, days = 0, player = '', per = 50}) {
-    const ids = [...lootMeta].filter(([, m]) => rarities.has(m.rarity) && types.has(m.type) && (common || !m.common)).map(([id]) => id);
+  /** All-time history of collected items, newest first, with tier, type, time and player filters. */
+  async function loot({page = 1, tiers, types, common = false, days = 0, player = '', per = 50}) {
+    // Items without a tier (potions and the like) only show when no tier filter is applied.
+    const everyTier = lootTiers.every(t => tiers.has(t));
+    const ids = [...lootMeta].filter(([, m]) => (m.tier === null ? everyTier : tiers.has(m.tier)) && types.has(m.type) && (common || !m.common))
+      .map(([id]) => id);
     const where = ['c.item IN (SELECT value FROM json_each(?))'];
     const args = [JSON.stringify(ids)];
     if (days > 0) { where.push('c.found_at >= ?'); args.push(now() - days * 86400); }
@@ -234,7 +231,7 @@ export function makeApi(db, catalog, settings) {
       deaths: deaths.map(parseDeath).filter(d => d.equipment.includes(id)).slice(0, 20), players};
   }
 
-  return {status, summary, rankings, search, player, graveyard, death, legends, loot, items, item};
+  return {status, summary, rankings, search, player, graveyard, death, legends, loot, lootTiers, items, item};
 }
 
 const int = (v, max) => Math.min(max, Math.max(1, Math.floor(Number(v)) || 1));
@@ -265,7 +262,7 @@ export async function routeApi(api, url) {
   if (p === '/api/loot') {
     return api.loot({
       page: int(url.searchParams.get('page'), 100000),
-      rarities: listParam(url, 'rarity', LOOT_RARITIES),
+      tiers: listParam(url, 'tier', api.lootTiers),
       types: listParam(url, 'type', LOOT_TYPES.map(([t]) => t)),
       common: url.searchParams.get('common') !== '0',
       days: [1, 7, 30].includes(Number(url.searchParams.get('days'))) ? Number(url.searchParams.get('days')) : 0,
