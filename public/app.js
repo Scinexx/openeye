@@ -199,22 +199,22 @@ async function home() {
 async function rankings(board) {
   if (!BOARDS[board]) return notFound();
   const {players} = await get(`/api/rankings/${board}`);
-  const cols = Object.keys(BOARDS).filter(b => b !== board);
+  // Columns stay in the same order on every board; the selected one is highlighted.
+  const cols = Object.keys(BOARDS);
   const draw = (filter = '') => {
     const rows = players.filter(p => p.name.toLowerCase().includes(filter.toLowerCase()));
     document.getElementById('rank-body').innerHTML = String(rows.length ? h`${rows.map(p => h`<tr class="${p.rank === 1 ? 'top1' : ''}">
       <td class="rank">${p.rank}</td>
       <td><span class="who">${playerLink(p.name)} ${discordIcon(p.discord_id)}</span></td>
-      <td class="n main-metric">${fmt(p[board])}</td>
-      ${cols.map(c => h`<td class="n">${fmt(p[c])}</td>`)}
-    </tr>`)}` : h`<tr><td colspan="${cols.length + 3}" class="empty">No players match “${filter}”.</td></tr>`);
+      ${cols.map(c => h`<td class="n${c === board ? ' main-metric' : ''}">${fmt(p[c])}</td>`)}
+    </tr>`)}` : h`<tr><td colspan="${cols.length + 2}" class="empty">No players match “${filter}”.</td></tr>`);
   };
   view(h`
     <div class="page-head"><div><h1>Rankings</h1><p>${BOARDS[board].help}</p></div></div>
     <nav class="tabs" aria-label="Ranking boards">${Object.entries(BOARDS).map(([k, b]) => h`<a href="/rankings/${k}" data-link ${k === board ? raw('aria-current="page"') : ''}>${b.title}</a>`)}</nav>
     <div class="controls"><label class="sr" for="rank-filter">Filter players</label><input id="rank-filter" type="search" placeholder="Filter by name"><span class="muted">${fmt(players.length)} ranked players</span></div>
     <section class="panel"><div class="table-wrap"><table>
-      <thead><tr><th>Rank</th><th>Player</th><th class="n">${BOARDS[board].title}</th>${cols.map(c => h`<th class="n"><a href="/rankings/${c}" data-link>${BOARDS[c].short}</a></th>`)}</tr></thead>
+      <thead><tr><th>Rank</th><th>Player</th>${cols.map(c => h`<th class="n"${c === board ? raw(' aria-sort="descending"') : ''}><a href="/rankings/${c}" data-link>${BOARDS[c].short}</a></th>`)}</tr></thead>
       <tbody id="rank-body"></tbody>
     </table></div></section>`);
   draw();

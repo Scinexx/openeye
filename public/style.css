@@ -173,6 +173,7 @@ th, td { padding: 10px 14px; text-align: left; vertical-align: middle; white-spa
 th { font: 400 0.95rem var(--display); color: var(--bone-dim); background: var(--panel-raised); border-bottom: 2px solid var(--bevel-dark); }
 th.sortable { cursor: pointer; }
 th.sortable[aria-sort] { color: var(--fame); }
+th[aria-sort] a { color: var(--fame); text-decoration: none; }
 td { border-top: 2px solid var(--stone-deep); }
 tbody tr:hover td { background: rgba(0, 0, 0, 0.12); }
 td.n, th.n { text-align: right; }
