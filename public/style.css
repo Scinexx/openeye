@@ -153,8 +153,8 @@ main { flex: 1; width: 100%; max-width: var(--max); margin: 0 auto; padding: 32p
 .sprite.missing { filter: brightness(0) opacity(0.55); }
 .slot { display: inline-flex; padding: 2px; background: var(--stone-deep); border: 2px solid var(--bevel-dark); }
 a.slot:hover { border-color: var(--fame); }
-.slot.bag-purple { border-color: #5b3a85; }
-.slot.bag-white { border-color: #bfb9d4; box-shadow: 0 0 6px rgba(244, 241, 255, 0.35); }
+.slot.bag-ut { border-color: #8a5ccc; box-shadow: 0 0 6px rgba(164, 107, 224, 0.35); }
+.slot.bag-top { border-color: #b39a2c; }
 .slot.empty-slot { background: none; border-style: dashed; }
 .gear { display: flex; gap: 4px; flex-wrap: wrap; }
 
@@ -272,9 +272,9 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--fame); }
 .item-hero { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; margin-bottom: 24px; }
 .item-hero .slot { padding: 8px; }
 .tier { font-family: var(--body); font-weight: 700; }
-.tier.ut { color: var(--bag-white); }
-.tier.high { color: var(--bag-purple); }
-.tier.low { color: #c9a277; }
+.tier.ut { color: var(--bag-purple); }
+.tier.high { color: #ffe04d; }
+.tier.low { color: var(--bone); }
 .bonus-list { margin: 8px 0 0; padding: 0; list-style: none; color: var(--online); }
 
 .notice { padding: 16px; border-left: 4px solid var(--fame); background: var(--stone-deep); color: var(--bone-dim); margin-bottom: 24px; }

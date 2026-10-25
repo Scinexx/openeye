@@ -62,11 +62,12 @@ function tierInfo(item) {
   if (!item) return {label: '', cls: ''};
   if (item.untiered) return {label: 'UT', cls: 'ut'};
   if (item.tier === null) return {label: '', cls: ''};
-  return {label: `T${item.tier}`, cls: item.tier >= (TOP_TIER[item.slot] ?? 99) - 1 ? 'high' : 'low'};
+  // 'high' = the best tier that can drop in this slot (or above); every other tier is 'low'.
+  return {label: `T${item.tier}`, cls: item.tier >= (TOP_TIER[item.slot] ?? 99) ? 'high' : 'low'};
 }
 function bag(item) {
   const t = tierInfo(item).cls;
-  return t === 'ut' ? 'bag-white' : t === 'high' ? 'bag-purple' : '';
+  return t === 'ut' ? 'bag-ut' : t === 'high' ? 'bag-top' : '';
 }
 
 // ---------- sprites ----------
