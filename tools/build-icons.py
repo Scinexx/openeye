@@ -144,7 +144,10 @@ def main():
         k = 56 / art.height
         if is_pixel_art(mark):
             k = max(1, 56 // art.height)
-            header = art.resize((art.width * k, art.height * k), Image.NEAREST)
+            art = art.resize((art.width * k, art.height * k), Image.NEAREST)
+            # Pad to exactly 56px so each art pixel lands on whole screen pixels at 28px.
+            header = Image.new('RGBA', (art.width, 56), (0, 0, 0, 0))
+            header.alpha_composite(art, (0, (56 - art.height) // 2))
         else:
             header = art.resize((round(art.width * k), 56), Image.LANCZOS)
     header.save(OUT / 'logo.png')

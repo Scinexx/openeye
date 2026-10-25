@@ -157,7 +157,7 @@ async function home() {
   const hasData = s.counts.players > 0;
   view(h`
     <section class="hero">
-      <p>Rankings, item collections and the full graveyard, recorded from the live Open RotMG server around the clock.</p>
+      <p>Rankings, item collections and a limited graveyard, recorded from the live Open RotMG server around the clock.</p>
     </section>
     ${!hasData ? h`<div class="notice"><strong>Collecting the first snapshot.</strong> OpenEye is reading the game server now. This page fills in within a minute.</div>` : ''}
     <section class="panel status-strip" aria-label="Server status">
