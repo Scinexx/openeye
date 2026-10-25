@@ -312,3 +312,16 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--fame); }
 .rows .title .star { margin-right: 5px; }
 .player-head .star { align-self: center; }
 .tabs.compact button { padding: 6px 10px; font-size: 0.95rem; }
+
+/* Loot history */
+.loot-layout { display: grid; grid-template-columns: 250px 1fr; gap: 24px; align-items: start; }
+@media (max-width: 860px) { .loot-layout { grid-template-columns: 1fr; } }
+.loot-filters fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
+.loot-filters legend { font: 400 1rem var(--display); color: var(--bone-dim); margin-bottom: 8px; padding: 0; }
+.loot-filters select, .loot-filters input[type="search"] {
+  width: 100%; font: 1rem var(--body); color: var(--bone); background: var(--stone-deep); padding: 7px 10px;
+  border: 2px solid; border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+}
+.check { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.check input { width: 18px; height: 18px; margin: 0; accent-color: var(--fame); }
+#loot-results .who .slot { padding: 1px; }

@@ -446,6 +446,125 @@ async function legends(span) {
     </table></div></section>`);
 }
 
+// ---------- loot history ----------
+const LOOT_RARITY = [['ut', 'Untiered'], ['top', 'Top tier'], ['high', 'One below top'], ['low', 'Lower tiers'], ['other', 'No tier']];
+const LOOT_TYPE = [['weapon', 'Weapons'], ['ability', 'Abilities'], ['armor', 'Armor'], ['ring', 'Rings'], ['consumable', 'Consumables']];
+const LOOT_DAYS = [['0', 'All time'], ['30', 'Last 30 days'], ['7', 'Last 7 days'], ['1', 'Last 24 hours']];
+
+async function loot() {
+  const params = new URLSearchParams(location.search);
+  const listFrom = (name, all) => {
+    const raw = params.get(name);
+    return new Set(raw === null ? all.map(([v]) => v) : raw.split(',').filter(v => all.some(([a]) => a === v)));
+  };
+  const state = {
+    rarity: listFrom('rarity', LOOT_RARITY),
+    type: listFrom('type', LOOT_TYPE),
+    common: params.get('common') !== '0',
+    days: LOOT_DAYS.some(([v]) => v === params.get('days')) ? params.get('days') : '0',
+    player: params.get('player') ?? '',
+    page: Math.max(1, Number(params.get('page')) || 1)
+  };
+  const box = (group, value, label, checked) =>
+    h`<label class="check"><input type="checkbox" data-group="${group}" value="${value}" ${checked ? raw('checked') : ''}> ${label}</label>`;
+  view(h`
+    <div class="page-head"><div><h1>Loot</h1><p>Every item players have looted, newest first.</p></div></div>
+    <p class="notice">Only the first time each player obtains an item is recorded. Finding the same item again does not add a new entry.</p>
+    <div class="loot-layout">
+      <form class="panel loot-filters" id="loot-filters" aria-label="Filters">
+        <header><h2>Filters</h2><a href="/loot" data-link>Reset</a></header>
+        <div class="panel-body stack" style="gap:18px">
+          <fieldset><legend>Rarity</legend>
+            ${LOOT_RARITY.map(([v, l]) => box('rarity', v, l, state.rarity.has(v)))}
+            ${box('common', '1', 'Include common untiered', state.common)}
+          </fieldset>
+          <fieldset><legend>Type</legend>${LOOT_TYPE.map(([v, l]) => box('type', v, l, state.type.has(v)))}</fieldset>
+          <fieldset><legend>When</legend>
+            <label class="sr" for="loot-days">Time range</label>
+            <select id="loot-days">${LOOT_DAYS.map(([v, l]) => h`<option value="${v}" ${v === state.days ? raw('selected') : ''}>${l}</option>`)}</select>
+          </fieldset>
+          <fieldset><legend>Player</legend>
+            <label class="sr" for="loot-player">Player name</label>
+            <input id="loot-player" type="search" placeholder="Any player" maxlength="20" spellcheck="false" value="${state.player}">
+          </fieldset>
+        </div>
+      </form>
+      <section class="panel" id="loot-results" aria-live="polite"><p class="loading" style="padding:24px 16px">Loading…</p></section>
+    </div>`);
+
+  const form = document.getElementById('loot-filters');
+  const query = () => {
+    const q = new URLSearchParams();
+    if (state.rarity.size !== LOOT_RARITY.length) q.set('rarity', [...state.rarity].join(','));
+    if (state.type.size !== LOOT_TYPE.length) q.set('type', [...state.type].join(','));
+    if (!state.common) q.set('common', '0');
+    if (state.days !== '0') q.set('days', state.days);
+    if (state.player.trim()) q.set('player', state.player.trim());
+    if (state.page > 1) q.set('page', state.page);
+    return q.toString();
+  };
+  let seq = 0;
+  const load = async () => {
+    const qs = query();
+    history.replaceState({}, '', `/loot${qs ? `?${qs}` : ''}`);
+    const mine = ++seq;
+    const results = document.getElementById('loot-results');
+    if (!state.rarity.size || !state.type.size) {
+      results.innerHTML = String(h`<p class="empty">Pick at least one rarity and one type.</p>`);
+      return;
+    }
+    let d;
+    try { d = await get(`/api/loot${qs ? `?${qs}` : ''}`); }
+    catch { if (mine === seq) results.innerHTML = String(h`<p class="empty">Loot could not load. Try again in a moment.</p>`); return; }
+    if (mine !== seq) return;  // a newer filter change is already loading
+    const pages = Math.max(1, Math.ceil(d.total / d.per));
+    results.innerHTML = String(h`
+      <header><h2>${fmt(d.total)} ${d.total === 1 ? 'item' : 'items'}</h2><span class="muted">${pages > 1 ? `Page ${d.page} of ${pages}` : ''}</span></header>
+      ${d.rows.length ? h`<div class="table-wrap"><table>
+        <thead><tr><th>Item</th><th>Tier</th><th>Type</th><th>Player</th><th>Found</th></tr></thead>
+        <tbody>${d.rows.map(f => {
+          const it = ITEMS.get(f.item), t = tierInfo(it);
+          return h`<tr>
+            <td><span class="who">${itemSlot(f.item, 1)}<a href="/item/${f.item}" data-link>${it?.name ?? `Item ${f.item}`}</a></span></td>
+            <td><span class="tier ${t.cls}">${t.label || '–'}</span></td>
+            <td class="muted">${it?.slotName ?? ''}</td>
+            <td>${playerLink(f.name, f.stars)}</td>
+            <td>${when(f.found_at)}</td>
+          </tr>`;
+        })}</tbody>
+      </table></div>
+      <div class="pager">
+        ${d.page > 1 ? h`<button class="btn" type="button" data-page="${d.page - 1}">Previous</button>` : ''}
+        ${d.page < pages ? h`<button class="btn" type="button" data-page="${d.page + 1}">Next</button>` : ''}
+      </div>` : h`<p class="empty">No loot matches these filters.</p>`}`);
+    results.querySelectorAll('[data-page]').forEach(b => b.addEventListener('click', () => {
+      state.page = Number(b.dataset.page);
+      load();
+      results.scrollIntoView({block: 'start'});
+    }));
+  };
+
+  form.addEventListener('submit', e => e.preventDefault());
+  form.addEventListener('change', e => {
+    const el = e.target;
+    if (el.dataset.group === 'rarity' || el.dataset.group === 'type') {
+      state[el.dataset.group][el.checked ? 'add' : 'delete'](el.value);
+    } else if (el.dataset.group === 'common') {
+      state.common = el.checked;
+    } else if (el.id === 'loot-days') {
+      state.days = el.value;
+    } else return;
+    state.page = 1;
+    load();
+  });
+  let typing;
+  document.getElementById('loot-player').addEventListener('input', e => {
+    clearTimeout(typing);
+    typing = setTimeout(() => { state.player = e.target.value; state.page = 1; load(); }, 300);
+  });
+  load();
+}
+
 async function items() {
   const data = await get('/api/items');
   const owners = new Map(data.owners.map(o => [o.item, o]));
@@ -548,12 +667,13 @@ const routes = [
   [/^\/death\/(\d+)\/(\d+)$/, m => death(Number(m[1]), Number(m[2])), 'graveyard'],
   [/^\/legends\/?$/, () => legends('week'), 'legends'],
   [/^\/legends\/([a-z]+)$/, m => legends(m[1]), 'legends'],
+  [/^\/loot$/, () => loot(), 'loot'],
   [/^\/items$/, () => items(), 'items'],
   [/^\/item\/(\d+)$/, m => item(Number(m[1])), 'items'],
   [/^\/about$/, () => about(), 'about']
 ];
 
-const TITLES = {rankings: 'Rankings', graveyard: 'Legends graveyard', legends: 'Legends', items: 'Items', about: 'About'};
+const TITLES = {rankings: 'Rankings', graveyard: 'Legends graveyard', legends: 'Legends', loot: 'Loot', items: 'Items', about: 'About'};
 async function route() {
   const path = location.pathname;
   for (const [re, fn, nav] of routes) {

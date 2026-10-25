@@ -37,6 +37,20 @@ const parseDeath = d => d && ({
   bonuses: d.bonuses ? JSON.parse(d.bonuses) : null
 });
 
+// Item types for the loot filters, by equipment slot (see tools/update-catalog.mjs for slot names).
+export const LOOT_TYPES = [
+  ['weapon', [1, 2, 3, 8, 17]],
+  ['ability', [4, 5, 11, 12, 13, 15, 16, 18, 19, 20, 21, 22, 23]],
+  ['armor', [6, 7, 14]],
+  ['ring', [9]],
+  ['consumable', [10]]
+];
+export const LOOT_RARITIES = ['ut', 'top', 'high', 'low', 'other'];
+const listParam = (url, name, allowed) => {
+  const raw = url.searchParams.get(name);
+  return new Set(raw === null ? allowed : raw.split(',').filter(v => allowed.includes(v)));
+};
+
 const rankedSql = board => `SELECT account, name, discord_id, base_fame, total_fame, stars, quests, collection, first_seen, last_seen,
   RANK() OVER (ORDER BY ${board} DESC) AS rank FROM players WHERE listed = 1`;
 
@@ -51,6 +65,20 @@ export function makeApi(db, catalog, settings) {
   const notableJson = JSON.stringify(catalog.items.filter(i => i.notable).map(i => i.id));
   const untiered = new Set(catalog.items.filter(i => i.untiered).map(i => i.id));
   const rankedCount = async () => (await one('SELECT COUNT(*) AS n FROM players WHERE listed = 1')).n;
+
+  // ---- loot history filters: each item gets a rarity and a type ----
+  const topTier = {};
+  for (const i of catalog.items) if (i.topTier) topTier[i.slot] = i.tier;
+  const lootMeta = new Map(catalog.items.map(i => {
+    let rarity = 'other';
+    if (i.untiered) rarity = 'ut';
+    else if (i.tier !== null && i.slot !== 10) {
+      const top = topTier[i.slot];
+      rarity = top === undefined ? 'low' : i.tier >= top ? 'top' : i.tier === top - 1 ? 'high' : 'low';
+    }
+    const type = LOOT_TYPES.find(([, slots]) => slots.includes(i.slot))?.[0] ?? 'consumable';
+    return [i.id, {rarity, type, common: !!i.commonUt}];
+  }));
 
   async function status() {
     const since = now() - 86400;
@@ -169,6 +197,21 @@ export function makeApi(db, catalog, settings) {
     return {span, rows: rows.map(parseDeath), updated: Number(await getMeta(db, 'last_ok:legends') ?? 0) || null};
   }
 
+  /** All-time history of collected items, newest first, with rarity, type, time and player filters. */
+  async function loot({page = 1, rarities, types, common = false, days = 0, player = '', per = 50}) {
+    const ids = [...lootMeta].filter(([, m]) => rarities.has(m.rarity) && types.has(m.type) && (common || !m.common)).map(([id]) => id);
+    const where = ['c.item IN (SELECT value FROM json_each(?))'];
+    const args = [JSON.stringify(ids)];
+    if (days > 0) { where.push('c.found_at >= ?'); args.push(now() - days * 86400); }
+    if (player) { where.push('p.name = ? COLLATE NOCASE'); args.push(player); }
+    const sql = `FROM collection_items c JOIN players p ON p.account = c.account WHERE ${where.join(' AND ')}`;
+    const [total, rows] = await Promise.all([
+      one(`SELECT COUNT(*) AS n ${sql}`, ...args),
+      q(`SELECT c.account, p.name, p.stars, c.item, c.found_at ${sql} ORDER BY c.found_at DESC, c.item LIMIT ? OFFSET ?`, ...args, per, (page - 1) * per)
+    ]);
+    return {total: total.n, page, per, rows};
+  }
+
   async function items() {
     const [owners, collectible, players] = await Promise.all([
       q('SELECT item, COUNT(*) AS owners, MIN(found_at) AS first_found FROM collection_items GROUP BY item'),
@@ -191,7 +234,7 @@ export function makeApi(db, catalog, settings) {
       deaths: deaths.map(parseDeath).filter(d => d.equipment.includes(id)).slice(0, 20), players};
   }
 
-  return {status, summary, rankings, search, player, graveyard, death, legends, items, item};
+  return {status, summary, rankings, search, player, graveyard, death, legends, loot, items, item};
 }
 
 const int = (v, max) => Math.min(max, Math.max(1, Math.floor(Number(v)) || 1));
@@ -219,6 +262,16 @@ export async function routeApi(api, url) {
   }
   if ((m = p.match(/^\/api\/death\/(\d{1,10})\/(\d{1,10})$/))) return api.death(Number(m[1]), Number(m[2]));
   if ((m = p.match(/^\/api\/legends\/([a-z]+)$/))) return api.legends(m[1]);
+  if (p === '/api/loot') {
+    return api.loot({
+      page: int(url.searchParams.get('page'), 100000),
+      rarities: listParam(url, 'rarity', LOOT_RARITIES),
+      types: listParam(url, 'type', LOOT_TYPES.map(([t]) => t)),
+      common: url.searchParams.get('common') !== '0',
+      days: [1, 7, 30].includes(Number(url.searchParams.get('days'))) ? Number(url.searchParams.get('days')) : 0,
+      player: (url.searchParams.get('player') ?? '').trim().slice(0, 20)
+    });
+  }
   if (p === '/api/items') return api.items();
   if ((m = p.match(/^\/api\/item\/(\d{1,6})$/))) return api.item(Number(m[1]));
   throw new HttpError(404, 'Unknown API route');
