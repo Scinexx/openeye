@@ -38,12 +38,25 @@ export const SCHEMA = [
   // Names of the server's bots from the public /api/bots list. Bots never appear on
   // the hiscores, so any account missing from players is also treated as a bot.
   `CREATE TABLE IF NOT EXISTS bots (name TEXT PRIMARY KEY COLLATE NOCASE, first_seen INTEGER NOT NULL, last_seen INTEGER NOT NULL)`,
-  `CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)`
+  `CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)`,
+  // Fame earned: every rise in a player's living fame, as seen between hiscores polls.
+  // The living fame a player already had when tracking began is one entry dated a day
+  // before. players.fame_earned is the running total of these rows.
+  `CREATE TABLE IF NOT EXISTS fame_gains (
+    account INTEGER NOT NULL, at INTEGER NOT NULL, amount INTEGER NOT NULL, PRIMARY KEY (account, at))`
+];
+// Columns added after the first release. SQLite has no ADD COLUMN IF NOT EXISTS, so
+// "duplicate column" errors are expected and ignored.
+const COLUMNS = [
+  'ALTER TABLE players ADD COLUMN fame_earned INTEGER NOT NULL DEFAULT 0'
 ];
 
 /** Create every table and index if missing. `db` is a D1 database or the local adapter. */
 export async function ensureSchema(db) {
   await db.batch(SCHEMA.map(sql => db.prepare(sql)));
+  for (const sql of COLUMNS) {
+    try { await db.prepare(sql).run(); } catch (e) { if (!/duplicate column/i.test(String(e?.message ?? e))) throw e; }
+  }
 }
 
 export const now = () => Math.floor(Date.now() / 1000);

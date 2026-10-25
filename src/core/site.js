@@ -2,7 +2,7 @@
 // There are no write or admin endpoints: everything here only reads the database.
 import {getMeta, now} from './schema.js';
 
-export const BOARDS = ['stars', 'base_fame', 'total_fame', 'collection', 'quests'];
+export const BOARDS = ['stars', 'base_fame', 'total_fame', 'fame_earned', 'collection', 'quests'];
 
 export const SECURITY_HEADERS = {
   // Sprites are positioned with inline style attributes, so styles allow 'unsafe-inline'; scripts never do.
@@ -53,8 +53,8 @@ const listParam = (url, name, allowed) => {
 // A player is ranked when they are on the game's hiscores, unless the account is a guest
 // (name starting with "Guest") whose every stat is settings.minRankedStat or lower.
 const rankedWhere = (min, alias = '') =>
-  `${alias}listed = 1 AND NOT (${alias}name LIKE 'Guest%' AND MAX(${alias}stars, ${alias}base_fame, ${alias}total_fame, ${alias}collection, ${alias}quests) <= ${Math.max(0, Math.floor(min))})`;
-const rankedSqlFor = min => board => `SELECT account, name, discord_id, base_fame, total_fame, stars, quests, collection, first_seen, last_seen,
+  `${alias}listed = 1 AND NOT (${alias}name LIKE 'Guest%' AND MAX(${alias}stars, ${alias}base_fame, ${alias}total_fame, ${alias}fame_earned, ${alias}collection, ${alias}quests) <= ${Math.max(0, Math.floor(min))})`;
+const rankedSqlFor = min => board => `SELECT account, name, discord_id, base_fame, total_fame, fame_earned, stars, quests, collection, first_seen, last_seen,
   RANK() OVER (ORDER BY ${board} DESC) AS rank FROM players WHERE ${rankedWhere(min)}`;
 
 /**
@@ -154,15 +154,16 @@ export function makeApi(db, catalog, settings) {
     await Promise.all(BOARDS.map(async board => {
       ranks[board] = (await one(`SELECT rank FROM (${rankedSql(board)}) WHERE account = ?`, p.account))?.rank ?? null;
     }));
-    const [rankedPlayers, names, history, collection, deaths, legends] = await Promise.all([
+    const [rankedPlayers, names, history, collection, deaths, legends, fameGains] = await Promise.all([
       rankedCount(),
       q('SELECT name, first_seen FROM name_history WHERE account = ? ORDER BY first_seen', p.account),
       q('SELECT at, base_fame, total_fame, stars, quests, collection FROM player_history WHERE account = ? ORDER BY at', p.account),
       q('SELECT item, found_at FROM collection_items WHERE account = ? ORDER BY found_at DESC', p.account),
       q(`SELECT ${DEATH_COLS} FROM deaths d WHERE d.account = ? ORDER BY COALESCE(d.died_at, d.discovered_at) DESC`, p.account),
-      q('SELECT timespan, rank, char_id, total_fame FROM legends WHERE account = ? ORDER BY timespan, rank', p.account)
+      q('SELECT timespan, rank, char_id, total_fame FROM legends WHERE account = ? ORDER BY timespan, rank', p.account),
+      q('SELECT at, amount FROM fame_gains WHERE account = ? ORDER BY at', p.account)
     ]);
-    return {player: p, ranks, rankedPlayers, names, history, collection, deaths: deaths.map(parseDeath), legends};
+    return {player: p, ranks, rankedPlayers, names, history, collection, deaths: deaths.map(parseDeath), legends, fameGains};
   }
 
   async function graveyard({page = 1, sort = 'recent', cls = null, bots = false, per = 40}) {

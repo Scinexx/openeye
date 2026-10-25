@@ -65,20 +65,30 @@ export class Collector {
     const db = this.db;
     const known = new Map((await this.all('SELECT account, base_fame, total_fame, stars, quests, collection FROM players'))
       .map(r => [r.account, r]));
+    // Fame earned. On the first poll (or a player's first appearance) their current living
+    // fame is credited as earned the day before; after that, every rise counts.
+    const fameStarted = (await getMeta(db, 'fame_earned_since')) !== null;
+    const DAY = 86400;
     const stmts = [db.prepare('UPDATE players SET listed = 0')];
     let added = 0, changed = 0;
     for (const p of data.players) {
       const v = [p.base_fame ?? 0, p.total_fame ?? 0, p.stars ?? 0, p.quests ?? 0, p.collection ?? 0].map(Number);
       const old = known.get(p.account);
+      const baseline = !old || !fameStarted;
+      const gain = baseline ? v[0] : Math.max(0, v[0] - old.base_fame);
+      if (gain > 0) {
+        stmts.push(db.prepare(`INSERT INTO fame_gains(account, at, amount) VALUES(?,?,?)
+          ON CONFLICT(account, at) DO UPDATE SET amount = amount + excluded.amount`).bind(p.account, baseline ? at - DAY : at, gain));
+      }
       const history = db.prepare('INSERT OR REPLACE INTO player_history(account, at, base_fame, total_fame, stars, quests, collection) VALUES(?,?,?,?,?,?,?)')
         .bind(p.account, at, ...v);
       if (!old) {
-        stmts.push(db.prepare(`INSERT INTO players(account, name, discord_id, base_fame, total_fame, stars, quests, collection, first_seen, last_seen, listed)
-          VALUES(?,?,?,?,?,?,?,?,?,?,1)`).bind(p.account, p.name, p.discord_id ?? null, ...v, at, at), history);
+        stmts.push(db.prepare(`INSERT INTO players(account, name, discord_id, base_fame, total_fame, stars, quests, collection, first_seen, last_seen, listed, fame_earned)
+          VALUES(?,?,?,?,?,?,?,?,?,?,1,?)`).bind(p.account, p.name, p.discord_id ?? null, ...v, at, at, gain), history);
         added++;
       } else {
-        stmts.push(db.prepare(`UPDATE players SET name=?, discord_id=?, base_fame=?, total_fame=?, stars=?, quests=?, collection=?, last_seen=?, listed=1
-          WHERE account=?`).bind(p.name, p.discord_id ?? null, ...v, at, p.account));
+        stmts.push(db.prepare(`UPDATE players SET name=?, discord_id=?, base_fame=?, total_fame=?, stars=?, quests=?, collection=?, last_seen=?, listed=1,
+          fame_earned = fame_earned + ? WHERE account=?`).bind(p.name, p.discord_id ?? null, ...v, at, gain, p.account));
         const before = [old.base_fame, old.total_fame, old.stars, old.quests, old.collection];
         if (before.some((x, i) => x !== v[i])) { stmts.push(history); changed++; }
       }
@@ -91,6 +101,7 @@ export class Collector {
         db.prepare('INSERT OR IGNORE INTO collectible_items(item) SELECT value FROM json_each(?)').bind(list)
       );
     }
+    if (!fameStarted) stmts.push(setMetaStmt(db, 'fame_earned_since', at));
     await db.batch(stmts);
     if (added || changed) this.log.info(`hiscores: ${data.players.length} players, ${added} new, ${changed} changed`);
 

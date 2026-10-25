@@ -213,9 +213,14 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--fame); }
 .player-head { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin-bottom: 8px; }
 .player-head h1 { overflow-wrap: anywhere; }
 .player-meta { color: var(--bone-dim); margin-bottom: 24px; display: flex; gap: 6px 20px; flex-wrap: wrap; }
-.scoreboard { display: grid; grid-template-columns: repeat(5, 1fr); margin-bottom: 24px; }
+.scoreboard { display: grid; grid-template-columns: repeat(6, 1fr); margin-bottom: 24px; }
 .score { padding: 16px; border-left: 2px solid var(--bevel-dark); }
 .score:first-child { border-left: 0; }
+@media (max-width: 1100px) and (min-width: 861px) {
+  .scoreboard { grid-template-columns: repeat(3, 1fr); }
+  .score:nth-child(3n+1) { border-left: 0; }
+  .score:nth-child(n+4) { border-top: 2px solid var(--bevel-dark); }
+}
 .score dt { color: var(--bone-dim); font-size: 0.95rem; }
 .score dd { margin: 4px 0 0; font: 700 2rem var(--display); line-height: 1; }
 .score .rank-line { display: block; margin-top: 6px; font: 0.9rem var(--body); color: var(--muted); }

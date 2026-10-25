@@ -41,6 +41,7 @@ const BOARDS = {
   stars: {title: 'Stars', short: 'Stars', help: 'Class stars from each class’s best fame.'},
   base_fame: {title: 'Living fame', short: 'Living fame', help: 'Highest fame of a character that is still alive.'},
   total_fame: {title: 'Account fame', short: 'Account fame', help: 'Fame banked from dead characters, minus what was spent.'},
+  fame_earned: {title: 'Fame earned', short: 'Fame earned', help: 'Every rise in living fame, added up. Living fame a player already had when tracking began counts as earned the day before.'},
   collection: {title: 'Collection', short: 'Collection', help: 'Different items personally looted from enemies.'},
   quests: {title: 'Quests', short: 'Quests', help: 'Assigned quests completed across all characters.'}
 };
@@ -262,7 +263,7 @@ function historyChart(history, key) {
   const W = 760, H = 240, L = 64, R = 12, T = 14, B = 34;
   if (history.length < 2) {
     const v = history[0]?.[key] ?? 0;
-    return h`<p class="empty" style="padding-left:0">${BOARDS[key].title} has stayed at ${fmt(v)} since tracking began. The graph appears once it changes.</p>`;
+    return h`<p class="empty" style="padding-left:0">${BOARDS[key].title} has stayed at ${fmt(v)}${history[0] ? h` since ${day(history[0].at)}` : ''}. The graph appears once it changes.</p>`;
   }
   const nowTs = Math.floor(Date.now() / 1000);
   const pts = history.map(r => ({t: r.at, v: r[key]}));
@@ -440,7 +441,10 @@ async function player(name) {
       </div>
     </section>`);
 
-  const drawChart = key => { document.getElementById('chart').innerHTML = String(historyChart(data.history, key)); };
+  // Fame earned is charted from its own record of gains rather than the hiscores history.
+  let earned = 0;
+  const earnedHistory = data.fameGains.map(g => ({at: g.at, fame_earned: (earned += g.amount)}));
+  const drawChart = key => { document.getElementById('chart').innerHTML = String(historyChart(key === 'fame_earned' ? earnedHistory : data.history, key)); };
   drawChart('stars');
   main.querySelectorAll('[data-metric]').forEach(b => b.addEventListener('click', () => {
     main.querySelectorAll('[data-metric]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));

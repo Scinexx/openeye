@@ -25,7 +25,7 @@ export const DEFAULTS = {
   popularUtShare: 0.5,
   popularUtMinPlayers: 8,
   // Leaderboards leave out guest accounts (names starting with "Guest") whose every stat
-  // (stars, fame, collection, quests) is this number or lower.
+  // (stars, fame, fame earned, collection, quests) is this number or lower.
   minRankedStat: 5
 };
 

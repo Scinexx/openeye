@@ -133,7 +133,7 @@ export function createMock({ticking = true} = {}) {
       return sendXml(`<Fame><Char id="${d.charId}"><Account><Name>${esc(d.name)}</Name></Account><ObjectType>${d.class}</ObjectType><Level>${d.level}</Level><Tex1>0</Tex1><Tex2>0</Tex2></Char><CreatedOn>${d.diedAt}</CreatedOn><KilledBy>${esc(d.killedBy)}</KilledBy><TotalFame>${d.total}</TotalFame><Shots>${s.shots}</Shots><ShotsThatDamage>${s.hits}</ShotsThatDamage><TilesUncovered>${s.tiles}</TilesUncovered><MonsterKills>${s.kills}</MonsterKills><GodKills>${s.gods}</GodKills><OryxKills>${s.oryx}</OryxKills><QuestsCompleted>${s.quests}</QuestsCompleted><PirateCavesCompleted>${s.caves}</PirateCavesCompleted><UndeadLairsCompleted>${s.lairs}</UndeadLairsCompleted><AbyssOfDemonsCompleted>${s.abysses}</AbyssOfDemonsCompleted><SnakePitsCompleted>${s.pits}</SnakePitsCompleted><SpiderDensCompleted>${s.dens}</SpiderDensCompleted><SpriteWorldsCompleted>${s.sprites}</SpriteWorldsCompleted><TombsCompleted>${s.tombs}</TombsCompleted><LevelUpAssists>${s.assists}</LevelUpAssists><BaseFame>${d.base}</BaseFame>${d.bonuses.map(b => `<Bonus id="${b.id}" desc="${b.desc}">${b.amount}</Bonus>`).join('')}</Fame>`);
     }
     sendJson({error: 'not found'}, 404);
-  }).on('listening', function () { this.stats = stats; });
+  }).on('listening', function () { this.stats = stats; this.players = players; });
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
