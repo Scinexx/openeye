@@ -239,6 +239,11 @@ async function player(name) {
   const p = data.player;
   document.title = `${p.name} | OpenEye`;
   const found = new Map(data.collection.map(c => [c.item, c.found_at]));
+  // Tier filter options: untiered, each tier that exists among collectible items, consumables.
+  const tierKey = id => { const it = ITEMS.get(id); return !it ? 'other' : it.untiered ? 'ut' : it.tier !== null ? `t${it.tier}` : 'other'; };
+  const tierNums = [...new Set(collectible.map(id => ITEMS.get(id)?.tier).filter(t => t !== null && t !== undefined))].sort((a, b) => a - b);
+  const tierOptions = [['all', 'All tiers'], ['ut', 'Untiered'], ...tierNums.map(t => [`t${t}`, `Tier ${t}`]),
+    ...(collectible.some(id => tierKey(id) === 'other') ? [['other', 'Consumables']] : [])];
   const formerNames = data.names.filter(n => n.name !== p.name);
   const legendsBySpan = data.legends;
 
@@ -281,7 +286,10 @@ async function player(name) {
         <div class="controls">
           <label for="col-sort">Sort</label>
           <select id="col-sort"><option value="recent">Recently found</option><option value="slot">By slot</option><option value="missing">Missing first</option></select>
+          <label for="col-tier">Tier</label>
+          <select id="col-tier">${tierOptions.map(([v, label]) => h`<option value="${v}">${label}</option>`)}</select>
           <label><input type="checkbox" id="col-owned"> Only items found</label>
+          <span class="muted" id="col-count"></span>
         </div>
         <div class="item-grid" id="col-grid"></div>
         <p class="muted" style="margin-top:12px">Dark silhouettes are items ${p.name} has not looted yet.</p>
@@ -298,11 +306,18 @@ async function player(name) {
   const drawCollection = () => {
     const sort = document.getElementById('col-sort').value;
     const owned = document.getElementById('col-owned').checked;
-    let ids = collectible.filter(id => !owned || found.has(id));
+    const tier = document.getElementById('col-tier').value;
+    const inTier = collectible.filter(id => tier === 'all' || tierKey(id) === tier);
+    let ids = inTier.filter(id => !owned || found.has(id));
+    document.getElementById('col-count').textContent = tier === 'all' ? '' : `${inTier.filter(id => found.has(id)).length} of ${inTier.length} found`;
     const slotOf = id => ITEMS.get(id)?.slot ?? 99, tierOf = id => ITEMS.get(id)?.untiered ? 99 : ITEMS.get(id)?.tier ?? -1;
     if (sort === 'recent') ids.sort((a, b) => (found.get(b) ?? 0) - (found.get(a) ?? 0) || slotOf(a) - slotOf(b) || tierOf(a) - tierOf(b));
     if (sort === 'slot') ids.sort((a, b) => slotOf(a) - slotOf(b) || tierOf(a) - tierOf(b) || a - b);
     if (sort === 'missing') ids.sort((a, b) => Number(found.has(a)) - Number(found.has(b)) || slotOf(a) - slotOf(b) || tierOf(a) - tierOf(b));
+    if (!ids.length) {
+      document.getElementById('col-grid').innerHTML = String(h`<p class="muted" style="grid-column:1/-1">${owned ? 'No items found at this tier yet.' : 'No items at this tier.'}</p>`);
+      return;
+    }
     document.getElementById('col-grid').innerHTML = String(h`${ids.map(id => {
       const it = ITEMS.get(id);
       const title = `${it?.name ?? id}${found.has(id) ? `, found ${day(found.get(id))}` : ', not found yet'}`;
@@ -311,6 +326,7 @@ async function player(name) {
   };
   document.getElementById('col-sort').addEventListener('change', drawCollection);
   document.getElementById('col-owned').addEventListener('change', drawCollection);
+  document.getElementById('col-tier').addEventListener('change', drawCollection);
   drawCollection();
 }
 
