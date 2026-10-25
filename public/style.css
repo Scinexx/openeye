@@ -246,6 +246,9 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--fame); }
 .kv div { padding: 12px 16px; border-top: 2px solid var(--stone-deep); }
 .kv dt { color: var(--bone-dim); font-size: 0.9rem; }
 .kv dd { margin: 2px 0 0; font: 700 1.3rem var(--display); }
+.kv.text { grid-template-columns: 1fr 1fr; }
+.kv.text dd { font: 700 1.05rem var(--body); }
+.kv.text div:nth-child(-n+2) { border-top: 0; }
 
 /* ---------- Items ---------- */
 .catalog-group + .catalog-group { margin-top: 24px; }
@@ -300,3 +303,4 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--fame); }
   .rows > li > .gear { order: 3; width: 100%; padding-left: 44px; }
   .rows > li > .num { margin-left: auto; }
 }
+@media (max-width: 640px) { .kv.text { grid-template-columns: 1fr; } .kv.text div:nth-child(2) { border-top: 2px solid var(--stone-deep); } }

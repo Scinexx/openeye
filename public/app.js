@@ -490,27 +490,29 @@ async function item(id) {
 
 async function about() {
   const s = await get('/api/status');
-  const names = {health: 'Server status', hiscores: 'Players and collections', legends: 'Legends and new deaths', deaths: 'Death details'};
+  const names = {health: 'Server', hiscores: 'Players', legends: 'Legends', deaths: 'Deaths'};
+  const facts = [
+    ['Source', 'Open RotMG public game API'],
+    ['Updates', 'Every few minutes'],
+    ['Players', 'Registered accounts on the hiscores'],
+    ['Bots', 'Tracked separately from players']
+  ];
   view(h`
-    <div class="page-head"><div><h1>About OpenEye</h1></div></div>
+    <div class="page-head"><div>
+      <h1>About</h1>
+      <p>OpenEye tracks rankings, deaths and loot on Open RotMG, recorded from the game’s public data.</p>
+    </div></div>
     <div class="grid-2">
-      <div class="prose">
-        <p>OpenEye watches the public API of the Open RotMG server and records what it sees. The game only shows the present moment, so everything with a history here, from fame graphs to the graveyard, exists because OpenEye was watching when it happened.</p>
-        <h2>What gets collected</h2>
-        <p>Every few minutes: the hiscores (stars, fame, collection size and quests for each registered player), the items each player has looted, and the server’s player count. Every 15 minutes: the week, month and all-time Legends lists, which is how new deaths are discovered. Each new death is then looked up once for its full record.</p>
-        <h2>Players and bots</h2>
-        <p>The server runs computer-controlled bots that play alongside everyone. Bots never appear on the hiscores and their loot is never counted, so OpenEye treats any death from an account that has never been on the hiscores as a bot’s. Bot deaths have their own tab in the graveyard.</p>
-        <h2>Latest loot</h2>
-        <p>The home page lists untiered items and the best tier that can drop in each slot, except T5 rings. Untiered items that drop often (Snake Pit, Spider Den, Sprite World and Forbidden Jungle gear) are left out, as is any untiered item that half the ranked players already own.</p>
-        <h2>What is not available</h2>
-        <p>Living characters’ equipment and stats are not public on Open RotMG, so OpenEye cannot show them. Deaths that never reach a top 20 Legends list are not discoverable either.</p>
-      </div>
       <section class="panel">
-        <header><h2>Data freshness</h2></header>
+        <header><h2>At a glance</h2></header>
+        <dl class="kv text">${facts.map(([k, v]) => h`<div><dt>${k}</dt><dd>${v}</dd></div>`)}</dl>
+      </section>
+      <section class="panel">
+        <header><h2>Status</h2></header>
         <ul class="rows">${Object.entries(s.jobs).map(([k, j]) => h`<li>
           <span class="light ${j.delayed ? 'off' : j.lastOk ? 'on' : ''}"></span>
-          <span class="grow"><span class="title">${names[k]}</span>
-          <span class="sub">${j.lastOk ? h`Updated ${when(j.lastOk)}` : 'Waiting for the first update'}${j.delayed ? '. The latest attempt failed and will be retried.' : ''}</span></span>
+          <span class="grow title">${names[k]}</span>
+          <span class="sub">${j.delayed ? 'Delayed' : j.lastOk ? h`Updated ${when(j.lastOk)}` : 'Starting'}</span>
         </li>`)}</ul>
       </section>
     </div>`);
