@@ -101,7 +101,18 @@ function starIcon(stars, size = 16) {
   const label = `${fmt(stars)} star${stars === 1 ? '' : 's'}`;
   return h`<svg class="star" width="${size}" height="${size}" viewBox="0 0 24 24" role="img" aria-label="${label}"><title>${label}</title><path fill="${STAR_COLORS[tier]}" stroke="#1b1e26" stroke-width="1.6" stroke-linejoin="round" d="M12 1.8l3.1 6.5 7.1.9-5.2 4.9 1.3 7-6.3-3.4-6.3 3.4 1.3-7-5.2-4.9 7.1-.9z"/></svg>`;
 }
-const playerLink = (name, stars) => h`<span class="player">${starIcon(stars)}<a href="/player/${encodeURIComponent(name)}" data-link>${name}</a></span>`;
+// The crown: whoever has earned the most fame in the last 24 hours. It replaces their star
+// next to their name everywhere, and sits beside it on their profile.
+let CROWN = null;
+async function loadCrown() {
+  try { CROWN = (await get('/api/crown')).name?.toLowerCase() ?? null; } catch { /* keep the last holder */ }
+}
+const crowned = name => !!CROWN && String(name ?? '').toLowerCase() === CROWN;
+function crownIcon(size = 16) {
+  return h`<svg class="crown" width="${size}" height="${size}" viewBox="0 0 16 16" role="img" aria-label="Most fame earned in the last 24 hours"><title>Most fame earned in the last 24 hours</title><path fill="#ffcf3a" stroke="#1b1e26" stroke-width="1.2" stroke-linejoin="round" d="M1.5 4.5l3.5 3 3-5 3 5 3.5-3-1.2 8H2.7z"/><path fill="#e58a00" stroke="#1b1e26" stroke-width="1.2" d="M2.7 12.5h10.6v2H2.7z"/><circle cx="8" cy="9.5" r="1.1" fill="#c1272d"/></svg>`;
+}
+const rankIcon = (name, stars, size = 16) => (crowned(name) ? crownIcon(size) : starIcon(stars, size));
+const playerLink = (name, stars) => h`<span class="player">${rankIcon(name, stars)}<a href="/player/${encodeURIComponent(name)}" data-link>${name}</a></span>`;
 // Bots have no player page, so their name is plain text with a badge.
 const ownerLink = d => (d.is_bot ? h`<span class="who">${d.name} <span class="badge bot" title="A computer-controlled character run by the game server">Bot</span></span>` : playerLink(d.player ?? d.name, d.player_stars));
 const discordIcon = id => (id ? h`<a class="discord" href="https://discord.com/users/${id}" rel="noopener" title="Discord account linked" aria-label="Discord profile"><svg viewBox="0 0 16 12" width="16" height="12" aria-hidden="true"><path fill="#8b9cf7" d="M13.5 1A13 13 0 0 0 10.3 0l-.4.8a12 12 0 0 0-3.8 0L5.7 0a13 13 0 0 0-3.2 1C.4 4 0 7 .2 9.9A13 13 0 0 0 4.1 12l.8-1.3a8 8 0 0 1-1.3-.6l.3-.2a9 9 0 0 0 8.2 0l.3.2-1.3.6.8 1.3a13 13 0 0 0 3.9-2c.3-3.4-.5-6.3-2.3-8.9ZM5.4 8.3c-.8 0-1.4-.7-1.4-1.6s.6-1.6 1.4-1.6 1.4.7 1.4 1.6-.6 1.6-1.4 1.6Zm5.2 0c-.8 0-1.4-.7-1.4-1.6s.6-1.6 1.4-1.6S12 5.8 12 6.7s-.6 1.6-1.4 1.6Z"/></svg></a>` : '');
@@ -295,7 +306,7 @@ function deathRows(rows, {showPlayer = true} = {}) {
   return h`<ul class="rows">${rows.map(d => h`<li>
     ${classSprite(d.class, 32)}
     <span class="grow">
-      <a class="title" href="/death/${d.account}/${d.char_id}" data-link>${showPlayer ? h`${starIcon(d.player_stars)}${d.name}` : `${d.level ? `Level ${d.level} ` : ''}${className(d.class)}`}</a>
+      <a class="title" href="/death/${d.account}/${d.char_id}" data-link>${showPlayer ? h`${d.is_bot ? starIcon(d.player_stars) : rankIcon(d.name, d.player_stars)}${d.name}` : `${d.level ? `Level ${d.level} ` : ''}${className(d.class)}`}</a>
       <span class="sub">${showPlayer ? `${className(d.class)}${d.level ? `, level ${d.level}` : ''}` : ''}${d.killed_by ? raw(`${showPlayer ? ', ' : ''}killed by <span class="killed">${esc(d.killed_by)}</span>`) : ''}${d.died_at ? raw(` ${when(d.died_at)}`) : ''}</span>
     </span>
     ${gear(d.equipment, 1)}
@@ -314,6 +325,14 @@ async function home() {
       <p>Rankings, item collections and a limited graveyard, recorded from the live Open RotMG server around the clock.</p>
     </section>
     ${!hasData ? h`<div class="notice"><strong>Fetching the latest data.</strong> This page fills in within a few minutes.</div>` : ''}
+    <section class="panel fame-box" aria-labelledby="fame-box-title">
+      <header><h2 id="fame-box-title"><img class="fame-icon" src="/icons/fame.png" width="24" height="24" alt="">Most fame earned</h2><span>Last 24 hours</span></header>
+      ${s.fameToday.length ? h`<ol class="fame-top">${s.fameToday.map((f, i) => h`<li>
+        <span class="place">${i + 1}</span>
+        ${playerLink(f.name, f.stars)}
+        <span class="gain">+${fmt(f.fame)}</span>
+      </li>`)}</ol>` : h`<p class="empty">Nobody has earned fame in the last 24 hours yet.</p>`}
+    </section>
     <section class="panel status-strip" aria-label="Server status">
       ${online}
       <div class="stat"><strong>${st?.ok ? fmt(st.players) : '–'}</strong><span>${st?.ok ? 'playing now' : st ? 'server unreachable' : 'checking server'}</span></div>
@@ -394,7 +413,7 @@ async function player(name) {
 
   view(h`
     <div class="player-head">
-      ${starIcon(p.stars, 34)}
+      ${crowned(p.name) ? crownIcon(34) : ''}${starIcon(p.stars, 34)}
       <h1>${p.name}</h1>
       ${discordIcon(p.discord_id)}
       ${!p.listed ? h`<span class="badge">No longer on the hiscores</span>` : ''}
@@ -882,8 +901,8 @@ input.addEventListener('input', () => {
   searchTimer = setTimeout(async () => {
     const r = await get(`/api/search?q=${encodeURIComponent(q)}`).catch(() => ({players: [], former: []}));
     const items = [
-      ...r.players.map(p => h`<li><a href="/player/${encodeURIComponent(p.name)}" data-link><span class="player">${starIcon(p.stars)}${p.name}</span><span class="muted">${fmt(p.stars)}</span></a></li>`),
-      ...r.former.map(f => h`<li><a href="/player/${encodeURIComponent(f.name)}" data-link><span class="player">${starIcon(f.stars)}${f.name}</span><span class="muted">was ${f.former}</span></a></li>`)
+      ...r.players.map(p => h`<li><a href="/player/${encodeURIComponent(p.name)}" data-link><span class="player">${rankIcon(p.name, p.stars)}${p.name}</span><span class="muted">${fmt(p.stars)}</span></a></li>`),
+      ...r.former.map(f => h`<li><a href="/player/${encodeURIComponent(f.name)}" data-link><span class="player">${rankIcon(f.name, f.stars)}${f.name}</span><span class="muted">was ${f.former}</span></a></li>`)
     ];
     results.innerHTML = String(items.length ? h`${items}` : h`<li class="hint">No player called “${q}” has been seen yet.</li>`);
     results.hidden = false;
@@ -920,7 +939,7 @@ async function footer() {
   } catch { /* server stopped */ }
 }
 
-await loadCatalog();
+await Promise.all([loadCatalog(), loadCrown()]);
 route();
 footer();
-setInterval(footer, 60000);
+setInterval(() => { footer(); loadCrown(); }, 60000);

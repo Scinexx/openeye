@@ -110,6 +110,18 @@ export function makeApi(db, catalog, settings) {
     return rows.filter(f => !(popular.has(f.item) && untiered.has(f.item))).slice(0, limit);
   }
 
+  /** Ranked players who gained the most living fame in the last 24 hours. The starting
+   *  fame credited when tracking began is dated a day earlier, so it never counts here. */
+  async function fameToday(limit = 3) {
+    return q(`SELECT p.name, p.stars, SUM(g.amount) AS fame FROM fame_gains g
+      JOIN players p ON p.account = g.account AND ${rankedWhere(settings.minRankedStat, 'p.')}
+      WHERE g.at > ? GROUP BY g.account HAVING fame > 0 ORDER BY fame DESC, MAX(g.at) ASC LIMIT ?`, now() - 86400, limit);
+  }
+  /** The crown goes to whoever leads the last-24-hours fame board. */
+  async function crown() {
+    return {name: (await fameToday(1))[0]?.name ?? null};
+  }
+
   async function summary() {
     const counts = await one(`SELECT
       (SELECT COUNT(*) FROM players WHERE ${RANKED}) AS players,
@@ -124,7 +136,7 @@ export function makeApi(db, catalog, settings) {
     }));
     const recentDeaths = (await q(`SELECT ${DEATH_COLS} FROM deaths d WHERE NOT ${IS_BOT}
       ORDER BY COALESCE(d.died_at, d.discovered_at) DESC LIMIT 8`)).map(parseDeath);
-    return {counts, top, recentDeaths, recentFinds: await notableFinds(10), status: await status()};
+    return {counts, top, recentDeaths, recentFinds: await notableFinds(10), fameToday: await fameToday(3), status: await status()};
   }
 
   async function rankings(board) {
@@ -241,7 +253,7 @@ export function makeApi(db, catalog, settings) {
       deaths: deaths.map(parseDeath).filter(d => d.equipment.includes(id)).slice(0, 20), players};
   }
 
-  return {status, summary, rankings, search, player, graveyard, death, legends, loot, lootTiers, items, item};
+  return {status, summary, crown, fameToday, rankings, search, player, graveyard, death, legends, loot, lootTiers, items, item};
 }
 
 const int = (v, max) => Math.min(max, Math.max(1, Math.floor(Number(v)) || 1));
@@ -251,6 +263,7 @@ export async function routeApi(api, url) {
   const p = url.pathname;
   let m;
   if (p === '/api/status') return api.status();
+  if (p === '/api/crown') return api.crown();
   if (p === '/api/summary') return api.summary();
   if ((m = p.match(/^\/api\/rankings\/([a-z_]+)$/))) return api.rankings(m[1]);
   if (p === '/api/search') return api.search((url.searchParams.get('q') ?? '').trim().slice(0, 20));

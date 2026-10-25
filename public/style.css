@@ -382,3 +382,27 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--fame); }
 /* LineBreakDesign: a black 2px bar with a diamond at each end, 8px below the text above. */
 .itip-line { position: relative; height: 0; margin-top: 8px; flex: none; }
 .itip-line svg { position: absolute; left: 4px; top: -4px; fill: #000; }
+
+/* ---------- most fame earned in the last 24 hours (home) ----------
+   Coloured like the game's fame icon (lofiObj3 sprite 224). */
+.fame-box { --fame-orange: #f29000; border-color: #ffb13b #9c4a00 #9c4a00 #ffb13b; margin-bottom: 16px; }
+.fame-box > header { background: linear-gradient(#5a3a12, #46300f); border-bottom-color: #9c4a00; }
+.fame-box > header h2 { display: flex; align-items: center; gap: 10px; color: #ffc24a; }
+.fame-box > header span { color: #f0b46a; font-size: 0.9rem; white-space: nowrap; }
+.fame-icon { image-rendering: pixelated; filter: drop-shadow(1px 0 0 #000) drop-shadow(-1px 0 0 #000) drop-shadow(0 1px 0 #000) drop-shadow(0 -1px 0 #000); }
+.fame-top { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); }
+.fame-top li { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-left: 2px solid var(--bevel-dark); min-width: 0; }
+.fame-top li:first-child { border-left: 0; background: linear-gradient(90deg, rgba(242, 144, 0, .16), transparent); }
+.fame-top .place { font: 700 1.1rem var(--display); color: var(--muted); width: 1.2em; }
+.fame-top li:first-child .place { color: var(--fame-orange); }
+.fame-top .player { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.fame-top .gain { margin-left: auto; font: 700 1.3rem var(--display); color: var(--fame-orange); }
+.fame-box .empty { margin: 0; padding: 14px 16px; }
+@media (max-width: 720px) {
+  .fame-top { grid-template-columns: 1fr; }
+  .fame-top li { border-left: 0; border-top: 2px solid var(--bevel-dark); }
+  .fame-top li:first-child { border-top: 0; }
+}
+.crown { flex: none; vertical-align: -2px; }
+.rows .title .crown { margin-right: 5px; }
+.player-head .crown { align-self: center; margin-right: -12px; }

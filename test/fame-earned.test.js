@@ -54,3 +54,18 @@ test('fame earned is a ranking board and is charted on the profile', async () =>
   assert.ok(profile.ranks.fame_earned >= 1);
   assert.ok((await t.api.summary()).top.fame_earned.length > 0);
 });
+
+test('the last-24-hours board and crown count only recent gains', async () => {
+  const now = Math.floor(Date.now() / 1000);
+  const [a, b] = t.mock.players.slice(1, 3);
+  // Old gains (more than a day ago) never count, however large.
+  await t.db.prepare('INSERT INTO fame_gains(account, at, amount) VALUES(?, ?, 99999)').bind(a.account, now - 90000).run();
+  await t.db.prepare('INSERT INTO fame_gains(account, at, amount) VALUES(?, ?, 5000), (?, ?, 4000)').bind(b.account, now - 60, a.account, now - 120).run();
+  const top = await t.api.fameToday(3);
+  assert.equal(top[0].name, b.name);
+  assert.equal(top[0].fame, 5000);
+  assert.ok(top.length <= 3 && top.every((r, i) => i === 0 || top[i - 1].fame >= r.fame));
+  assert.ok(top.find(r => r.name === a.name).fame < 99999, 'the old gain is not counted');
+  assert.deepEqual(await t.api.crown(), {name: b.name});
+  assert.deepEqual((await t.api.summary()).fameToday, top);
+});
