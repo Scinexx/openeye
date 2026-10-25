@@ -32,7 +32,11 @@ const DEATH_STATS = {
 };
 
 export function createGameApi(apiBase) {
+  // Outgoing requests made by this client. Cloudflare caps requests per Worker run
+  // (50 on the free plan), so the collector checks this before each request.
+  let used = 0;
   async function request(path, {form, timeout = 15000} = {}) {
+    used++;
     // Workers' fetch has no redirect: 'error', so redirects are refused by hand.
     const init = {headers: {...HEADERS}, redirect: 'manual', signal: AbortSignal.timeout(timeout)};
     if (form) {
@@ -54,6 +58,8 @@ export function createGameApi(apiBase) {
   const json = async path => JSON.parse(await request(path));
 
   return {
+    used: () => used,
+
     /** All ranked players: {updated_at, players:[...], collectible_items:[...]} */
     async hiscores() {
       const data = await json('/api/hiscores');

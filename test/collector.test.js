@@ -6,17 +6,26 @@ let t;
 before(async () => { t = await setup(); });
 after(() => t.close());
 
-test('a full collection run fills every table', async () => {
+const totalRequests = () => Object.values(t.mock.stats.requests).reduce((a, b) => a + b, 0);
+
+test('a full collection run fills every table and stays under the request limit', async () => {
   const c = t.collector();
   assert.equal(await c.tick(true), true);
   assert.equal(c.lastError, null);
+  assert.ok(totalRequests() <= t.settings.maxFetchesPerRun, `first run used ${totalRequests()} requests`);
+  // Death records that did not fit carry over to the next runs.
+  for (let i = 0; i < 3; i++) {
+    const before = totalRequests();
+    await t.collector().tick(['deaths']);
+    assert.ok(totalRequests() - before <= t.settings.maxFetchesPerRun);
+  }
   const n = await one(t.db, `SELECT (SELECT COUNT(*) FROM players) p, (SELECT COUNT(*) FROM collection_items) i,
     (SELECT COUNT(*) FROM deaths) d, (SELECT COUNT(*) FROM deaths WHERE detail_status='ok') ok,
     (SELECT COUNT(*) FROM legends) l, (SELECT COUNT(*) FROM server_status WHERE ok=1) s`);
   assert.equal(n.p, 25);
   assert.ok(n.i > 100, 'collections synced');
   assert.ok(n.d >= 20, 'deaths discovered from legends');
-  assert.equal(n.ok, Math.min(n.d, 25), 'death details fetched (25 per cycle)');
+  assert.equal(n.ok, n.d, 'every death record fetched after a few runs');
   assert.ok(n.l >= 40 && n.l <= 60);
   assert.equal(n.s, 1);
   // Legends used exactly 3 of the 20 guest requests.
@@ -51,6 +60,26 @@ test('two overlapping runs never both execute', async () => {
   const [a, b] = await Promise.all([t.collector().tick(['health']), t.collector().tick(['health'])]);
   assert.equal([a, b].filter(Boolean).length, 1);
   assert.equal(await one(t.db, "SELECT value FROM meta WHERE key = 'collector_lock'"), null, 'lock released');
+});
+
+test('a tiny request budget spreads work across runs without errors', async () => {
+  const {setup} = await import('./helpers.js');
+  const small = await setup({ticking: false});
+  small.settings.maxFetchesPerRun = 6;
+  try {
+    for (let run = 0; run < 15; run++) {
+      const before = Object.values(small.mock.stats.requests).reduce((a, b) => a + b, 0);
+      const c = small.collector();
+      await c.tick(run === 0 ? true : ['hiscores', 'deaths']);
+      const used = Object.values(small.mock.stats.requests).reduce((a, b) => a + b, 0) - before;
+      assert.ok(used <= 6, `run ${run} used ${used}`);
+      assert.equal(c.lastError, null);
+    }
+    const synced = await one(small.db, 'SELECT COUNT(*) n FROM collection_sync');
+    assert.equal(synced.n, 25, 'all collections synced eventually');
+    const legends = await one(small.db, 'SELECT COUNT(*) n FROM legends');
+    assert.ok(legends.n > 0, 'legends ran on the first run');
+  } finally { small.close(); }
 });
 
 test('legends survives the server rate limit without failing the job', async () => {

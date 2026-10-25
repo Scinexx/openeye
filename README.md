@@ -34,6 +34,8 @@ OpenEye only uses endpoints that the official Open RotMG website and Discord bot
 
 Requests go out one at a time with a pause between them. The Legends list shares the server's limit of 20 guest logins per minute per IP, so OpenEye uses only 3 of those every 15 minutes.
 
+Each run makes at most 45 requests to the game server (`maxFetchesPerRun`), because Cloudflare's free plan allows 50 outgoing requests per run. Work that does not fit, such as a big batch of new deaths, carries over to the next run two minutes later. On Workers Paid you can raise it with a `MAX_FETCHES_PER_RUN` Worker variable if the player count grows into the hundreds.
+
 ## Players and bots
 
 The game server runs bots that play alongside people. It keeps every bot account off the hiscores and out of item collections, so bot loot can never reach OpenEye. Bot deaths do appear on the Legends lists: OpenEye treats any death from an account that has never been on the hiscores as a bot's and shows it only in the graveyard's Bots tab. The Legends page mirrors the game's own board, so bots appear there with a "Bot" badge.

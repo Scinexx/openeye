@@ -25,9 +25,13 @@ export class Collector {
 
   async all(sql, ...args) { return (await this.db.prepare(sql).bind(...args).all()).results; }
 
+  /** Requests still allowed in this run. */
+  left() { return this.s.maxFetchesPerRun - this.api.used(); }
+
   // ---------- jobs ----------
 
   async syncHealth() {
+    if (this.left() < 1) return false;
     const at = now();
     const db = this.db;
     try {
@@ -41,6 +45,7 @@ export class Collector {
       await db.prepare('INSERT OR REPLACE INTO server_status(at, ok) VALUES(?, 0)').bind(at).run();
       throw e;
     }
+    if (this.left() < 1) return true;
     await sleep(this.s.requestGapMs);
     await this.syncBots();
   }
@@ -54,6 +59,7 @@ export class Collector {
   }
 
   async syncHiscores() {
+    if (this.left() < 1) return false;
     const data = await this.api.hiscores();
     const at = now();
     const db = this.db;
@@ -89,9 +95,14 @@ export class Collector {
     if (added || changed) this.log.info(`hiscores: ${data.players.length} players, ${added} new, ${changed} changed`);
 
     // Players whose collection count moved, or who are due a periodic re-check.
+    // Whatever does not fit in this run's request budget is picked up next run;
+    // a few requests are kept back so death records keep flowing.
+    const reserve = Math.min(5, Math.floor(this.left() / 3));
+    const room = Math.max(0, Math.min(COLLECTIONS_PER_RUN, this.left() - reserve));
+    if (!room) return true;
     const due = (await this.all(`SELECT p.account FROM players p LEFT JOIN collection_sync s ON s.account = p.account
       WHERE p.listed = 1 AND (s.account IS NULL OR s.synced_count != p.collection OR s.synced_at < ?)
-      ORDER BY (s.account IS NULL) DESC, s.synced_at LIMIT ?`, at - this.s.collectionResyncHours * 3600, COLLECTIONS_PER_RUN))
+      ORDER BY (s.account IS NULL) DESC, s.synced_at LIMIT ?`, at - this.s.collectionResyncHours * 3600, room))
       .map(r => r.account);
     for (const account of due) {
       await sleep(this.s.requestGapMs);
@@ -120,6 +131,8 @@ export class Collector {
   }
 
   async syncLegends() {
+    // All three lists or none, so the boards never mix old and new data.
+    if (this.left() < TIMESPANS.length) return false;
     const db = this.db;
     const at = now();
     let discovered = 0;
@@ -150,8 +163,10 @@ export class Collector {
 
   async syncDeathDetails() {
     const db = this.db;
+    const limit = Math.min(this.s.deathDetailsPerRun, this.left());
+    if (limit <= 0) return false;
     const pending = await this.all(`SELECT account, char_id, detail_tries FROM deaths WHERE detail_status = 'pending' AND detail_tries < ?
-      ORDER BY discovered_at LIMIT ?`, MAX_DETAIL_TRIES, this.s.deathDetailsPerRun);
+      ORDER BY discovered_at LIMIT ?`, MAX_DETAIL_TRIES, limit);
     for (const [i, d] of pending.entries()) {
       if (i) await sleep(this.s.requestGapMs);
       try {
@@ -174,8 +189,8 @@ export class Collector {
   jobs() {
     return [
       {name: 'health', every: this.s.healthMinutes * 60, run: () => this.syncHealth()},
-      {name: 'hiscores', every: this.s.hiscoresMinutes * 60, run: () => this.syncHiscores()},
       {name: 'legends', every: this.s.legendsMinutes * 60, run: () => this.syncLegends()},
+      {name: 'hiscores', every: this.s.hiscoresMinutes * 60, run: () => this.syncHiscores()},
       {name: 'deaths', every: this.s.deathsMinutes * 60, run: () => this.syncDeathDetails()}
     ];
   }
@@ -198,7 +213,8 @@ export class Collector {
         const forced = force === true || (Array.isArray(force) && force.includes(job.name));
         if (!forced && now() - last < job.every - 15) continue;
         try {
-          await job.run();
+          // false means the request budget ran out before the job could start: try again next run.
+          if ((await job.run()) === false) continue;
           await setMetaStmt(db, `last_ok:${job.name}`, now()).run();
         } catch (e) {
           this.lastError = `${job.name}: ${e.message}`;

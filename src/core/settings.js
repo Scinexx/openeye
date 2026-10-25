@@ -16,6 +16,10 @@ export const DEFAULTS = {
   requestGapMs: 1200,
   // Death records fetched per cycle.
   deathDetailsPerRun: 25,
+  // Most requests to the game server in one run. Cloudflare's free plan allows 50
+  // outgoing requests per run; work that does not fit carries over to the next run.
+  // On Workers Paid this can be raised (for example MAX_FETCHES_PER_RUN = 500).
+  maxFetchesPerRun: 45,
   // Latest loot hides untiered items that this share of ranked players already own,
   // once at least popularUtMinPlayers players are ranked.
   popularUtShare: 0.5,
