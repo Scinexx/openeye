@@ -1,0 +1,418 @@
+[
+ {
+  "id": 768,
+  "name": "Rogue",
+  "slug": "rogue",
+  "description": "The rogue relies on his speed to deal damage at medium range while avoiding attacks.",
+  "slotTypes": [
+   2,
+   13,
+   6,
+   9
+  ],
+  "base": {
+   "hp": 150,
+   "mp": 100,
+   "att": 10,
+   "def": 0,
+   "spd": 15,
+   "dex": 15,
+   "vit": 15,
+   "wis": 10
+  },
+  "max": {
+   "hp": 720,
+   "mp": 252,
+   "att": 50,
+   "def": 25,
+   "spd": 75,
+   "dex": 75,
+   "vit": 40,
+   "wis": 50
+  }
+ },
+ {
+  "id": 775,
+  "name": "Archer",
+  "slug": "archer",
+  "description": "The archer has a long-range attack and can acquire very powerful weapons.",
+  "slotTypes": [
+   3,
+   15,
+   6,
+   9
+  ],
+  "base": {
+   "hp": 130,
+   "mp": 100,
+   "att": 12,
+   "def": 0,
+   "spd": 12,
+   "dex": 12,
+   "vit": 12,
+   "wis": 10
+  },
+  "max": {
+   "hp": 700,
+   "mp": 252,
+   "att": 75,
+   "def": 25,
+   "spd": 50,
+   "dex": 50,
+   "vit": 40,
+   "wis": 50
+  }
+ },
+ {
+  "id": 782,
+  "name": "Wizard",
+  "slug": "wizard",
+  "description": "The wizard deals damage from a long distance and blasts enemies with powerful spells.",
+  "slotTypes": [
+   17,
+   11,
+   14,
+   9
+  ],
+  "base": {
+   "hp": 100,
+   "mp": 100,
+   "att": 12,
+   "def": 0,
+   "spd": 10,
+   "dex": 15,
+   "vit": 12,
+   "wis": 12
+  },
+  "max": {
+   "hp": 670,
+   "mp": 385,
+   "att": 75,
+   "def": 25,
+   "spd": 50,
+   "dex": 75,
+   "vit": 40,
+   "wis": 60
+  }
+ },
+ {
+  "id": 784,
+  "name": "Priest",
+  "slug": "priest",
+  "description": "The priest attacks at long range and can heal himself and his allies.",
+  "slotTypes": [
+   8,
+   4,
+   14,
+   9
+  ],
+  "base": {
+   "hp": 100,
+   "mp": 100,
+   "att": 10,
+   "def": 0,
+   "spd": 12,
+   "dex": 12,
+   "vit": 10,
+   "wis": 15
+  },
+  "max": {
+   "hp": 670,
+   "mp": 385,
+   "att": 50,
+   "def": 25,
+   "spd": 50,
+   "dex": 50,
+   "vit": 40,
+   "wis": 75
+  }
+ },
+ {
+  "id": 797,
+  "name": "Warrior",
+  "slug": "warrior",
+  "description": "The warrior wears strong armor and uses his magic helmet to inspire his allies in battle.",
+  "slotTypes": [
+   1,
+   16,
+   7,
+   9
+  ],
+  "base": {
+   "hp": 200,
+   "mp": 100,
+   "att": 15,
+   "def": 0,
+   "spd": 7,
+   "dex": 10,
+   "vit": 10,
+   "wis": 10
+  },
+  "max": {
+   "hp": 770,
+   "mp": 252,
+   "att": 75,
+   "def": 25,
+   "spd": 50,
+   "dex": 50,
+   "vit": 75,
+   "wis": 50
+  }
+ },
+ {
+  "id": 798,
+  "name": "Knight",
+  "slug": "knight",
+  "description": "The knight fights at close range, wears very heavy armor, and uses his shield to stun enemies.",
+  "slotTypes": [
+   1,
+   5,
+   7,
+   9
+  ],
+  "base": {
+   "hp": 200,
+   "mp": 100,
+   "att": 15,
+   "def": 0,
+   "spd": 7,
+   "dex": 10,
+   "vit": 10,
+   "wis": 10
+  },
+  "max": {
+   "hp": 770,
+   "mp": 252,
+   "att": 50,
+   "def": 40,
+   "spd": 50,
+   "dex": 50,
+   "vit": 75,
+   "wis": 50
+  }
+ },
+ {
+  "id": 799,
+  "name": "Paladin",
+  "slug": "paladin",
+  "description": "The paladin can deal damage at close range, wear armor and heal himself and his allies.",
+  "slotTypes": [
+   1,
+   12,
+   7,
+   9
+  ],
+  "base": {
+   "hp": 200,
+   "mp": 100,
+   "att": 12,
+   "def": 0,
+   "spd": 7,
+   "dex": 10,
+   "vit": 10,
+   "wis": 10
+  },
+  "max": {
+   "hp": 770,
+   "mp": 252,
+   "att": 50,
+   "def": 25,
+   "spd": 50,
+   "dex": 50,
+   "vit": 40,
+   "wis": 75
+  }
+ },
+ {
+  "id": 800,
+  "name": "Assassin",
+  "slug": "assassin",
+  "description": "The assassin fights from medium range and uses poison to damage his enemies over time.",
+  "slotTypes": [
+   2,
+   18,
+   6,
+   9
+  ],
+  "base": {
+   "hp": 150,
+   "mp": 100,
+   "att": 12,
+   "def": 0,
+   "spd": 15,
+   "dex": 15,
+   "vit": 15,
+   "wis": 10
+  },
+  "max": {
+   "hp": 720,
+   "mp": 252,
+   "att": 60,
+   "def": 25,
+   "spd": 75,
+   "dex": 75,
+   "vit": 40,
+   "wis": 60
+  }
+ },
+ {
+  "id": 801,
+  "name": "Necromancer",
+  "slug": "necromancer",
+  "description": "The necromancer drains life from his enemies to heal himself and his allies.",
+  "slotTypes": [
+   17,
+   19,
+   14,
+   9
+  ],
+  "base": {
+   "hp": 100,
+   "mp": 100,
+   "att": 12,
+   "def": 0,
+   "spd": 10,
+   "dex": 15,
+   "vit": 10,
+   "wis": 12
+  },
+  "max": {
+   "hp": 670,
+   "mp": 385,
+   "att": 60,
+   "def": 25,
+   "spd": 50,
+   "dex": 60,
+   "vit": 30,
+   "wis": 75
+  }
+ },
+ {
+  "id": 802,
+  "name": "Huntress",
+  "slug": "huntress",
+  "description": "The huntress uses arrows and traps to defeat her enemies.",
+  "slotTypes": [
+   3,
+   20,
+   6,
+   9
+  ],
+  "base": {
+   "hp": 130,
+   "mp": 100,
+   "att": 12,
+   "def": 0,
+   "spd": 12,
+   "dex": 12,
+   "vit": 12,
+   "wis": 10
+  },
+  "max": {
+   "hp": 700,
+   "mp": 252,
+   "att": 75,
+   "def": 25,
+   "spd": 50,
+   "dex": 50,
+   "vit": 40,
+   "wis": 50
+  }
+ },
+ {
+  "id": 803,
+  "name": "Mystic",
+  "slug": "mystic",
+  "description": "The mystic fights with a staff and uses her crystal orb to bind enemies to a distant plane.",
+  "slotTypes": [
+   17,
+   21,
+   14,
+   9
+  ],
+  "base": {
+   "hp": 100,
+   "mp": 100,
+   "att": 10,
+   "def": 0,
+   "spd": 12,
+   "dex": 10,
+   "vit": 15,
+   "wis": 15
+  },
+  "max": {
+   "hp": 670,
+   "mp": 385,
+   "att": 60,
+   "def": 25,
+   "spd": 60,
+   "dex": 50,
+   "vit": 40,
+   "wis": 75
+  }
+ },
+ {
+  "id": 804,
+  "name": "Trickster",
+  "slug": "trickster",
+  "description": "The trickster fights with a dagger while using her magical prism to distract enemies.",
+  "slotTypes": [
+   2,
+   22,
+   6,
+   9
+  ],
+  "base": {
+   "hp": 150,
+   "mp": 100,
+   "att": 10,
+   "def": 0,
+   "spd": 12,
+   "dex": 15,
+   "vit": 12,
+   "wis": 12
+  },
+  "max": {
+   "hp": 720,
+   "mp": 252,
+   "att": 65,
+   "def": 25,
+   "spd": 75,
+   "dex": 75,
+   "vit": 40,
+   "wis": 60
+  }
+ },
+ {
+  "id": 805,
+  "name": "Sorcerer",
+  "slug": "sorcerer",
+  "description": "The sorcerer uses his scepter to fire blasts of chain lightning at his enemies.",
+  "slotTypes": [
+   8,
+   23,
+   14,
+   9
+  ],
+  "base": {
+   "hp": 100,
+   "mp": 100,
+   "att": 10,
+   "def": 0,
+   "spd": 12,
+   "dex": 12,
+   "vit": 10,
+   "wis": 15
+  },
+  "max": {
+   "hp": 670,
+   "mp": 385,
+   "att": 60,
+   "def": 25,
+   "spd": 60,
+   "dex": 60,
+   "vit": 75,
+   "wis": 60
+  }
+ }
+]

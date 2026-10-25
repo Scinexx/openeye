@@ -1,0 +1,94 @@
+{
+ "1": {
+  "name": "Sword",
+  "maxDropTier": 12
+ },
+ "2": {
+  "name": "Dagger",
+  "maxDropTier": 12
+ },
+ "3": {
+  "name": "Bow",
+  "maxDropTier": 12
+ },
+ "4": {
+  "name": "Tome",
+  "maxDropTier": 6
+ },
+ "5": {
+  "name": "Shield",
+  "maxDropTier": 6
+ },
+ "6": {
+  "name": "Leather Armor",
+  "maxDropTier": 13
+ },
+ "7": {
+  "name": "Heavy Armor",
+  "maxDropTier": 13
+ },
+ "8": {
+  "name": "Wand",
+  "maxDropTier": 12
+ },
+ "9": {
+  "name": "Ring",
+  "maxDropTier": 5
+ },
+ "10": {
+  "name": "Consumable",
+  "maxDropTier": null
+ },
+ "11": {
+  "name": "Spell",
+  "maxDropTier": 6
+ },
+ "12": {
+  "name": "Seal",
+  "maxDropTier": 6
+ },
+ "13": {
+  "name": "Cloak",
+  "maxDropTier": 6
+ },
+ "14": {
+  "name": "Robe",
+  "maxDropTier": 13
+ },
+ "15": {
+  "name": "Quiver",
+  "maxDropTier": 6
+ },
+ "16": {
+  "name": "Helm",
+  "maxDropTier": 6
+ },
+ "17": {
+  "name": "Staff",
+  "maxDropTier": 12
+ },
+ "18": {
+  "name": "Poison",
+  "maxDropTier": 6
+ },
+ "19": {
+  "name": "Skull",
+  "maxDropTier": 6
+ },
+ "20": {
+  "name": "Trap",
+  "maxDropTier": 6
+ },
+ "21": {
+  "name": "Orb",
+  "maxDropTier": 6
+ },
+ "22": {
+  "name": "Prism",
+  "maxDropTier": 6
+ },
+ "23": {
+  "name": "Scepter",
+  "maxDropTier": 6
+ }
+}

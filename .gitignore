@@ -1,0 +1,7 @@
+node_modules/
+.wrangler/
+.dev.vars*
+data/
+*.db
+*.db-wal
+*.db-shm

@@ -1,0 +1,50 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "openeye",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-20",
+
+  // The site itself: everything in public/ is served as static files. Only /api/*
+  // runs the Worker; any other path falls back to index.html (single-page app).
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+
+  // The database. Created in the Cloudflare account that owns openrotmgeye.com.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "openeye",
+      "database_id": "e9d6e3ea-9e53-469c-ba18-a92e96d3c155"
+    }
+  ],
+
+  // The collector. Runs every 2 minutes; each job decides whether it is due
+  // (server status 2 min, players and collections 5 min, Legends 15 min).
+  "triggers": {
+    "crons": ["*/2 * * * *"]
+  },
+
+  // API requests allowed per visitor per minute.
+  "ratelimits": [
+    {
+      "name": "API_LIMIT",
+      "namespace_id": "4401",
+      "simple": { "limit": 240, "period": 60 }
+    }
+  ],
+
+  // The public address.
+  "routes": [
+    { "pattern": "openrotmgeye.com", "custom_domain": true },
+    { "pattern": "www.openrotmgeye.com", "custom_domain": true }
+  ],
+
+  // Logs in the Cloudflare dashboard (Workers > openeye > Logs).
+  "observability": {
+    "enabled": true
+  }
+}
