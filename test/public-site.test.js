@@ -135,6 +135,24 @@ test('loot history filters by tier, type, common items, player and time', async 
   assert.equal((await get('?type=consumable&tier=ut')).total, 0, 'narrowing tiers hides items with no tier');
 });
 
+test('accounts with no stat above 5 are left off the leaderboards', async () => {
+  const now = Math.floor(Date.now() / 1000);
+  await t.db.prepare(`INSERT INTO players(account, name, base_fame, total_fame, stars, quests, collection, first_seen, last_seen, listed)
+    VALUES (77001, 'Guest901', 0, 0, 0, 0, 3, ?, ?, 1), (77002, 'Barely', 0, 0, 0, 6, 0, ?, ?, 1)`).bind(now, now, now, now).run();
+  try {
+    const ranked = new Set((await t.api.rankings('collection')).players.map(p => p.name));
+    assert.ok(!ranked.has('Guest901'), 'all stats 5 or lower: hidden');
+    assert.ok(ranked.has('Barely'), 'one stat above 5: shown');
+    const s = await t.api.summary();
+    assert.equal(s.counts.players, ranked.size);
+    for (const board of Object.keys(s.top)) assert.ok(s.top[board].every(p => p.name !== 'Guest901'));
+    const profile = await t.api.player('Guest901');
+    assert.ok(Object.values(profile.ranks).every(r => r === null), 'profile still exists but is unranked');
+  } finally {
+    await t.db.prepare('DELETE FROM players WHERE account IN (77001, 77002)').run();
+  }
+});
+
 // Runs last: it uses up this test client's request allowance.
 test('visitors are rate limited', async () => {
   let limited = false;

@@ -50,8 +50,12 @@ const listParam = (url, name, allowed) => {
   return new Set(raw === null ? allowed : raw.split(',').filter(v => allowed.includes(v)));
 };
 
-const rankedSql = board => `SELECT account, name, discord_id, base_fame, total_fame, stars, quests, collection, first_seen, last_seen,
-  RANK() OVER (ORDER BY ${board} DESC) AS rank FROM players WHERE listed = 1`;
+// A player is ranked when they are on the game's hiscores and at least one stat is above the
+// minimum (settings.minRankedStat). Empty guest-style accounts stay off the leaderboards.
+const rankedWhere = (min, alias = '') =>
+  `${alias}listed = 1 AND MAX(${alias}stars, ${alias}base_fame, ${alias}total_fame, ${alias}collection, ${alias}quests) > ${Math.max(0, Math.floor(min))}`;
+const rankedSqlFor = min => board => `SELECT account, name, discord_id, base_fame, total_fame, stars, quests, collection, first_seen, last_seen,
+  RANK() OVER (ORDER BY ${board} DESC) AS rank FROM players WHERE ${rankedWhere(min)}`;
 
 /**
  * @param db  D1 database or local adapter
@@ -63,7 +67,9 @@ export function makeApi(db, catalog, settings) {
   const one = (sql, ...args) => db.prepare(sql).bind(...args).first();
   const notableJson = JSON.stringify(catalog.items.filter(i => i.notable).map(i => i.id));
   const untiered = new Set(catalog.items.filter(i => i.untiered).map(i => i.id));
-  const rankedCount = async () => (await one('SELECT COUNT(*) AS n FROM players WHERE listed = 1')).n;
+  const RANKED = rankedWhere(settings.minRankedStat);
+  const rankedSql = rankedSqlFor(settings.minRankedStat);
+  const rankedCount = async () => (await one(`SELECT COUNT(*) AS n FROM players WHERE ${RANKED}`)).n;
 
   // ---- loot history filters: each item gets a tier ('ut', '0', '1', ... or null) and a type ----
   const lootMeta = new Map(catalog.items.map(i => {
@@ -96,7 +102,7 @@ export function makeApi(db, catalog, settings) {
   async function notableFinds(limit) {
     const players = await rankedCount();
     const popular = new Set(players >= settings.popularUtMinPlayers
-      ? (await q(`SELECT item FROM collection_items c JOIN players p ON p.account = c.account AND p.listed = 1
+      ? (await q(`SELECT item FROM collection_items c JOIN players p ON p.account = c.account AND ${rankedWhere(settings.minRankedStat, 'p.')}
           GROUP BY item HAVING COUNT(*) >= ?`, Math.ceil(players * settings.popularUtShare))).map(r => r.item)
       : []);
     const rows = await q(`SELECT c.account, p.name, p.stars, c.item, c.found_at FROM collection_items c JOIN players p ON p.account = c.account
@@ -106,7 +112,7 @@ export function makeApi(db, catalog, settings) {
 
   async function summary() {
     const counts = await one(`SELECT
-      (SELECT COUNT(*) FROM players WHERE listed = 1) AS players,
+      (SELECT COUNT(*) FROM players WHERE ${RANKED}) AS players,
       (SELECT COUNT(*) FROM deaths d WHERE NOT ${IS_BOT}) AS deaths,
       (SELECT COUNT(*) FROM deaths d WHERE ${IS_BOT}) AS botDeaths,
       (SELECT COUNT(*) FROM collection_items) AS finds,
@@ -146,7 +152,7 @@ export function makeApi(db, catalog, settings) {
     }
     const ranks = {};
     await Promise.all(BOARDS.map(async board => {
-      ranks[board] = p.listed ? (await one(`SELECT rank FROM (${rankedSql(board)}) WHERE account = ?`, p.account))?.rank ?? null : null;
+      ranks[board] = (await one(`SELECT rank FROM (${rankedSql(board)}) WHERE account = ?`, p.account))?.rank ?? null;
     }));
     const [rankedPlayers, names, history, collection, deaths, legends] = await Promise.all([
       rankedCount(),

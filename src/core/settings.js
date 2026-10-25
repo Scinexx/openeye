@@ -23,7 +23,10 @@ export const DEFAULTS = {
   // Latest loot hides untiered items that this share of ranked players already own,
   // once at least popularUtMinPlayers players are ranked.
   popularUtShare: 0.5,
-  popularUtMinPlayers: 8
+  popularUtMinPlayers: 8,
+  // Leaderboards leave out accounts whose every stat (stars, fame, collection, quests)
+  // is this number or lower: empty guest-style accounts.
+  minRankedStat: 5
 };
 
 const toEnvName = k => k.replace(/[A-Z]/g, c => `_${c}`).toUpperCase();
