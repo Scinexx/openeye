@@ -36,7 +36,7 @@ for (const p of players) {
   for (let k = 0; k < n; k++) p.items.set(pick(collectible), start + Math.floor(rand() * 20 * 86400));
   p.base_fame = Math.floor(rand() * 900);
   p.quests = Math.floor(rand() * 40);
-  p.stars = Math.floor(rand() * 14);
+  p.stars = Math.floor(rand() * 66);
 }
 
 // Bots, like on the real server: they play and die, but never appear on the hiscores.

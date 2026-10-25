@@ -90,9 +90,18 @@ function classSprite(classId, size = 32) {
   return h`<img class="cls" src="/catalog/classes/${c.slug}.png" width="${size}" height="${size}" alt="${c.name}" title="${c.name}">`;
 }
 const className = id => CLASSES.get(id)?.name ?? 'Unknown class';
-const playerLink = name => h`<a href="/player/${encodeURIComponent(name)}" data-link>${name}</a>`;
+// Star colours and thresholds from the 2012 client (FameUtil.as): the colour steps up
+// every <class count> stars, and a player with every star gets a plain white one.
+const STAR_COLORS = ['#8a98de', '#314ddb', '#c1272d', '#f7931e', '#ffff00', '#ffffff'];
+function starIcon(stars, size = 16) {
+  if (stars === null || stars === undefined) return '';
+  const tier = Math.min(5, Math.floor(stars / Math.max(1, CLASSES.size)));
+  const label = `${fmt(stars)} star${stars === 1 ? '' : 's'}`;
+  return h`<svg class="star" width="${size}" height="${size}" viewBox="0 0 24 24" role="img" aria-label="${label}"><title>${label}</title><path fill="${STAR_COLORS[tier]}" stroke="#1b1e26" stroke-width="1.6" stroke-linejoin="round" d="M12 1.8l3.1 6.5 7.1.9-5.2 4.9 1.3 7-6.3-3.4-6.3 3.4 1.3-7-5.2-4.9 7.1-.9z"/></svg>`;
+}
+const playerLink = (name, stars) => h`<span class="player">${starIcon(stars)}<a href="/player/${encodeURIComponent(name)}" data-link>${name}</a></span>`;
 // Bots have no player page, so their name is plain text with a badge.
-const ownerLink = d => (d.is_bot ? h`<span class="who">${d.name} <span class="badge bot" title="A computer-controlled character run by the game server">Bot</span></span>` : playerLink(d.player ?? d.name));
+const ownerLink = d => (d.is_bot ? h`<span class="who">${d.name} <span class="badge bot" title="A computer-controlled character run by the game server">Bot</span></span>` : playerLink(d.player ?? d.name, d.player_stars));
 const discordIcon = id => (id ? h`<a class="discord" href="https://discord.com/users/${id}" rel="noopener" title="Discord account linked" aria-label="Discord profile"><svg viewBox="0 0 16 12" width="16" height="12" aria-hidden="true"><path fill="#8b9cf7" d="M13.5 1A13 13 0 0 0 10.3 0l-.4.8a12 12 0 0 0-3.8 0L5.7 0a13 13 0 0 0-3.2 1C.4 4 0 7 .2 9.9A13 13 0 0 0 4.1 12l.8-1.3a8 8 0 0 1-1.3-.6l.3-.2a9 9 0 0 0 8.2 0l.3.2-1.3.6.8 1.3a13 13 0 0 0 3.9-2c.3-3.4-.5-6.3-2.3-8.9ZM5.4 8.3c-.8 0-1.4-.7-1.4-1.6s.6-1.6 1.4-1.6 1.4.7 1.4 1.6-.6 1.6-1.4 1.6Zm5.2 0c-.8 0-1.4-.7-1.4-1.6s.6-1.6 1.4-1.6S12 5.8 12 6.7s-.6 1.6-1.4 1.6Z"/></svg></a>` : '');
 const gear = (equipment, scale = 2, count = 4) => h`<span class="gear">${(equipment ?? []).slice(0, count).map(id => itemSlot(id, scale))}</span>`;
 
@@ -141,7 +150,7 @@ function deathRows(rows, {showPlayer = true} = {}) {
   return h`<ul class="rows">${rows.map(d => h`<li>
     ${classSprite(d.class, 32)}
     <span class="grow">
-      <a class="title" href="/death/${d.account}/${d.char_id}" data-link>${showPlayer ? d.name : `${d.level ? `Level ${d.level} ` : ''}${className(d.class)}`}</a>
+      <a class="title" href="/death/${d.account}/${d.char_id}" data-link>${showPlayer ? h`${starIcon(d.player_stars)}${d.name}` : `${d.level ? `Level ${d.level} ` : ''}${className(d.class)}`}</a>
       <span class="sub">${showPlayer ? `${className(d.class)}${d.level ? `, level ${d.level}` : ''}` : ''}${d.killed_by ? raw(`${showPlayer ? ', ' : ''}killed by <span class="killed">${esc(d.killed_by)}</span>`) : ''}${d.died_at ? raw(` ${when(d.died_at)}`) : ''}</span>
     </span>
     ${gear(d.equipment, 1)}
@@ -178,7 +187,7 @@ async function home() {
         ${s.recentFinds.length ? h`<ul class="rows">${s.recentFinds.slice(0, 10).map(f => h`<li>
           ${itemSlot(f.item, 2)}
           <span class="grow"><span class="title">${ITEMS.get(f.item)?.name ?? `Item ${f.item}`}</span>
-          <span class="sub">${playerLink(f.name)} ${when(f.found_at)}</span></span>
+          <span class="sub">${playerLink(f.name, f.stars)} ${when(f.found_at)}</span></span>
           <span class="tier ${tierInfo(ITEMS.get(f.item)).cls}">${tierInfo(ITEMS.get(f.item)).label}</span>
         </li>`)}</ul>` : h`<p class="empty">No rare drops recorded yet.</p>`}
       </section>
@@ -189,7 +198,7 @@ async function home() {
         <thead><tr>${Object.keys(BOARDS).map(b => h`<th><a href="/rankings/${b}" data-link>${BOARDS[b].title}</a></th>`)}</tr></thead>
         <tbody>${[0, 1, 2, 3, 4].map(i => h`<tr>${Object.keys(BOARDS).map(b => {
           const p = s.top[b][i];
-          return p ? h`<td><span class="muted">${p.rank}.</span> ${playerLink(p.name)} <span class="fame">${fmt(p[b])}</span></td>` : h`<td class="muted">–</td>`;
+          return p ? h`<td><span class="muted">${p.rank}.</span> ${playerLink(p.name, p.stars)} <span class="fame">${fmt(p[b])}</span></td>` : h`<td class="muted">–</td>`;
         })}</tr>`)}</tbody>
       </table></div>
     </section>`);
@@ -205,7 +214,7 @@ async function rankings(board) {
     const rows = players.filter(p => p.name.toLowerCase().includes(filter.toLowerCase()));
     document.getElementById('rank-body').innerHTML = String(rows.length ? h`${rows.map(p => h`<tr class="${p.rank === 1 ? 'top1' : ''}">
       <td class="rank">${p.rank}</td>
-      <td><span class="who">${playerLink(p.name)} ${discordIcon(p.discord_id)}</span></td>
+      <td><span class="who">${playerLink(p.name, p.stars)} ${discordIcon(p.discord_id)}</span></td>
       ${cols.map(c => h`<td class="n${c === board ? ' main-metric' : ''}">${fmt(p[c])}</td>`)}
     </tr>`)}` : h`<tr><td colspan="${cols.length + 2}" class="empty">No players match “${filter}”.</td></tr>`);
   };
@@ -235,6 +244,7 @@ async function player(name) {
 
   view(h`
     <div class="player-head">
+      ${starIcon(p.stars, 34)}
       <h1>${p.name}</h1>
       ${discordIcon(p.discord_id)}
       ${!p.listed ? h`<span class="badge">No longer on the hiscores</span>` : ''}
@@ -255,7 +265,7 @@ async function player(name) {
       <section class="panel">
         <header><h2>Progress</h2></header>
         <div class="panel-body">
-          <div class="tabs" role="group" aria-label="Chart metric">${Object.entries(BOARDS).map(([k, b], i) => h`<button type="button" data-metric="${k}" aria-pressed="${i === 0}">${b.short}</button>`)}</div>
+          <div class="tabs compact" role="group" aria-label="Chart metric">${Object.entries(BOARDS).map(([k, b], i) => h`<button type="button" data-metric="${k}" aria-pressed="${i === 0}">${b.short}</button>`)}</div>
           <div id="chart"></div>
           <p class="chart-readout">${data.history.length} update${data.history.length === 1 ? '' : 's'} since ${day(p.first_seen)}.</p>
         </div>
@@ -480,7 +490,7 @@ async function item(id) {
         <p class="muted" style="margin-top:12px">${d.collectible ? `Found by ${d.owners.length} of ${d.players} ranked players.` : 'This item does not count toward collections.'}</p>
       </div></section>
       <section class="panel"><header><h2>Who found it</h2></header>
-        ${d.owners.length ? h`<ul class="rows">${d.owners.map((o, i) => h`<li><span class="grow">${playerLink(o.name)}${i === 0 ? h` <span class="badge gold">First</span>` : ''}</span><span class="sub">${date(o.found_at)}</span></li>`)}</ul>` : h`<p class="empty">Nobody has looted this yet.</p>`}
+        ${d.owners.length ? h`<ul class="rows">${d.owners.map((o, i) => h`<li><span class="grow">${playerLink(o.name, o.stars)}${i === 0 ? h` <span class="badge gold">First</span>` : ''}</span><span class="sub">${date(o.found_at)}</span></li>`)}</ul>` : h`<p class="empty">Nobody has looted this yet.</p>`}
       </section>
     </div>
     ${d.deaths.length ? h`<section class="panel" style="margin-top:24px"><header><h2>Died wearing it</h2></header>${deathRows(d.deaths)}</section>` : ''}`);
@@ -568,8 +578,8 @@ input.addEventListener('input', () => {
   searchTimer = setTimeout(async () => {
     const r = await get(`/api/search?q=${encodeURIComponent(q)}`).catch(() => ({players: [], former: []}));
     const items = [
-      ...r.players.map(p => h`<li><a href="/player/${encodeURIComponent(p.name)}" data-link><span>${p.name}</span><span class="fame">${fmt(p.stars)} ★</span></a></li>`),
-      ...r.former.map(f => h`<li><a href="/player/${encodeURIComponent(f.name)}" data-link><span>${f.name}</span><span class="muted">was ${f.former}</span></a></li>`)
+      ...r.players.map(p => h`<li><a href="/player/${encodeURIComponent(p.name)}" data-link><span class="player">${starIcon(p.stars)}${p.name}</span><span class="muted">${fmt(p.stars)}</span></a></li>`),
+      ...r.former.map(f => h`<li><a href="/player/${encodeURIComponent(f.name)}" data-link><span class="player">${starIcon(f.stars)}${f.name}</span><span class="muted">was ${f.former}</span></a></li>`)
     ];
     results.innerHTML = String(items.length ? h`${items}` : h`<li class="hint">No player called “${q}” has been seen yet.</li>`);
     results.hidden = false;

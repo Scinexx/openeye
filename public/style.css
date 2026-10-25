@@ -305,3 +305,10 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--fame); }
   .rows > li > .num { margin-left: auto; }
 }
 @media (max-width: 640px) { .kv.text { grid-template-columns: 1fr; } .kv.text div:nth-child(2) { border-top: 2px solid var(--stone-deep); } }
+
+/* Star rank icon next to player names */
+.player { display: inline-flex; align-items: center; gap: 5px; }
+.star { flex: none; display: inline-block; vertical-align: -2px; }
+.rows .title .star { margin-right: 5px; }
+.player-head .star { align-self: center; }
+.tabs.compact button { padding: 6px 10px; font-size: 0.95rem; }

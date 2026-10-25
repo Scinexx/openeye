@@ -25,7 +25,8 @@ const BOT_CONFIRMED = 'EXISTS (SELECT 1 FROM bots b WHERE b.name = d.name)';
 
 const DEATH_COLS = `d.account, d.char_id, d.name, d.class, d.tex1, d.tex2, d.equipment, d.total_fame, d.base_fame,
   d.level, d.died_at, d.killed_by, d.discovered_at, d.detail_status,
-  ${IS_BOT} AS is_bot, ${BOT_CONFIRMED} AS bot_confirmed`;
+  ${IS_BOT} AS is_bot, ${BOT_CONFIRMED} AS bot_confirmed,
+  (SELECT sp.stars FROM players sp WHERE sp.account = d.account) AS player_stars`;
 
 const parseDeath = d => d && ({
   ...d,
@@ -76,7 +77,7 @@ export function makeApi(db, catalog, settings) {
       ? (await q(`SELECT item FROM collection_items c JOIN players p ON p.account = c.account AND p.listed = 1
           GROUP BY item HAVING COUNT(*) >= ?`, Math.ceil(players * settings.popularUtShare))).map(r => r.item)
       : []);
-    const rows = await q(`SELECT c.account, p.name, c.item, c.found_at FROM collection_items c JOIN players p ON p.account = c.account
+    const rows = await q(`SELECT c.account, p.name, p.stars, c.item, c.found_at FROM collection_items c JOIN players p ON p.account = c.account
       WHERE c.item IN (SELECT value FROM json_each(?)) ORDER BY c.found_at DESC LIMIT 200`, notableJson);
     return rows.filter(f => !(popular.has(f.item) && untiered.has(f.item))).slice(0, limit);
   }
@@ -108,7 +109,7 @@ export function makeApi(db, catalog, settings) {
     const like = `%${text.replace(/[%_\\]/g, m => '\\' + m)}%`;
     const players = await q(`SELECT account, name, base_fame, stars, listed FROM players WHERE name LIKE ? ESCAPE '\\'
       ORDER BY (name = ? COLLATE NOCASE) DESC, listed DESC, stars DESC LIMIT 10`, like, text);
-    const former = await q(`SELECT h.name AS former, p.account, p.name FROM name_history h JOIN players p ON p.account = h.account
+    const former = await q(`SELECT h.name AS former, p.account, p.name, p.stars FROM name_history h JOIN players p ON p.account = h.account
       WHERE h.name LIKE ? ESCAPE '\\' AND h.name != p.name LIMIT 5`, like);
     return {players, former};
   }
@@ -179,7 +180,7 @@ export function makeApi(db, catalog, settings) {
 
   async function item(id) {
     const [owners, collectible, deaths, players] = await Promise.all([
-      q(`SELECT c.account, p.name, c.found_at FROM collection_items c JOIN players p ON p.account = c.account
+      q(`SELECT c.account, p.name, p.stars, c.found_at FROM collection_items c JOIN players p ON p.account = c.account
         WHERE c.item = ? ORDER BY c.found_at`, id),
       one('SELECT 1 AS y FROM collectible_items WHERE item = ?', id),
       q(`SELECT ${DEATH_COLS}, p.name AS player FROM deaths d LEFT JOIN players p ON p.account = d.account
