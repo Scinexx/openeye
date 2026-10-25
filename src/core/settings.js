@@ -24,8 +24,8 @@ export const DEFAULTS = {
   // once at least popularUtMinPlayers players are ranked.
   popularUtShare: 0.5,
   popularUtMinPlayers: 8,
-  // Leaderboards leave out accounts whose every stat (stars, fame, collection, quests)
-  // is this number or lower: empty guest-style accounts.
+  // Leaderboards leave out guest accounts (names starting with "Guest") whose every stat
+  // (stars, fame, collection, quests) is this number or lower.
   minRankedStat: 5
 };
 

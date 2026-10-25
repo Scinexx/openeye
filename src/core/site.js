@@ -50,10 +50,10 @@ const listParam = (url, name, allowed) => {
   return new Set(raw === null ? allowed : raw.split(',').filter(v => allowed.includes(v)));
 };
 
-// A player is ranked when they are on the game's hiscores and at least one stat is above the
-// minimum (settings.minRankedStat). Empty guest-style accounts stay off the leaderboards.
+// A player is ranked when they are on the game's hiscores, unless the account is a guest
+// (name starting with "Guest") whose every stat is settings.minRankedStat or lower.
 const rankedWhere = (min, alias = '') =>
-  `${alias}listed = 1 AND MAX(${alias}stars, ${alias}base_fame, ${alias}total_fame, ${alias}collection, ${alias}quests) > ${Math.max(0, Math.floor(min))}`;
+  `${alias}listed = 1 AND NOT (${alias}name LIKE 'Guest%' AND MAX(${alias}stars, ${alias}base_fame, ${alias}total_fame, ${alias}collection, ${alias}quests) <= ${Math.max(0, Math.floor(min))})`;
 const rankedSqlFor = min => board => `SELECT account, name, discord_id, base_fame, total_fame, stars, quests, collection, first_seen, last_seen,
   RANK() OVER (ORDER BY ${board} DESC) AS rank FROM players WHERE ${rankedWhere(min)}`;
 
