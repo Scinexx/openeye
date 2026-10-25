@@ -1,91 +1,120 @@
+<div align="center">
+
+<img src="public/icons/icon-192.png" alt="" width="96" height="96">
+
 # OpenEye
 
-A RealmEye-style tracker for [Open RotMG](https://openrotmg.org), the open-source 2012 Realm of the Mad God recreation. Live at **[openrotmgeye.com](https://openrotmgeye.com)**.
+**Player stats, rankings and loot tracking for [Open RotMG](https://openrotmg.org)**
 
-OpenEye collects public player data from the game server every few minutes, keeps the history, and shows it as a website: rankings, player pages with progress graphs and item collections, the Legends graveyard, Legends boards, an item browser and server status.
+[**openrotmgeye.com**](https://openrotmgeye.com)
 
-## How it runs
+</div>
 
-OpenEye runs entirely on Cloudflare:
+---
 
-| Piece | Cloudflare product | Where it is defined |
+OpenEye is a RealmEye-style tracker for Open RotMG, the open-source recreation of Realm of the Mad God as it was in 2012. It reads the game's public data every few minutes, keeps a history of it, and presents it as a fast, mobile-friendly website.
+
+## Features
+
+- **Rankings** across stars, living fame, account fame, collection and quests, with rank stars coloured exactly as in the 2012 client
+- **Player profiles** with ranks, a progress graph for every stat, Legends placements, and a full item collection that can be filtered by tier
+- **Legends graveyard** with complete death records: killer, equipment, fame bonuses, accuracy, kills and dungeons cleared
+- **Legends boards** for this week, this month and all time
+- **Latest loot** showing rare untiered drops and top-tier items as players find them
+- **Item browser** with who found each item first and who died wearing it
+- **Bot separation**: the server's bots are kept out of rankings, loot and the player graveyard
+- **Live server status** with current and 24-hour peak player counts
+
+## How it works
+
+OpenEye runs entirely on Cloudflare. Every push to `main` is deployed automatically by Workers Builds.
+
+```
+            every 2 min                       on page visit
+Open RotMG ────────────▶  Collector  ──▶  D1  ◀──  Worker /api/*  ◀──  Browser
+ game API               (Cron Trigger)                                   │
+                                                 static site (public/) ◀─┘
+```
+
+| Component | Cloudflare product | Defined in |
 | --- | --- | --- |
-| Website (everything in `public/`) | Workers static assets | `wrangler.jsonc` → `assets` |
-| JSON API (`/api/*`) | Worker | `src/worker.js` |
-| Database | D1 (database `openeye`) | `wrangler.jsonc` → `d1_databases` |
-| Collector | Cron Trigger, every 2 minutes | `wrangler.jsonc` → `triggers` |
-| Rate limiting | Workers Rate Limiting | `wrangler.jsonc` → `ratelimits` |
-| Domain | Custom Domains for openrotmgeye.com and www | `wrangler.jsonc` → `routes` |
+| Website | Workers static assets | `public/` |
+| API | Workers | `src/worker.js` |
+| Database | D1 | `wrangler.jsonc` |
+| Collector | Cron Triggers | `src/core/collector.js` |
+| Rate limiting | Workers Rate Limiting | `wrangler.jsonc` |
+| Domains | Custom Domains | `wrangler.jsonc` |
 
-Every push to `main` deploys automatically through Workers Builds. The database tables are created automatically on first run.
+The site is read-only. It has no accounts, admin pages or write endpoints, every API request is rate limited per visitor, and all pages are served with a strict Content Security Policy.
 
-## What gets collected
+### Data collection
 
-OpenEye only uses endpoints that the official Open RotMG website and Discord bot already use, and it never logs in as anyone.
+OpenEye only uses the public endpoints that the official Open RotMG website and Discord bot use, and never signs in as anyone.
 
-| Game endpoint | How often | Used for |
+| Endpoint | Frequency | Provides |
 | --- | --- | --- |
 | `GET /health` | 2 min | Players online |
-| `GET /api/bots` | 2 min | Names of the server's bots |
-| `GET /api/hiscores` | 5 min | Every registered player's stars, fame, quests and collection size |
-| `GET /api/collection/{account}` | When a player's count changes, and daily | Items a player has looted, with dates |
-| `POST /legacy-api/fame/list` | 15 min | Legends lists; how deaths are discovered |
-| `POST /legacy-api/char/fame` | Once per new death | Full death record |
+| `GET /api/bots` | 2 min | Bot names |
+| `GET /api/hiscores` | 5 min | Stars, fame, quests and collection size for every registered player |
+| `GET /api/collection/{account}` | On change, and daily | Items each player has looted, with dates |
+| `POST /legacy-api/fame/list` | 15 min | Legends lists, which is how deaths are discovered |
+| `POST /legacy-api/char/fame` | Once per death | Full death record |
 
-Requests go out one at a time with a pause between them. The Legends list shares the server's limit of 20 guest logins per minute per IP, so OpenEye uses only 3 of those every 15 minutes.
+Requests are sent one at a time with a pause between them, capped at 45 per run. The Legends endpoint shares the server's guest login limit, so it is called only three times every 15 minutes.
 
-Each run makes at most 45 requests to the game server (`maxFetchesPerRun`), because Cloudflare's free plan allows 50 outgoing requests per run. Work that does not fit, such as a big batch of new deaths, carries over to the next run two minutes later. On Workers Paid you can raise it with a `MAX_FETCHES_PER_RUN` Worker variable if the player count grows into the hundreds.
+### Bots
 
-## Players and bots
+The game server keeps bot accounts off the hiscores and out of item collections, so bot loot never reaches OpenEye. Bot deaths do appear on the Legends lists; any death from an account that has never been on the hiscores is treated as a bot's and shown only in the graveyard's Bots tab.
 
-The game server runs bots that play alongside people. It keeps every bot account off the hiscores and out of item collections, so bot loot can never reach OpenEye. Bot deaths do appear on the Legends lists: OpenEye treats any death from an account that has never been on the hiscores as a bot's and shows it only in the graveyard's Bots tab. The Legends page mirrors the game's own board, so bots appear there with a "Bot" badge.
+### Notable loot
 
-## What counts as notable loot
+The home page's Latest loot lists untiered items and the best tier that can drop in each slot (T12 weapons, T13 armour, T6 abilities). Common untiered drops are excluded automatically using the server's own loot tables: anything with a drop chance of 10% or more, plus Wand of the Bulwark. Untiered items already owned by half the ranked players and T5 rings are excluded too. These rules live in `tools/update-catalog.mjs`.
 
-The home page's Latest loot shows:
+## Development
 
-- **Untiered items**, except common ones: any untiered item with a drop chance of 10% or more in the server's loot tables (Snake Pit, Spider Den, Sprite World and Forbidden Jungle gear), anything in `COMMON_UT_EXTRA` in `tools/update-catalog.mjs` (currently Wand of the Bulwark), and any untiered item that half the ranked players already own.
-- **The best tier that can drop** in each slot: T12 weapons, T13 armor and T6 abilities. T5 rings are left out (`TOP_TIER_NOT_NOTABLE`).
+Requires [Node.js](https://nodejs.org) 22.13 or newer.
 
-To change these, edit `tools/update-catalog.mjs`, run `npm run update-catalog` and push.
+```sh
+npm install        # installs Wrangler
+npm test           # runs the test suite against a built-in fake game server
+npm run dev        # runs the real Workers runtime locally with a local database
+npm run local      # runs without Cloudflare, using Node and a SQLite file
+```
 
-## Making changes
-
-| Command | What it does |
+| Script | Purpose |
 | --- | --- |
-| `npm install` | Install Wrangler (only needed for the commands below) |
-| `npm test` | Run the tests against a built-in fake game server |
-| `npm run dev` | Run the real Workers runtime locally with a local database |
-| `npm run local` | Run without Cloudflare at all (Node 22.13+ and a SQLite file) |
-| `npm run update-catalog` | Rebuild item names, sprites, tiers and classes from the OpenRotMG GitHub after a game update |
+| `npm run update-catalog` | Rebuilds item names, tiers, sprites and classes from the OpenRotMG repositories after a game update |
+| `python3 tools/build-icons.py` | Rebuilds every icon (favicon, app icons, header logo, link preview) from `design/mark.png` |
 
-Settings (polling intervals, the game server address, the loot thresholds) are in `src/core/settings.js`. Any of them can be overridden without a code change by adding a Worker variable with the same name in capitals, for example `API_BASE` or `LEGENDS_MINUTES`, under the Worker's **Settings → Variables and Secrets** in the Cloudflare dashboard.
+### Configuration
 
-## Logo and icons
+Polling intervals, the game server address and the loot thresholds are defined in `src/core/settings.js`. Any setting can be overridden without a code change by adding a Worker variable with the same name in capitals (for example `LEGENDS_MINUTES`) under **Settings → Variables and Secrets** in the Cloudflare dashboard.
 
-All icons are built from one master image. Put `mark.png` (and optionally `favicon-16.png` and `logo.png`) in `design/`, run `python3 tools/build-icons.py` (needs Python 3 and Pillow), and push. The output in `public/icons/` covers the browser tab (`favicon.ico`, `icon.svg`), iPhone and Android home screens (`apple-touch-icon.png`, `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`), the site header (`logo.png`) and link previews (`og.png`). Blank canvases, drawing guides and a preview of every output are in `design/templates/`; its `README.txt` explains the sizes.
+### Operations
 
-## Logs and data
+- **Logs:** Workers & Pages → openeye → Logs
+- **Database:** Storage & Databases → D1 → openeye (SQL console available)
 
-- **Logs:** Cloudflare dashboard → Workers & Pages → openeye → Logs. Collector progress and any errors show up there.
-- **Data:** Cloudflare dashboard → Storage & Databases → D1 → openeye. You can run SQL against it from the Console tab.
-
-## Known limits
-
-- **Living characters' gear and stats are not shown.** The game server has no public endpoint for them. Adding one would need a change to the [server](https://github.com/OpenRotMG/Open-RotMG-Server) itself.
-- **Small deaths may be missing.** Deaths are discovered through the top 20 Legends lists.
-- **History starts when OpenEye started.** Anything earlier only shows as a jump in the graphs.
-
-## Project layout
+## Project structure
 
 ```
-public/          the website: HTML, CSS, JavaScript, fonts, icons/, and catalog/ (item and class data, sprites)
-design/          logo source files and icon templates
-src/worker.js    Cloudflare entry point
-src/core/        shared logic: collector, API, database schema, game API client, settings
-src/node/        local server and SQLite adapter (development and tests only)
-tools/           catalog builder
-test/            tests and a fake game server
+public/            Website: HTML, CSS, JavaScript, fonts, icons and the item catalog
+src/worker.js      Cloudflare entry point (API and scheduled collector)
+src/core/          Shared logic: collector, API, schema, game API client, settings
+src/node/          Local server and SQLite adapter for development and tests
+tools/             Catalog and icon build scripts
+design/            Logo source and icon templates
+test/              Test suite and fake game server
 ```
 
-See `THIRD_PARTY.md` for credits.
+## Limitations
+
+- **Living characters** are not shown. The game server has no public endpoint for their equipment and stats.
+- **The graveyard is limited** to deaths that reached a top 20 Legends list.
+- **History begins** when OpenEye started collecting; earlier changes appear as a single step in the graphs.
+
+## Credits
+
+Item and class sprites and game data come from the [Open RotMG](https://github.com/OpenRotMG) project. Fonts are [Pixelify Sans](https://fonts.google.com/specimen/Pixelify+Sans) and [Atkinson Hyperlegible](https://fonts.google.com/specimen/Atkinson+Hyperlegible), both under the SIL Open Font License. See [`THIRD_PARTY.md`](THIRD_PARTY.md) for details.
+
+OpenEye is a fan project by Cramshon. It is not run by or affiliated with the Open RotMG developers.
