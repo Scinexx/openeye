@@ -252,6 +252,7 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--fame); }
 .kv dd { margin: 2px 0 0; font: 700 1.3rem var(--display); }
 .kv.text { grid-template-columns: 1fr 1fr; }
 .kv.text dd { font: 700 1.05rem var(--body); }
+.kv.text div:last-child:nth-child(odd) { grid-column: 1 / -1; }
 .kv.text div:nth-child(-n+2) { border-top: 0; }
 
 /* ---------- Items ---------- */

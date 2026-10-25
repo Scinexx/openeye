@@ -41,7 +41,7 @@ const BOARDS = {
   stars: {title: 'Stars', short: 'Stars', help: 'Class stars from each class’s best fame.'},
   base_fame: {title: 'Living fame', short: 'Living fame', help: 'Highest fame of a character that is still alive.'},
   total_fame: {title: 'Account fame', short: 'Account fame', help: 'Fame banked from dead characters, minus what was spent.'},
-  collection: {title: 'Collection', short: 'Items', help: 'Different items personally looted from enemies.'},
+  collection: {title: 'Collection', short: 'Collection', help: 'Different items personally looted from enemies.'},
   quests: {title: 'Quests', short: 'Quests', help: 'Assigned quests completed across all characters.'}
 };
 const STAT_NAMES = {0: 'HP', 3: 'MP', 20: 'ATT', 21: 'DEF', 22: 'SPD', 26: 'VIT', 27: 'WIS', 28: 'DEX'};
@@ -109,7 +109,7 @@ function historyChart(history, key) {
   const W = 760, H = 240, L = 64, R = 12, T = 14, B = 34;
   if (history.length < 2) {
     const v = history[0]?.[key] ?? 0;
-    return h`<p class="empty" style="padding-left:0">${BOARDS[key].title} has been ${fmt(v)} since OpenEye first saw this player. The graph starts once it changes.</p>`;
+    return h`<p class="empty" style="padding-left:0">${BOARDS[key].title} has stayed at ${fmt(v)} since tracking began. The graph appears once it changes.</p>`;
   }
   const nowTs = Math.floor(Date.now() / 1000);
   const pts = history.map(r => ({t: r.at, v: r[key]}));
@@ -137,11 +137,11 @@ const view = (html) => { main.innerHTML = String(html); };
 const loading = () => view(h`<p class="loading">Loading…</p>`);
 
 function deathRows(rows, {showPlayer = true} = {}) {
-  if (!rows.length) return h`<p class="empty">No deaths recorded yet. Deaths are picked up from the Legends lists every few minutes.</p>`;
+  if (!rows.length) return h`<p class="empty">No deaths on the Legends board yet.</p>`;
   return h`<ul class="rows">${rows.map(d => h`<li>
     ${classSprite(d.class, 32)}
     <span class="grow">
-      <a class="title" href="/death/${d.account}/${d.char_id}" data-link>${showPlayer ? d.name : `Level ${d.level ?? '?'} ${className(d.class)}`}</a>
+      <a class="title" href="/death/${d.account}/${d.char_id}" data-link>${showPlayer ? d.name : `${d.level ? `Level ${d.level} ` : ''}${className(d.class)}`}</a>
       <span class="sub">${showPlayer ? `${className(d.class)}${d.level ? `, level ${d.level}` : ''}` : ''}${d.killed_by ? raw(`${showPlayer ? ', ' : ''}killed by <span class="killed">${esc(d.killed_by)}</span>`) : ''}${d.died_at ? raw(` ${when(d.died_at)}`) : ''}</span>
     </span>
     ${gear(d.equipment, 1)}
@@ -159,14 +159,13 @@ async function home() {
     <section class="hero">
       <p>Rankings, item collections and a limited graveyard, recorded from the live Open RotMG server around the clock.</p>
     </section>
-    ${!hasData ? h`<div class="notice"><strong>Collecting the first snapshot.</strong> OpenEye is reading the game server now. This page fills in within a minute.</div>` : ''}
+    ${!hasData ? h`<div class="notice"><strong>Fetching the latest data.</strong> This page fills in within a few minutes.</div>` : ''}
     <section class="panel status-strip" aria-label="Server status">
       ${online}
       <div class="stat"><strong>${st?.ok ? fmt(st.players) : '–'}</strong><span>${st?.ok ? 'playing now' : st ? 'server unreachable' : 'checking server'}</span></div>
-      <div class="stat"><strong>${s.status.peak24h ?? '–'}</strong><span>peak today</span></div>
+      <div class="stat"><strong>${s.status.peak24h ?? '–'}</strong><span>24h peak</span></div>
       <div class="stat"><strong>${fmt(s.counts.players)}</strong><span>ranked players</span></div>
-      <div class="stat"><strong>${fmt(s.counts.deaths)}</strong><span>deaths recorded</span></div>
-      <div class="stat"><strong>${fmt(s.counts.distinctItems)}<span class="muted"> / ${fmt(s.counts.collectible)}</span></strong><span>items found by someone</span></div>
+      <div class="stat"><strong>${fmt(s.counts.distinctItems)}<span class="muted"> / ${fmt(s.counts.collectible)}</span></strong><span>items discovered</span></div>
       ${sparkline(dayPoints)}
     </section>
     <div class="grid-2">
@@ -208,15 +207,14 @@ async function rankings(board) {
       <td><span class="who">${playerLink(p.name)} ${discordIcon(p.discord_id)}</span></td>
       <td class="n main-metric">${fmt(p[board])}</td>
       ${cols.map(c => h`<td class="n">${fmt(p[c])}</td>`)}
-      <td class="muted">${day(p.first_seen)}</td>
-    </tr>`)}` : h`<tr><td colspan="${cols.length + 4}" class="empty">No players match “${filter}”.</td></tr>`);
+    </tr>`)}` : h`<tr><td colspan="${cols.length + 3}" class="empty">No players match “${filter}”.</td></tr>`);
   };
   view(h`
     <div class="page-head"><div><h1>Rankings</h1><p>${BOARDS[board].help}</p></div></div>
     <nav class="tabs" aria-label="Ranking boards">${Object.entries(BOARDS).map(([k, b]) => h`<a href="/rankings/${k}" data-link ${k === board ? raw('aria-current="page"') : ''}>${b.title}</a>`)}</nav>
     <div class="controls"><label class="sr" for="rank-filter">Filter players</label><input id="rank-filter" type="search" placeholder="Filter by name"><span class="muted">${fmt(players.length)} ranked players</span></div>
     <section class="panel"><div class="table-wrap"><table>
-      <thead><tr><th>Rank</th><th>Player</th><th class="n">${BOARDS[board].title}</th>${cols.map(c => h`<th class="n"><a href="/rankings/${c}" data-link>${BOARDS[c].short}</a></th>`)}<th>First seen</th></tr></thead>
+      <thead><tr><th>Rank</th><th>Player</th><th class="n">${BOARDS[board].title}</th>${cols.map(c => h`<th class="n"><a href="/rankings/${c}" data-link>${BOARDS[c].short}</a></th>`)}</tr></thead>
       <tbody id="rank-body"></tbody>
     </table></div></section>`);
   draw();
@@ -242,7 +240,7 @@ async function player(name) {
       ${!p.listed ? h`<span class="badge">No longer on the hiscores</span>` : ''}
     </div>
     <div class="player-meta">
-      <span>First seen ${day(p.first_seen)}</span>
+      <span>Tracked since ${day(p.first_seen)}</span>
       <span>Last updated ${when(p.last_seen)}</span>
       ${formerNames.length ? h`<span>Formerly ${formerNames.map(n => n.name).join(', ')}</span>` : ''}
     </div>
@@ -259,11 +257,11 @@ async function player(name) {
         <div class="panel-body">
           <div class="tabs" role="group" aria-label="Chart metric">${Object.entries(BOARDS).map(([k, b], i) => h`<button type="button" data-metric="${k}" aria-pressed="${i === 0}">${b.short}</button>`)}</div>
           <div id="chart"></div>
-          <p class="chart-readout">${data.history.length} change${data.history.length === 1 ? '' : 's'} recorded since ${day(p.first_seen)}.</p>
+          <p class="chart-readout">${data.history.length} update${data.history.length === 1 ? '' : 's'} since ${day(p.first_seen)}.</p>
         </div>
       </section>
       <section class="panel">
-        <header><h2>Graveyard</h2><span class="muted">${data.deaths.length} known</span></header>
+        <header><h2>Graveyard</h2><span class="muted">${data.deaths.length} on the Legends board</span></header>
         ${deathRows(data.deaths, {showPlayer: false})}
       </section>
     </div>
@@ -347,7 +345,7 @@ async function graveyard() {
           <td class="n main-metric">${fmt(d.total_fame)}</td>
           <td>${gear(d.equipment, 1)}</td>
           <td class="killed">${d.killed_by ?? ''}</td>
-          <td>${d.died_at ? when(d.died_at) : h`<span class="muted">details pending</span>`}</td>
+          <td>${d.died_at ? when(d.died_at) : h`<span class="muted">Loading</span>`}</td>
         </tr>`) : h`<tr><td colspan="6" class="empty">No ${who === 'bots' ? 'bot' : 'player'} deaths recorded${cls ? ` for ${className(cls)}` : ''} yet.</td></tr>`}</tbody>
       </table></div>
       <div class="pager">
@@ -370,7 +368,7 @@ async function death(account, charId) {
   view(h`
     <div class="page-head"><div>
       <h1>${d.name}’s ${className(d.class)}</h1>
-      <p>${d.died_at ? h`Level ${d.level} ${className(d.class)} who died ${date(d.died_at)}${d.killed_by ? h`, killed by <span class="killed">${d.killed_by}</span>` : ''}.` : 'Full death details have not been fetched yet. They arrive within a minute or two.'}</p>
+      <p>${d.died_at ? h`${d.level ? `Level ${d.level} ` : ''}${className(d.class)} who died ${date(d.died_at)}${d.killed_by ? h`, killed by <span class="killed">${d.killed_by}</span>` : ''}.` : 'Full details for this death are still loading. Check back in a few minutes.'}</p>
     </div></div>
     <section class="panel"><div class="panel-body tombstone">
       <div>${classSprite(d.class, 96)}</div>
@@ -407,7 +405,7 @@ async function legends(span) {
   if (!SPANS[span]) return notFound();
   const l = await get(`/api/legends/${span}`);
   view(h`
-    <div class="page-head"><div><h1>Legends</h1><p>The 20 highest-fame deaths, straight from the game’s own Legends board, which includes bots. Last checked ${l.updated ? ago(l.updated) : 'not yet'}.</p></div></div>
+    <div class="page-head"><div><h1>Legends</h1><p>The 20 highest-fame deaths from the game’s own Legends board, bots included. Updated ${l.updated ? ago(l.updated) : 'soon'}.</p></div></div>
     <nav class="tabs" aria-label="Period">${Object.entries(SPANS).map(([k, t]) => h`<a href="/legends/${k}" data-link ${k === span ? raw('aria-current="page"') : ''}>${t}</a>`)}</nav>
     <section class="panel"><div class="table-wrap"><table>
       <thead><tr><th>Rank</th><th>Character</th><th>Player</th><th class="n">Fame</th><th>Equipment</th><th>Killed by</th></tr></thead>
@@ -418,7 +416,7 @@ async function legends(span) {
         <td class="n main-metric">${fmt(d.total_fame)}</td>
         <td>${gear(d.equipment, 2)}</td>
         <td class="killed">${d.killed_by ?? ''}</td>
-      </tr>`) : h`<tr><td colspan="6" class="empty">Nobody has died in this period yet, or Legends has not been checked. It updates every 15 minutes.</td></tr>`}</tbody>
+      </tr>`) : h`<tr><td colspan="6" class="empty">No deaths on this board yet.</td></tr>`}</tbody>
     </table></div></section>`);
 }
 
@@ -495,7 +493,8 @@ async function about() {
     ['Source', 'Open RotMG public game API'],
     ['Updates', 'Every few minutes'],
     ['Players', 'Registered accounts on the hiscores'],
-    ['Bots', 'Tracked separately from players']
+    ['Bots', 'Tracked separately from players'],
+    ['Source code', raw('<a href="https://github.com/Scinexx/openeye" rel="noopener">github.com/Scinexx/openeye</a>')]
   ];
   view(h`
     <div class="page-head"><div>
@@ -519,6 +518,7 @@ async function about() {
 }
 
 function notFound(message = 'There is nothing at this address.') {
+  document.title = 'Not found | OpenEye';
   view(h`<div class="page-head"><div><h1>Not found</h1><p>${message}</p><p><a href="/" data-link>Go to the home page</a> or search for a player above.</p></div></div>`);
 }
 
@@ -537,16 +537,18 @@ const routes = [
   [/^\/about$/, () => about(), 'about']
 ];
 
+const TITLES = {rankings: 'Rankings', graveyard: 'Legends graveyard', legends: 'Legends', items: 'Items', about: 'About'};
 async function route() {
   const path = location.pathname;
-  document.title = 'OpenEye';
   for (const [re, fn, nav] of routes) {
     const m = path.match(re);
     if (!m) continue;
     document.querySelectorAll('[data-nav]').forEach(a => (a.dataset.nav === nav ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
+    // Pages with their own subject (a player, an item, a death) set a more specific title.
+    document.title = TITLES[nav] ? `${TITLES[nav]} | OpenEye` : 'OpenEye';
     if (!main.innerHTML) loading();
     try { await fn(m); }
-    catch (e) { view(h`<div class="notice error"><strong>This page could not load.</strong> ${e.message}. Check that OpenEye is still running in its terminal window.</div>`); }
+    catch (e) { view(h`<div class="notice error"><strong>This page could not load.</strong> ${e.status === 429 ? 'Too many requests. Wait a minute and try again.' : 'Try refreshing the page in a moment.'}</div>`); }
     return;
   }
   notFound();
@@ -610,7 +612,7 @@ async function footer() {
   try {
     const s = await get('/api/status');
     const last = s.jobs.hiscores.lastOk;
-    document.getElementById('footer-status').textContent = last ? `Last updated ${ago(last)} from ${s.apiBase}.` : `Waiting for the first update from ${s.apiBase}.`;
+    document.getElementById('footer-status').textContent = last ? `Data updated ${ago(last)}.` : 'Waiting for the first update.';
   } catch { /* server stopped */ }
 }
 
