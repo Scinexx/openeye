@@ -198,7 +198,7 @@ async function home() {
         <thead><tr>${Object.keys(BOARDS).map(b => h`<th><a href="/rankings/${b}" data-link>${BOARDS[b].title}</a></th>`)}</tr></thead>
         <tbody>${[0, 1, 2, 3, 4].map(i => h`<tr>${Object.keys(BOARDS).map(b => {
           const p = s.top[b][i];
-          return p ? h`<td><span class="muted">${p.rank}.</span> ${playerLink(p.name, p.stars)} <span class="fame">${fmt(p[b])}</span></td>` : h`<td class="muted">–</td>`;
+          return p ? h`<td><span class="muted">${p.rank}.</span> ${playerLink(p.name)} <span class="fame">${fmt(p[b])}</span></td>` : h`<td class="muted">–</td>`;
         })}</tr>`)}</tbody>
       </table></div>
     </section>`);
