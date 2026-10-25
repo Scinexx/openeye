@@ -489,30 +489,20 @@ async function item(id) {
 async function about() {
   const s = await get('/api/status');
   const names = {health: 'Server', hiscores: 'Players', legends: 'Legends', deaths: 'Deaths'};
-  const facts = [
-    ['Source', 'Open RotMG public game API'],
-    ['Updates', 'Every few minutes'],
-    ['Players', 'Registered accounts on the hiscores'],
-    ['Bots', 'Tracked separately from players'],
-    ['Source code', raw('<a href="https://github.com/Scinexx/openeye" rel="noopener">github.com/Scinexx/openeye</a>')]
-  ];
   view(h`
-    <div class="page-head"><div>
-      <h1>About</h1>
-      <p>OpenEye tracks rankings, deaths and loot on Open RotMG, recorded from the game’s public data.</p>
-    </div></div>
-    <div class="grid-2">
+    <div class="page-head"><div><h1>About</h1></div></div>
+    <div class="grid-2" style="align-items:start">
       <section class="panel">
-        <header><h2>At a glance</h2></header>
-        <dl class="kv text">${facts.map(([k, v]) => h`<div><dt>${k}</dt><dd>${v}</dd></div>`)}</dl>
-      </section>
-      <section class="panel">
-        <header><h2>Status</h2></header>
+        <header><h2>Last updated</h2></header>
         <ul class="rows">${Object.entries(s.jobs).map(([k, j]) => h`<li>
           <span class="light ${j.delayed ? 'off' : j.lastOk ? 'on' : ''}"></span>
           <span class="grow title">${names[k]}</span>
-          <span class="sub">${j.delayed ? 'Delayed' : j.lastOk ? h`Updated ${when(j.lastOk)}` : 'Starting'}</span>
+          <span class="sub">${j.delayed ? 'Delayed' : j.lastOk ? when(j.lastOk) : 'Starting'}</span>
         </li>`)}</ul>
+      </section>
+      <section class="panel">
+        <header><h2>Source code</h2></header>
+        <div class="panel-body"><a href="https://github.com/Scinexx/openeye" rel="noopener">github.com/Scinexx/openeye</a></div>
       </section>
     </div>`);
 }
