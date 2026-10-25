@@ -16,7 +16,7 @@ OpenEye is a RealmEye-style tracker for Open RotMG, the open-source recreation o
 
 ## Features
 
-- **Rankings** across stars, living fame, account fame, fame earned, collection and quests, with rank stars coloured exactly as in the 2012 client; empty guest accounts are left out
+- **Rankings** across stars, living fame, fame earned, collection and quests, with rank stars coloured exactly as in the 2012 client; empty guest accounts are left out
 - **Fame earned**: every rise in a player's living fame, added up from each 5-minute check. Living fame players already had when tracking began is counted as earned the day before
 - **Most fame earned in the last 24 hours** on the home page; the leader wears a crown next to their name across the site
 - **Player profiles** with ranks, a progress graph for every stat, Legends placements, and a full item collection that can be filtered by tier

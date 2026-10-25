@@ -2,7 +2,8 @@
 // There are no write or admin endpoints: everything here only reads the database.
 import {getMeta, now} from './schema.js';
 
-export const BOARDS = ['stars', 'base_fame', 'total_fame', 'fame_earned', 'collection', 'quests'];
+// Account fame (total_fame) is still recorded but not ranked: it is only what a player has left to spend.
+export const BOARDS = ['stars', 'base_fame', 'fame_earned', 'collection', 'quests'];
 
 export const SECURITY_HEADERS = {
   // Sprites are positioned with inline style attributes, so styles allow 'unsafe-inline'; scripts never do.

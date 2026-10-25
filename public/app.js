@@ -40,7 +40,6 @@ const fmt = n => (n ?? 0).toLocaleString('en-US');
 const BOARDS = {
   stars: {title: 'Stars', short: 'Stars', help: 'Class stars from each class’s best fame.'},
   base_fame: {title: 'Living fame', short: 'Living fame', help: 'Highest fame of a character that is still alive.'},
-  total_fame: {title: 'Account fame', short: 'Account fame', help: 'Fame banked from dead characters, minus what was spent.'},
   fame_earned: {title: 'Fame earned', short: 'Fame earned', help: 'Every rise in living fame, added up. Living fame a player already had when tracking began counts as earned the day before.'},
   collection: {title: 'Collection', short: 'Collection', help: 'Different items personally looted from enemies.'},
   quests: {title: 'Quests', short: 'Quests', help: 'Assigned quests completed across all characters.'}
@@ -370,6 +369,7 @@ async function home() {
 }
 
 async function rankings(board) {
+  if (board === 'total_fame') return navigate('/rankings/fame_earned', true); // retired board
   if (!BOARDS[board]) return notFound();
   const {players} = await get(`/api/rankings/${board}`);
   // Columns stay in the same order on every board; the selected one is highlighted.
