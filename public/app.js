@@ -473,6 +473,12 @@ async function player(name) {
       </div>
     </section>`);
 
+  document.getElementById('pots-toggle')?.addEventListener('change', e => {
+    showPotions = e.target.checked;
+    main.querySelector('.chars')?.classList.toggle('potions', showPotions);
+    try { localStorage.setItem('potionsToMax', showPotions ? '1' : '0'); } catch { /* storage unavailable */ }
+  });
+
   // Fame earned is charted from its own record of gains rather than the hiscores history.
   let earned = 0;
   const earnedHistory = data.fameGains.map(g => ({at: g.at, fame_earned: (earned += g.amount)}));
@@ -513,21 +519,39 @@ async function player(name) {
 // Living characters (published by the game server since OpenRotMG PR #624).
 // Stats are base stats, shown against the class maximum like the in-game "x/8".
 const STAT_KEYS = [['hp', 'HP'], ['mp', 'MP'], ['att', 'ATT'], ['def', 'DEF'], ['spd', 'SPD'], ['dex', 'DEX'], ['vit', 'VIT'], ['wis', 'WIS']];
+// The stat potion for each stat and how much one adds (objects.xml IncrementStat: Life and
+// Mana +5, the rest +1). The server stops a potion at the class cap, so the potions still
+// needed are ceil((class max - base) / amount).
+const STAT_POTIONS = [[2793, 5], [2794, 5], [2591, 1], [2592, 1], [2593, 1], [2636, 1], [2612, 1], [2613, 1]];
+const potionsLeft = (c, max) => STAT_KEYS.map(([k], i) => Math.max(0, Math.ceil((max[k] - c.stats[i]) / STAT_POTIONS[i][1])));
+let showPotions = false;
+try { showPotions = localStorage.getItem('potionsToMax') === '1'; } catch { /* storage unavailable */ }
 function characterPanel(chars, p) {
-  return h`<section class="panel chars" style="margin-bottom:24px">
-    <header><h2>Characters</h2><span class="muted">${chars.length ? `${chars.length} alive` : ''}</span></header>
+  return h`<section class="panel chars${showPotions ? ' potions' : ''}" style="margin-bottom:24px">
+    <header><h2>Characters${chars.length ? h` <span class="muted count">${chars.length} alive</span>` : ''}</h2>
+      ${chars.length ? h`<label class="check pot-toggle"><input type="checkbox" id="pots-toggle" ${showPotions ? raw('checked') : ''}> Toggle potions to max</label>` : ''}</header>
     ${chars.length ? h`<div class="table-wrap"><table>
-      <thead><tr><th>Character</th><th class="n">Level</th><th class="n">Fame</th><th>Equipment</th><th class="n">Maxed</th><th>Stats</th></tr></thead>
+      <thead><tr><th>Character</th><th class="n">Level</th><th class="n">Fame</th><th>Equipment</th><th class="n">Maxed</th><th><span class="stat-val">Stats</span><span class="pot-val">Potions to max</span></th></tr></thead>
       <tbody>${chars.map(c => {
         const max = CLASSES.get(c.class)?.max;
-        const maxed = max ? STAT_KEYS.filter(([k], i) => c.stats[i] >= max[k]).length : null;
+        const left = max ? potionsLeft(c, max) : null;
+        const maxed = left ? left.filter(n => n === 0).length : null;
+        const total = left ? left.reduce((a, b) => a + b, 0) : null;
         return h`<tr>
           <td class="c-who"><span class="who">${classSprite(c.class, 40)} <span>${className(c.class)}${c.created_at ? h`<span class="sub">Created ${day(c.created_at)}</span>` : ''}</span></span></td>
           <td class="n c-level" data-label="Level">${c.level}</td>
           <td class="n fame main-metric c-fame" data-label="Fame">${fmt(c.fame)}</td>
           <td class="c-gear">${gear(c.equipment, 2)}</td>
-          <td class="n c-maxed${maxed === 8 ? ' hl' : ''}" data-label="Maxed">${maxed === null ? '–' : `${maxed}/8`}</td>
-          <td class="c-stats"><span class="char-stats">${STAT_KEYS.map(([k, label], i) => h`<span class="${max && c.stats[i] >= max[k] ? 'maxed' : ''}"${max ? raw(` title="${label} ${c.stats[i]} of ${max[k]}"`) : ''}><b>${label}</b>${c.stats[i]}</span>`)}</span></td>
+          <td class="n c-maxed${maxed === 8 ? ' hl' : ''}" data-label="Maxed">${maxed === null ? '–' : `${maxed}/8`}${total ? h`<span class="pot-val sub">${fmt(total)} potions</span>` : ''}</td>
+          <td class="c-stats"><span class="char-stats">${STAT_KEYS.map(([k, label], i) => {
+            if (!max) return h`<span><b>${label}</b>${c.stats[i]}</span>`;
+            const done = left[i] === 0;
+            const pot = ITEMS.get(STAT_POTIONS[i][0]);
+            return h`<span class="${done ? 'maxed' : ''}">
+              <span class="stat-val" title="${label} ${c.stats[i]} of ${max[k]}"><b>${label}</b>${c.stats[i]}</span>
+              <span class="pot-val" title="${done ? `${label} is maxed` : `${left[i]} ${pot?.name ?? 'potion'}${left[i] === 1 ? '' : 's'} to max ${label} (${max[k] - c.stats[i]} more)`}"><b>${label}</b>${done ? 'Max' : left[i]}</span>
+            </span>`;
+          })}</span></td>
         </tr>`;
       })}</tbody>
     </table></div>` : h`<p class="empty">${p.name} has no living characters right now.</p>`}
