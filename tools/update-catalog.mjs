@@ -3,17 +3,23 @@
 //
 //   node tools/update-catalog.mjs                 download from GitHub
 //   node tools/update-catalog.mjs --from <dir>    use local clones in <dir>
-//                                                 (Open-RotMG-Server, Open-RotMG-Website)
+//                                                 (Open-RotMG-Server, Open-RotMG-Website, Open-RotMG-Client)
+//   --loot <file>   enemy drops exported from the server's code by tools/codex/loot_export.rs
+//                   (the daily GitHub Action does this). Without it, enemies are left as they are.
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import {join, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {parseElement, equipmentTooltip} from './tooltip.mjs';
+import {swfBitmaps} from './codex/swf.mjs';
+import {buildEnemies, literalDrops} from './codex/enemies.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'public', 'catalog');
 const RAW = 'https://raw.githubusercontent.com/OpenRotMG';
 const fromIndex = process.argv.indexOf('--from');
 const local = fromIndex > 0 ? process.argv[fromIndex + 1] : null;
+const lootIndex = process.argv.indexOf('--loot');
+const lootFile = lootIndex > 0 ? process.argv[lootIndex + 1] : null;
 
 const SOURCES = {
   objects: ['Open-RotMG-Server', 'data/objects.xml'],
@@ -22,7 +28,8 @@ const SOURCES = {
   endgame: ['Open-RotMG-Server', 'src/endgame.rs'],
   items: ['Open-RotMG-Website', 'public/hiscores/items.json'],
   sheet: ['Open-RotMG-Website', 'public/hiscores/items.png'],
-  classSprite: name => ['Open-RotMG-Website', `public/restoration/assets/player/${name}.png`]
+  classSprite: name => ['Open-RotMG-Website', `public/restoration/assets/player/${name}.png`],
+  client: ['Open-RotMG-Client', 'client.swf']
 };
 
 async function get([repo, path], binary = false) {
@@ -153,6 +160,28 @@ for (const o of objects) {
 }
 
 await writeFile(join(out, 'tooltips.json'), JSON.stringify(tooltips));
+
+// ---- enemies ----
+if (lootFile) {
+  const loot = JSON.parse(await readFile(lootFile, 'utf8'));
+  const itemIds = new Set(items.map(i => i.id));
+  const {enemies, sheet} = buildEnemies({objects, loot, sheets: swfBitmaps(await get(SOURCES.client, true)), isItem: id => itemIds.has(id)});
+  // Items the world code drops by hand must all be in the export's list of hand-written extras.
+  if (local) {
+    const {readdir} = await import('node:fs/promises');
+    const dir = join(local, 'Open-RotMG-Server', 'src');
+    const files = ['world.rs', ...(await readdir(join(dir, 'world'))).filter(f => f.endsWith('.rs')).map(f => `world/${f}`)];
+    const literal = literalDrops(await Promise.all(files.map(f => readFile(join(dir, f), 'utf8'))));
+    const known = new Set(loot.extraItems);
+    const missing = [...literal].filter(id => !known.has(id) && itemIds.has(id));
+    if (missing.length) console.warn(`::warning::Hand-written drops not in loot_export.rs extras: ${missing.map(id => '0x' + id.toString(16)).join(', ')}`);
+  }
+  await writeFile(join(out, 'enemies.json'), JSON.stringify(enemies));
+  await writeFile(join(out, 'enemies.png'), sheet.png);
+  console.log(`Enemies: ${enemies.length} (${enemies.filter(e => e.drops.length).length} with drops, ${enemies.filter(e => e.sprite).length} with sprites).`);
+} else {
+  console.log('Enemies not rebuilt: pass --loot <file> from tools/codex/loot_export.rs.');
+}
 await writeFile(join(out, 'items.png'), await get(SOURCES.sheet, true));
 await writeFile(join(out, 'items.json'), JSON.stringify(items));
 await writeFile(join(out, 'classes.json'), JSON.stringify(classes, null, 1));
