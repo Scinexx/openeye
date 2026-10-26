@@ -43,7 +43,14 @@ export const SCHEMA = [
   // The living fame a player already had when tracking began is one entry dated a day
   // before. players.fame_earned is the running total of these rows.
   `CREATE TABLE IF NOT EXISTS fame_gains (
-    account INTEGER NOT NULL, at INTEGER NOT NULL, amount INTEGER NOT NULL, PRIMARY KEY (account, at))`
+    account INTEGER NOT NULL, at INTEGER NOT NULL, amount INTEGER NOT NULL, PRIMARY KEY (account, at))`,
+  // Living characters of ranked players, replaced on every hiscores poll once the server
+  // publishes them (OpenRotMG PR #624). stats: base [hp, mp, att, def, spd, dex, vit, wis].
+  `CREATE TABLE IF NOT EXISTS characters (
+    char_id INTEGER PRIMARY KEY, account INTEGER NOT NULL, class INTEGER NOT NULL, level INTEGER NOT NULL,
+    exp INTEGER NOT NULL DEFAULT 0, fame INTEGER NOT NULL DEFAULT 0, stats TEXT NOT NULL, equipment TEXT NOT NULL,
+    tex1 INTEGER NOT NULL DEFAULT 0, tex2 INTEGER NOT NULL DEFAULT 0, created_at INTEGER, seen_at INTEGER NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS characters_by_account ON characters(account)`
 ];
 // Columns added after the first release. SQLite has no ADD COLUMN IF NOT EXISTS, so
 // "duplicate column" errors are expected and ignored.

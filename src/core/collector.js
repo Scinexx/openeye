@@ -102,6 +102,24 @@ export class Collector {
       );
     }
     if (!fameStarted) stmts.push(setMetaStmt(db, 'fame_earned_since', at));
+    // Living characters (server PR #624). Servers without it leave the field out and the
+    // table is left alone. Only characters of listed players are kept, so bots never show.
+    if (Array.isArray(data.characters)) {
+      const listed = new Set(data.players.map(p => p.account));
+      const chars = JSON.stringify(data.characters.filter(c => listed.has(c.account)).map(c => ({
+        id: c.id, account: c.account, class: c.class, level: c.level, exp: Number.isSafeInteger(c.exp) ? c.exp : 0,
+        fame: c.fame, stats: c.stats, equipment: c.equipment, tex1: Number.isSafeInteger(c.tex1) ? c.tex1 : 0,
+        tex2: Number.isSafeInteger(c.tex2) ? c.tex2 : 0, created_at: Number.isSafeInteger(c.created_at) ? c.created_at : null
+      })));
+      stmts.push(
+        db.prepare('DELETE FROM characters'),
+        db.prepare(`INSERT OR REPLACE INTO characters(char_id, account, class, level, exp, fame, stats, equipment, tex1, tex2, created_at, seen_at)
+          SELECT json_extract(value, '$.id'), json_extract(value, '$.account'), json_extract(value, '$.class'), json_extract(value, '$.level'),
+            json_extract(value, '$.exp'), json_extract(value, '$.fame'), json_extract(value, '$.stats'), json_extract(value, '$.equipment'),
+            json_extract(value, '$.tex1'), json_extract(value, '$.tex2'), json_extract(value, '$.created_at'), ? FROM json_each(?)`).bind(at, chars),
+        setMetaStmt(db, 'characters_at', at)
+      );
+    }
     await db.batch(stmts);
     if (added || changed) this.log.info(`hiscores: ${data.players.length} players, ${added} new, ${changed} changed`);
 
@@ -195,6 +213,56 @@ export class Collector {
     }
   }
 
+  /**
+   * Every player death from the server's graveyard (PR #624). Off until the meta key
+   * graveyard_enabled is set to 1, so the endpoint is never called before it is approved.
+   * Deaths are read oldest first from a cursor; new ones get their full record
+   * (stats, fame bonuses) from the death details job.
+   */
+  async syncGraveyard() {
+    const db = this.db;
+    if ((await getMeta(db, 'graveyard_enabled')) !== '1') return;
+    let since = Number(await getMeta(db, 'graveyard_since') ?? 0);
+    let added = 0;
+    for (let page = 0; page < 5; page++) {
+      if (this.left() < 1) return false;
+      if (page) await sleep(this.s.requestGapMs);
+      const deaths = await this.api.graveyard(since);
+      const at = now();
+      if (!deaths.length) break;
+      const listed = new Set((await this.all('SELECT account FROM players')).map(r => r.account));
+      // A death of a player registered since the last hiscores poll waits for that poll,
+      // unless it is over an hour old (then it is not coming and is skipped).
+      const waiting = deaths.filter(d => !listed.has(d.account) && d.died_at > at - 3600);
+      const keep = deaths.filter(d => listed.has(d.account)).map(d => ({
+        account: d.account, id: d.id, name: d.name, class: d.class, level: Number.isSafeInteger(d.level) ? d.level : null,
+        base_fame: Number.isSafeInteger(d.base_fame) ? d.base_fame : null, total_fame: d.total_fame, died_at: d.died_at,
+        killed_by: typeof d.killed_by === 'string' ? d.killed_by : null, equipment: JSON.stringify(d.equipment.slice(0, 4)),
+        tex1: Number.isSafeInteger(d.tex1) ? d.tex1 : 0, tex2: Number.isSafeInteger(d.tex2) ? d.tex2 : 0
+      }));
+      const last = deaths[deaths.length - 1].died_at;
+      const next = waiting.length ? Math.min(last, ...waiting.map(d => d.died_at)) : last;
+      const [res] = await db.batch([
+        db.prepare(`INSERT INTO deaths(account, char_id, name, class, tex1, tex2, equipment, total_fame, base_fame, level, died_at, killed_by, discovered_at)
+          SELECT json_extract(value, '$.account'), json_extract(value, '$.id'), json_extract(value, '$.name'), json_extract(value, '$.class'),
+            json_extract(value, '$.tex1'), json_extract(value, '$.tex2'), json_extract(value, '$.equipment'), json_extract(value, '$.total_fame'),
+            json_extract(value, '$.base_fame'), json_extract(value, '$.level'), json_extract(value, '$.died_at'), json_extract(value, '$.killed_by'), ?
+          FROM json_each(?) WHERE true
+          ON CONFLICT(account, char_id) DO UPDATE SET level = COALESCE(deaths.level, excluded.level),
+            died_at = COALESCE(deaths.died_at, excluded.died_at), killed_by = COALESCE(deaths.killed_by, excluded.killed_by),
+            base_fame = COALESCE(deaths.base_fame, excluded.base_fame)`).bind(at, JSON.stringify(keep)),
+        setMetaStmt(db, 'graveyard_since', next),
+        setMetaStmt(db, 'graveyard_ok', at)
+      ]);
+      added += Number(res?.meta?.changes ?? 0);
+      // A full page means more are waiting. If every row shares one second the cursor
+      // cannot move, so stop rather than loop.
+      if (deaths.length < 500 || next <= since) break;
+      since = next;
+    }
+    if (added) this.log.info(`graveyard: ${added} death(s) recorded`);
+  }
+
   // ---------- scheduling ----------
 
   jobs() {
@@ -202,6 +270,7 @@ export class Collector {
       {name: 'health', every: this.s.healthMinutes * 60, run: () => this.syncHealth()},
       {name: 'legends', every: this.s.legendsMinutes * 60, run: () => this.syncLegends()},
       {name: 'hiscores', every: this.s.hiscoresMinutes * 60, run: () => this.syncHiscores()},
+      {name: 'graveyard', every: this.s.graveyardMinutes * 60, run: () => this.syncGraveyard()},
       {name: 'deaths', every: this.s.deathsMinutes * 60, run: () => this.syncDeathDetails()}
     ];
   }

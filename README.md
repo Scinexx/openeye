@@ -20,7 +20,8 @@ OpenEye is a RealmEye-style tracker for Open RotMG, the open-source recreation o
 - **Fame earned**: every rise in a player's living fame, added up from each 5-minute check. Living fame players already had when tracking began is counted as earned the day before
 - **Most fame earned in the last 24 hours** on the home page; the leader wears a crown next to their name across the site
 - **Player profiles** with ranks, a progress graph for every stat, Legends placements, and a full item collection that can be filtered by tier
-- **Legends graveyard** with complete death records: killer, equipment, fame bonuses, accuracy, kills and dungeons cleared
+- **Living characters** on each profile: class, level, fame, equipment and base stats against the class maximum (once the game server publishes them, see below)
+- **Graveyard** with complete death records: killer, equipment, fame bonuses, accuracy, kills and dungeons cleared
 - **Legends boards** for this week, this month and all time
 - **Latest loot** showing rare untiered drops and top-tier items as players find them
 - **Loot history** of every item players have looted, filterable by tier, item type, time range and player
@@ -65,8 +66,24 @@ OpenEye only uses the public endpoints that the official Open RotMG website and 
 | `GET /api/collection/{account}` | On change, and daily | Items each player has looted, with dates |
 | `POST /legacy-api/fame/list` | 15 min | Legends lists, which is how deaths are discovered |
 | `POST /legacy-api/char/fame` | Once per death | Full death record |
+| `GET /api/graveyard?since=` | 5 min, only once switched on | Every player death |
 
 Requests are sent one at a time with a pause between them, capped at 45 per run. The Legends endpoint shares the server's guest login limit, so it is called only three times every 15 minutes.
+
+### Living characters and the full graveyard
+
+[OpenRotMG server PR #624](https://github.com/OpenRotMG/Open-RotMG-Server/pull/624) adds living characters to `/api/hiscores` and a new `/api/graveyard` endpoint, both without bots. OpenEye is ready for both:
+
+- **Characters** need no switch. When the hiscores response includes `characters`, they are stored on the next poll and a Characters panel appears on profiles. No extra requests are made.
+- **The full graveyard** stays off, and `/api/graveyard` is never requested, until the meta key `graveyard_enabled` is set to `1`. Run this in the D1 SQL console:
+
+  ```sql
+  INSERT INTO meta(key, value) VALUES('graveyard_enabled', '1') ON CONFLICT(key) DO UPDATE SET value = '1';
+  ```
+
+  On the next run (within 5 minutes) every player death is backfilled oldest first, and each one then gets its full record from `/legacy-api/char/fame`. Once the first request succeeds, the site's wording switches from "Legends graveyard" to "Graveyard", and deaths still on a Legends board are tagged. Set the key to `0` to stop requesting it again.
+
+Characters and graveyard deaths are only kept for accounts on the hiscores, so bots are left out even if the server ever sent them.
 
 ### Game data
 
@@ -119,8 +136,7 @@ test/              Test suite and fake game server
 
 ## Limitations
 
-- **Living characters** are not shown. The game server has no public endpoint for their equipment and stats.
-- **The graveyard is limited** to deaths that reached a top 20 Legends list.
+- **Living characters and the full graveyard** wait on the game server publishing them (see above). Until then the graveyard is limited to deaths that reached a top 20 Legends list.
 - **History begins** when OpenEye started collecting; earlier changes appear as a single step in the graphs.
 
 ## Credits

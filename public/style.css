@@ -309,6 +309,30 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 .panel-note { padding: 10px 16px 0; color: var(--muted); font-size: 0.9rem; }
 .rows > li > .tier { font-size: 0.95rem; }
 
+/* ---------- Living characters ---------- */
+.chars .who .sub { display: block; color: var(--bone-dim); font-size: 0.85rem; font-weight: 400; }
+.chars td { vertical-align: middle; }
+.char-stats { display: grid; grid-template-columns: repeat(4, auto); gap: 2px 12px; font-size: 0.85rem; white-space: nowrap; }
+.char-stats > span { color: var(--bone-dim); font-variant-numeric: tabular-nums; }
+.char-stats b { display: inline-block; min-width: 2.6em; color: var(--muted); font-weight: 700; font-size: 0.75rem; }
+.char-stats .maxed { color: var(--gold); }
+.char-stats .maxed b { color: var(--gold); }
+@media (max-width: 720px) {
+  .chars .table-wrap { overflow: visible; }
+  .chars table, .chars tbody { display: block; }
+  .chars thead { display: none; }
+  .chars tr { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 12px 16px; border-top: 2px solid var(--stone-deep); }
+  .chars tr:first-child { border-top: 0; }
+  .chars td { display: block; padding: 0; border: 0; }
+  .chars .c-who { flex: 1 0 100%; }
+  .chars .c-level::before, .chars .c-fame::before, .chars .c-maxed::before {
+    content: attr(data-label) " "; color: var(--muted); font: 400 0.8rem var(--body, inherit);
+  }
+  .chars .c-stats { flex: 1 0 100%; order: 6; }
+  .chars .c-gear { order: 5; }
+}
+.badge.legend-tag { padding: 0 6px; font-size: 0.8rem; margin-left: -2px; text-decoration: none; white-space: nowrap; }
+
 /* ---------- Death detail ---------- */
 .tombstone { display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: start; }
 @media (max-width: 640px) { .tombstone { grid-template-columns: 1fr; } }

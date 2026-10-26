@@ -27,12 +27,14 @@ const BOT_CONFIRMED = 'EXISTS (SELECT 1 FROM bots b WHERE b.name = d.name)';
 const DEATH_COLS = `d.account, d.char_id, d.name, d.class, d.tex1, d.tex2, d.equipment, d.total_fame, d.base_fame,
   d.level, d.died_at, d.killed_by, d.discovered_at, d.detail_status,
   ${IS_BOT} AS is_bot, ${BOT_CONFIRMED} AS bot_confirmed,
+  EXISTS (SELECT 1 FROM legends lg WHERE lg.account = d.account AND lg.char_id = d.char_id) AS in_legends,
   (SELECT sp.stars FROM players sp WHERE sp.account = d.account) AS player_stars`;
 
 const parseDeath = d => d && ({
   ...d,
   is_bot: !!d.is_bot,
   bot_confirmed: !!d.bot_confirmed,
+  in_legends: !!d.in_legends,
   equipment: JSON.parse(d.equipment),
   stats: d.stats ? JSON.parse(d.stats) : null,
   bonuses: d.bonuses ? JSON.parse(d.bonuses) : null
@@ -88,15 +90,21 @@ export function makeApi(db, catalog, settings) {
       q('SELECT at, ok, players FROM server_status WHERE at >= ? ORDER BY at', since),
       one('SELECT MAX(players) AS peak FROM server_status WHERE at >= ?', since)
     ]);
+    // Features that switch on by themselves once the game server publishes the data
+    // (OpenRotMG server PR #624): living characters and the full graveyard.
+    const features = {
+      characters: Number(await getMeta(db, 'characters_at') ?? 0) > now() - 86400,
+      graveyard: (await getMeta(db, 'graveyard_ok')) !== null
+    };
     const jobs = {};
-    for (const job of ['health', 'hiscores', 'legends', 'deaths']) {
+    for (const job of ['health', 'hiscores', 'legends', 'deaths', ...(features.graveyard ? ['graveyard'] : [])]) {
       const lastOk = Number(await getMeta(db, `last_ok:${job}`) ?? 0) || null;
       const err = await getMeta(db, `last_error:${job}`);
       const errAt = err ? Number(err.split(' ')[0]) : 0;
       // Public status shows freshness only; error details stay in the logs.
       jobs[job] = {lastOk, delayed: errAt > (lastOk ?? 0)};
     }
-    return {now: now(), apiBase: settings.apiBase, server: latest ?? null, peak24h: peak?.peak ?? null, day, jobs};
+    return {now: now(), apiBase: settings.apiBase, server: latest ?? null, peak24h: peak?.peak ?? null, day, jobs, features};
   }
 
   /** Notable finds: rare UTs and top-tier drops, minus UTs that most players already own. */
@@ -167,16 +175,21 @@ export function makeApi(db, catalog, settings) {
     await Promise.all(BOARDS.map(async board => {
       ranks[board] = (await one(`SELECT rank FROM (${rankedSql(board)}) WHERE account = ?`, p.account))?.rank ?? null;
     }));
-    const [rankedPlayers, names, history, collection, deaths, legends, fameGains] = await Promise.all([
+    const [rankedPlayers, names, history, collection, deaths, legends, fameGains, characters] = await Promise.all([
       rankedCount(),
       q('SELECT name, first_seen FROM name_history WHERE account = ? ORDER BY first_seen', p.account),
       q('SELECT at, base_fame, total_fame, stars, quests, collection FROM player_history WHERE account = ? ORDER BY at', p.account),
       q('SELECT item, found_at FROM collection_items WHERE account = ? ORDER BY found_at DESC', p.account),
       q(`SELECT ${DEATH_COLS} FROM deaths d WHERE d.account = ? ORDER BY COALESCE(d.died_at, d.discovered_at) DESC`, p.account),
       q('SELECT timespan, rank, char_id, total_fame FROM legends WHERE account = ? ORDER BY timespan, rank', p.account),
-      q('SELECT at, amount FROM fame_gains WHERE account = ? ORDER BY at', p.account)
+      q('SELECT at, amount FROM fame_gains WHERE account = ? ORDER BY at', p.account),
+      // Only while the player is listed and the server still publishes characters, so nothing stale shows.
+      p.listed ? q(`SELECT char_id, class, level, exp, fame, stats, equipment, tex1, tex2, created_at FROM characters
+        WHERE account = ? AND seen_at > ? ORDER BY fame DESC, level DESC, char_id`, p.account, now() - 3600) : []
     ]);
-    return {player: p, ranks, rankedPlayers, names, history, collection, deaths: deaths.map(parseDeath), legends, fameGains};
+    const features = {characters: Number(await getMeta(db, 'characters_at') ?? 0) > now() - 86400, graveyard: (await getMeta(db, 'graveyard_ok')) !== null};
+    return {player: p, ranks, rankedPlayers, names, history, collection, deaths: deaths.map(parseDeath), legends, fameGains, features,
+      characters: characters.map(c => ({...c, stats: JSON.parse(c.stats), equipment: JSON.parse(c.equipment)}))};
   }
 
   async function graveyard({page = 1, sort = 'recent', cls = null, bots = false, per = 40}) {
@@ -191,7 +204,7 @@ export function makeApi(db, catalog, settings) {
       q(`SELECT class, COUNT(*) AS n FROM deaths d WHERE ${who} GROUP BY class`),
       one(`SELECT SUM(NOT ${IS_BOT}) AS players, SUM(${IS_BOT}) AS bots FROM deaths d`)
     ]);
-    return {total: total.n, page, per, rows: rows.map(parseDeath), byClass, bots,
+    return {total: total.n, page, per, rows: rows.map(parseDeath), byClass, bots, full: (await getMeta(db, 'graveyard_ok')) !== null,
       totals: {players: totals?.players ?? 0, bots: totals?.bots ?? 0}};
   }
 

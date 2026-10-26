@@ -31,6 +31,17 @@ const DEATH_STATS = {
   spriteWorlds: 'SpriteWorldsCompleted', tombs: 'TombsCompleted', levelUpAssists: 'LevelUpAssists'
 };
 
+const int = v => Number.isSafeInteger(v);
+const intList = (v, n) => Array.isArray(v) && v.length === n && v.every(int);
+function validCharacter(c) {
+  return c && int(c.account) && int(c.id) && int(c.class) && int(c.level) && int(c.fame)
+    && intList(c.stats, 8) && intList(c.equipment, 4);
+}
+function validDeath(d) {
+  return d && int(d.account) && int(d.id) && int(d.class) && int(d.died_at) && typeof d.name === 'string'
+    && int(d.total_fame) && Array.isArray(d.equipment) && d.equipment.every(int);
+}
+
 export function createGameApi(apiBase) {
   // Outgoing requests made by this client. Cloudflare caps requests per Worker run
   // (50 on the free plan), so the collector checks this before each request.
@@ -67,7 +78,22 @@ export function createGameApi(apiBase) {
       for (const p of data.players) {
         if (!Number.isSafeInteger(p.account) || typeof p.name !== 'string') throw new ApiError('Malformed hiscores player');
       }
+      // Living characters arrive with OpenRotMG server PR #624. Older servers leave the
+      // field out; anything malformed is dropped rather than failing the whole poll.
+      if (data.characters !== undefined) {
+        data.characters = Array.isArray(data.characters) ? data.characters.filter(validCharacter) : undefined;
+      }
       return data;
+    },
+
+    /**
+     * Every player death (bots and non-competitors excluded by the server) from `since`
+     * (unix seconds, inclusive), oldest first, at most 500 per call. Server PR #624.
+     */
+    async graveyard(since) {
+      const data = await json(`/api/graveyard?since=${Math.max(0, Math.floor(since))}`);
+      if (!Array.isArray(data?.deaths)) throw new ApiError('Malformed graveyard response');
+      return data.deaths.filter(validDeath);
     },
 
     /** Items a player has personally looted: {account, name, items:[{item, found_at}]} */

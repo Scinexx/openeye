@@ -312,8 +312,8 @@ const main = document.getElementById('main');
 const view = (html) => { main.innerHTML = String(html); };
 const loading = () => view(h`<p class="loading">Loading…</p>`);
 
-function deathRows(rows, {showPlayer = true} = {}) {
-  if (!rows.length) return h`<p class="empty">No deaths on the Legends board yet.</p>`;
+function deathRows(rows, {showPlayer = true, full = false} = {}) {
+  if (!rows.length) return h`<p class="empty">${full ? 'No deaths recorded yet.' : 'No deaths on the Legends board yet.'}</p>`;
   return h`<ul class="rows">${rows.map(d => h`<li>
     ${classSprite(d.class, 32)}
     <span class="grow">
@@ -333,7 +333,7 @@ async function home() {
   const hasData = s.counts.players > 0;
   view(h`
     <section class="hero">
-      <p>Rankings, item collections and a limited graveyard, recorded from the live Open RotMG server around the clock.</p>
+      <p>Rankings, ${s.status.features.characters ? 'living characters, ' : ''}item collections and ${s.status.features.graveyard ? 'every player death' : 'a limited graveyard'}, recorded from the live Open RotMG server around the clock.</p>
     </section>
     ${!hasData ? h`<div class="notice"><strong>Fetching the latest data.</strong> This page fills in within a few minutes.</div>` : ''}
     <section class="panel fame-box" aria-labelledby="fame-box-title">
@@ -354,8 +354,8 @@ async function home() {
     </section>
     <div class="grid-2">
       <section class="panel">
-        <header><h2>Recent leaderboard deaths</h2><a href="/graveyard" data-link>Graveyard</a></header>
-        ${deathRows(s.recentDeaths)}
+        <header><h2>${s.status.features.graveyard ? 'Recent deaths' : 'Recent leaderboard deaths'}</h2><a href="/graveyard" data-link>Graveyard</a></header>
+        ${deathRows(s.recentDeaths, {full: s.status.features.graveyard})}
       </section>
       <section class="panel">
         <header><h2>Latest loot</h2><a href="/items" data-link>All items</a></header>
@@ -440,6 +440,7 @@ async function player(name) {
       <dd class="${k.includes('fame') ? 'fame' : k === 'stars' ? 'hl' : ''}">${fmt(p[k])}${k === 'collection' ? h`<span class="muted" style="font-size:1rem"> / ${collectible.length}</span>` : ''}</dd>
       <span class="rank-line">${data.ranks[k] ? h`<a href="/rankings/${k}" data-link>Rank ${data.ranks[k]}</a> of ${data.rankedPlayers}` : 'Unranked'}</span>
     </div>`)}</dl>
+    ${data.features.characters || data.characters.length ? characterPanel(data.characters, p) : ''}
     ${legendsBySpan.length ? h`<section class="panel" style="margin-bottom:24px"><header><h2>On the Legends board</h2></header>
       <div class="panel-body legend-badges">${legendsBySpan.map(l => h`<a class="badge gold" href="/death/${p.account}/${l.char_id}" data-link>${SPANS[l.timespan]}: rank ${l.rank}, <span class="fame">${fmt(l.total_fame)}</span> fame</a>`)}</div></section>` : ''}
     <div class="grid-2">
@@ -452,8 +453,8 @@ async function player(name) {
         </div>
       </section>
       <section class="panel">
-        <header><h2>Graveyard</h2><span class="muted">${data.deaths.length} on the Legends board</span></header>
-        ${deathRows(data.deaths, {showPlayer: false})}
+        <header><h2>Graveyard</h2><span class="muted">${data.features.graveyard ? `${fmt(data.deaths.length)} death${data.deaths.length === 1 ? '' : 's'}` : `${data.deaths.length} on the Legends board`}</span></header>
+        ${deathRows(data.deaths, {showPlayer: false, full: data.features.graveyard})}
       </section>
     </div>
     <section class="panel" style="margin-top:24px">
@@ -509,6 +510,30 @@ async function player(name) {
   drawCollection();
 }
 
+// Living characters (published by the game server since OpenRotMG PR #624).
+// Stats are base stats, shown against the class maximum like the in-game "x/8".
+const STAT_KEYS = [['hp', 'HP'], ['mp', 'MP'], ['att', 'ATT'], ['def', 'DEF'], ['spd', 'SPD'], ['dex', 'DEX'], ['vit', 'VIT'], ['wis', 'WIS']];
+function characterPanel(chars, p) {
+  return h`<section class="panel chars" style="margin-bottom:24px">
+    <header><h2>Characters</h2><span class="muted">${chars.length ? `${chars.length} alive` : ''}</span></header>
+    ${chars.length ? h`<div class="table-wrap"><table>
+      <thead><tr><th>Character</th><th class="n">Level</th><th class="n">Fame</th><th>Equipment</th><th class="n">Maxed</th><th>Stats</th></tr></thead>
+      <tbody>${chars.map(c => {
+        const max = CLASSES.get(c.class)?.max;
+        const maxed = max ? STAT_KEYS.filter(([k], i) => c.stats[i] >= max[k]).length : null;
+        return h`<tr>
+          <td class="c-who"><span class="who">${classSprite(c.class, 40)} <span>${className(c.class)}${c.created_at ? h`<span class="sub">Created ${day(c.created_at)}</span>` : ''}</span></span></td>
+          <td class="n c-level" data-label="Level">${c.level}</td>
+          <td class="n fame main-metric c-fame" data-label="Fame">${fmt(c.fame)}</td>
+          <td class="c-gear">${gear(c.equipment, 2)}</td>
+          <td class="n c-maxed${maxed === 8 ? ' hl' : ''}" data-label="Maxed">${maxed === null ? '–' : `${maxed}/8`}</td>
+          <td class="c-stats"><span class="char-stats">${STAT_KEYS.map(([k, label], i) => h`<span class="${max && c.stats[i] >= max[k] ? 'maxed' : ''}"${max ? raw(` title="${label} ${c.stats[i]} of ${max[k]}"`) : ''}><b>${label}</b>${c.stats[i]}</span>`)}</span></td>
+        </tr>`;
+      })}</tbody>
+    </table></div>` : h`<p class="empty">${p.name} has no living characters right now.</p>`}
+  </section>`;
+}
+
 async function graveyard() {
   const params = new URLSearchParams(location.search);
   const page = Number(params.get('page')) || 1, sort = params.get('sort') === 'fame' ? 'fame' : 'recent', cls = Number(params.get('class')) || 0;
@@ -525,8 +550,9 @@ async function graveyard() {
     return `/graveyard${qs ? `?${qs}` : ''}`;
   };
   const counts = new Map(g.byClass.map(c => [c.class, c]));
+  if (g.full) document.title = 'Graveyard | OpenEye';
   view(h`
-    <div class="page-head"><div><h1>Legends graveyard</h1><p>Deaths that made it to the leaderboard</p></div></div>
+    <div class="page-head"><div>${g.full ? h`<h1>Graveyard</h1><p>Every player death on the server</p>` : h`<h1>Legends graveyard</h1><p>Deaths that made it to the leaderboard</p>`}</div></div>
     <nav class="tabs" aria-label="Whose deaths">
       <a href="${link({who: 'players', page: 1, class: 0})}" data-link ${who === 'players' ? raw('aria-current="page"') : ''}>Players <span class="muted">${fmt(g.totals.players)}</span></a>
       <a href="${link({who: 'bots', page: 1, class: 0})}" data-link ${who === 'bots' ? raw('aria-current="page"') : ''}>Bots <span class="muted">${fmt(g.totals.bots)}</span></a>
@@ -545,7 +571,7 @@ async function graveyard() {
       <div class="table-wrap"><table>
         <thead><tr><th>Character</th><th>${who === 'bots' ? 'Bot' : 'Player'}</th><th class="n">Fame</th><th>Equipment</th><th>Killed by</th><th>Died</th></tr></thead>
         <tbody>${g.rows.length ? g.rows.map(d => h`<tr>
-          <td><a class="who" href="/death/${d.account}/${d.char_id}" data-link>${classSprite(d.class, 32)} <span>${d.level ? `Level ${d.level} ` : ''}${className(d.class)}</span></a></td>
+          <td><a class="who" href="/death/${d.account}/${d.char_id}" data-link>${classSprite(d.class, 32)} <span>${d.level ? `Level ${d.level} ` : ''}${className(d.class)}</span>${g.full && d.in_legends ? h`<span class="badge gold legend-tag" data-tip-title="Legend" data-tip-text="On a Legends board right now">Legend</span>` : ''}</a></td>
           <td>${ownerLink(d)}</td>
           <td class="n main-metric fame">${fmt(d.total_fame)}</td>
           <td>${gear(d.equipment, 1)}</td>
@@ -955,7 +981,7 @@ async function enemy(id) {
 
 async function about() {
   const s = await get('/api/status');
-  const names = {health: 'Server', hiscores: 'Players', legends: 'Legends', deaths: 'Deaths'};
+  const names = {health: 'Server', hiscores: 'Players', legends: 'Legends', deaths: 'Deaths', graveyard: 'Graveyard'};
   view(h`
     <div class="page-head"><div><h1>About</h1></div></div>
     <div class="grid-2" style="align-items:start">

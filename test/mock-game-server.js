@@ -70,6 +70,20 @@ function addDeath(when) {
 }
 for (let i = 0; i < 60; i++) addDeath(start + Math.floor(rand() * 21 * 86400));
 
+// Living characters, published by servers with OpenRotMG PR #624 (stats: base hp..wis).
+const living = [];
+for (const p of players) {
+  const n = 1 + Math.floor(rand() * 3);
+  for (let k = 0; k < n; k++) {
+    const cls = pick(classes);
+    const keys = ['hp', 'mp', 'att', 'def', 'spd', 'dex', 'vit', 'wis'];
+    living.push({account: p.account, id: charSeq++, class: cls.id, level: 1 + Math.floor(rand() * 20), exp: Math.floor(rand() * 90000),
+      fame: Math.floor(rand() * 1500), stats: keys.map(k => (rand() < 0.4 ? cls.max[k] : cls.base[k] + Math.floor(rand() * (cls.max[k] - cls.base[k])))),
+      equipment: cls.slotTypes.map(slot => (rand() < 0.9 ? pick(bySlot(slot))?.id ?? -1 : -1)), tex1: 0, tex2: 0,
+      created_at: start + Math.floor(rand() * 20 * 86400)});
+  }
+}
+
 function tick() {
   // The world moves a little between polls.
   const p = pick(players);
@@ -89,7 +103,13 @@ function admit(ip) {
 }
 const form = req => new Promise(res => { let b = ''; req.on('data', c => (b += c)); req.on('end', () => res(new URLSearchParams(b))); });
 
-export function createMock({ticking = true} = {}) {
+/**
+ * ticking: the world changes between polls.
+ * pr624: serve living characters in /api/hiscores and /api/graveyard, as servers with
+ *   OpenRotMG PR #624 do. Without it both are missing, as on servers before that PR.
+ *   leakBots also lists a bot's character and death, to check OpenEye drops them itself.
+ */
+export function createMock({ticking = true, pr624 = false, leakBots = false} = {}) {
   const stats = {requests: {}};
   return createServer(async (req, res) => {
     const url = new URL(req.url, 'http://x');
@@ -106,7 +126,17 @@ export function createMock({ticking = true} = {}) {
       if (ticking) tick();
       for (const p of players) p.collection = p.items.size;
       return sendJson({updated_at: Math.floor(Date.now() / 1000), collectible_items: collectible,
-        players: players.map(({items, ...p}) => p)});
+        players: players.map(({items, ...p}) => p),
+        ...(pr624 ? {characters: [...living, ...(leakBots ? [{...living[0], account: bots[0].account, id: 99999}] : [])]} : {})});
+    }
+    if (url.pathname === '/api/graveyard' && pr624) {
+      const since = Number(url.searchParams.get('since') ?? 0);
+      if (!Number.isSafeInteger(since)) return sendJson({error: 'since must be a unix time'}, 400);
+      const botAccounts = new Set(bots.map(b => b.account));
+      const rows = deaths.filter(d => d.diedAt >= since && (leakBots || !botAccounts.has(d.account)))
+        .sort((a, b) => a.diedAt - b.diedAt || a.charId - b.charId).slice(0, 500);
+      return sendJson({deaths: rows.map(d => ({account: d.account, id: d.charId, name: d.name, class: d.class, level: d.level,
+        base_fame: d.base, total_fame: d.total, died_at: d.diedAt, killed_by: d.killedBy, equipment: d.equipment.slice(0, 4), tex1: 0, tex2: 0}))});
     }
     const col = url.pathname.match(/^\/api\/collection\/(\d+)$/);
     if (col) {
@@ -133,10 +163,10 @@ export function createMock({ticking = true} = {}) {
       return sendXml(`<Fame><Char id="${d.charId}"><Account><Name>${esc(d.name)}</Name></Account><ObjectType>${d.class}</ObjectType><Level>${d.level}</Level><Tex1>0</Tex1><Tex2>0</Tex2></Char><CreatedOn>${d.diedAt}</CreatedOn><KilledBy>${esc(d.killedBy)}</KilledBy><TotalFame>${d.total}</TotalFame><Shots>${s.shots}</Shots><ShotsThatDamage>${s.hits}</ShotsThatDamage><TilesUncovered>${s.tiles}</TilesUncovered><MonsterKills>${s.kills}</MonsterKills><GodKills>${s.gods}</GodKills><OryxKills>${s.oryx}</OryxKills><QuestsCompleted>${s.quests}</QuestsCompleted><PirateCavesCompleted>${s.caves}</PirateCavesCompleted><UndeadLairsCompleted>${s.lairs}</UndeadLairsCompleted><AbyssOfDemonsCompleted>${s.abysses}</AbyssOfDemonsCompleted><SnakePitsCompleted>${s.pits}</SnakePitsCompleted><SpiderDensCompleted>${s.dens}</SpiderDensCompleted><SpriteWorldsCompleted>${s.sprites}</SpriteWorldsCompleted><TombsCompleted>${s.tombs}</TombsCompleted><LevelUpAssists>${s.assists}</LevelUpAssists><BaseFame>${d.base}</BaseFame>${d.bonuses.map(b => `<Bonus id="${b.id}" desc="${b.desc}">${b.amount}</Bonus>`).join('')}</Fame>`);
     }
     sendJson({error: 'not found'}, 404);
-  }).on('listening', function () { this.stats = stats; this.players = players; });
+  }).on('listening', function () { this.stats = stats; this.players = players; this.living = living; this.deaths = deaths; this.bots = bots; });
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const port = Number(process.argv[2] ?? 18900);
-  createMock().listen(port, '127.0.0.1', () => console.log(`Mock OpenRotMG API on http://127.0.0.1:${port}`));
+  createMock({pr624: process.argv.includes('--pr624')}).listen(port, '127.0.0.1', () => console.log(`Mock OpenRotMG API on http://127.0.0.1:${port}`));
 }

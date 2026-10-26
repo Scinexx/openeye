@@ -10,6 +10,8 @@ export const DEFAULTS = {
   // Each legends cycle uses 3 requests, so keep this well above 1 minute.
   legendsMinutes: 15,
   deathsMinutes: 2,
+  // Full graveyard (/api/graveyard). Only runs once switched on, see README.
+  graveyardMinutes: 5,
   // Full collection re-check for every player, in hours (changed players sync every cycle).
   collectionResyncHours: 24,
   // Pause between consecutive requests to the game server, in milliseconds.
