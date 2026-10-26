@@ -131,8 +131,16 @@ p { margin: 0; }
 .inv-slot.br::before { clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%); }
 /* Where the HUD shows the player's name (SimpleText 20px bold #B3B3B3, drop shadow). */
 .inv-title { position: absolute; left: 14px; top: 8px; font: 700 20px/24px "Tooltip Sans", "Myriad Pro", sans-serif; color: #b3b3b3; text-shadow: 0 0 4px #000; }
-/* The selected theme's potion. */
-.inv-slot[aria-checked="true"] { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* The selected theme's potion: a 2px ring inside the slot that follows its cut corner. */
+.inv-slot { isolation: isolate; }
+.inv-slot[aria-checked="true"]::before { background: var(--accent); }
+.inv-slot[aria-checked="true"]::after { content: ""; position: absolute; inset: 2px; z-index: 0; background: #545454; }
+.inv-slot.tl[aria-checked="true"]::after { clip-path: polygon(3px 0, 100% 0, 100% 100%, 0 100%, 0 3px); }
+.inv-slot.tr[aria-checked="true"]::after { clip-path: polygon(0 0, calc(100% - 3px) 0, 100% 3px, 100% 100%, 0 100%); }
+.inv-slot.bl[aria-checked="true"]::after { clip-path: polygon(0 0, 100% 0, 100% 100%, 3px 100%, 0 calc(100% - 3px)); }
+.inv-slot.br[aria-checked="true"]::after { clip-path: polygon(0 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0 100%); }
+.inv-num { z-index: 1; }
+.inv-slot canvas { z-index: 2; }
 .inv-num { position: absolute; left: 0; right: 0; top: 2px; text-align: center; font: 700 26px/30px "Tooltip Sans", "Myriad Pro", sans-serif; color: #363636; }
 .inv-slot canvas { left: -8px; top: -8px; }
 .search-mode { display: flex; margin-left: 6px; }
