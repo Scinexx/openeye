@@ -253,11 +253,19 @@ export function makeApi(db, catalog, settings) {
     return {death: parseDeath(d), legends};
   }
 
-  async function legends(span) {
+  /** board 'vanilla': the game's own Legends list exactly as published, bots included. */
+  async function legends(span, board = 'players') {
     if (!(span in SPANS)) throw new HttpError(404, 'Unknown legends period');
+    if (board === 'vanilla') {
+      const rows = await q(`SELECT l.rank, ${DEATH_COLS}, p.name AS player FROM legends l
+        JOIN deaths d ON d.account = l.account AND d.char_id = l.char_id
+        LEFT JOIN players p ON p.account = l.account WHERE l.timespan = ? ORDER BY l.rank`, span);
+      return {span, board, rows: rows.map(parseDeath), source: 'game', size: LEGENDS_SIZE,
+        updated: Number(await getMeta(db, 'last_ok:legends') ?? 0) || null};
+    }
     const full = await fullGraveyard();
     const updated = Number(await getMeta(db, full ? 'last_ok:graveyard' : 'last_ok:legends') ?? 0) || null;
-    return {span, rows: await legendBoard(span), source: full ? 'graveyard' : 'game', size: LEGENDS_SIZE, updated};
+    return {span, board: 'players', rows: await legendBoard(span), source: full ? 'graveyard' : 'game', size: LEGENDS_SIZE, updated};
   }
 
   /** All-time history of collected items, newest first, with item name, tier, type, time and player filters. */
@@ -332,7 +340,7 @@ export async function routeApi(api, url) {
     });
   }
   if ((m = p.match(/^\/api\/death\/(\d{1,10})\/(\d{1,10})$/))) return api.death(Number(m[1]), Number(m[2]));
-  if ((m = p.match(/^\/api\/legends\/([a-z]+)$/))) return api.legends(m[1]);
+  if ((m = p.match(/^\/api\/legends\/([a-z]+)$/))) return api.legends(m[1], url.searchParams.get('board') === 'vanilla' ? 'vanilla' : 'players');
   if (p === '/api/loot') {
     return api.loot({
       page: int(url.searchParams.get('page'), 100000),

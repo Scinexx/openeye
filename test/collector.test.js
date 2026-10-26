@@ -106,6 +106,11 @@ test('website API returns sensible shapes', async () => {
   const game = await t.api.legends('all');
   assert.equal(game.source, 'game');
   assert.ok(game.rows.length > 0 && game.rows.length <= 20 && game.rows.every((d, i) => !d.is_bot && d.rank === i + 1));
+  // Vanilla: the game's own list exactly, bots included.
+  const vanilla = await t.api.legends('all', 'vanilla');
+  const listed = await rows(t.db, "SELECT rank, char_id FROM legends WHERE timespan = 'all' ORDER BY rank");
+  assert.deepEqual(vanilla.rows.map(d => [d.rank, d.char_id]), listed.map(r => [r.rank, r.char_id]));
+  assert.ok(vanilla.rows.some(d => d.is_bot), 'the mock board has bots');
   assert.ok((await t.api.search('red')).players.some(x => x.name === 'RedBracket'));
   await assert.rejects(() => t.api.rankings('nope'));
 });

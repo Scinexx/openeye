@@ -695,14 +695,33 @@ async function death(account, charId) {
     </div>` : ''}`);
 }
 
+// Legends board: "Players only" (ours, bots never) or "Vanilla" (the game's own list,
+// bots included). Kept in the address and remembered per browser.
+let legendsBoard = 'players';
+try { if (localStorage.getItem('legendsBoard') === 'vanilla') legendsBoard = 'vanilla'; } catch { /* storage unavailable */ }
 async function legends(span) {
   if (!SPANS[span]) return notFound();
-  const l = await get(`/api/legends/${span}`);
+  const asked = new URLSearchParams(location.search).get('board');
+  if (asked === 'vanilla' || asked === 'players') {
+    legendsBoard = asked;
+    try { localStorage.setItem('legendsBoard', asked); } catch { /* storage unavailable */ }
+  }
+  const board = legendsBoard;
+  const at = (s, b) => `/legends/${s}?board=${b}`;
+  const l = await get(`/api/legends/${span}${board === 'vanilla' ? '?board=vanilla' : ''}`);
   view(h`
-    <div class="page-head"><div><h1>Legends</h1><p>${l.source === 'graveyard'
+    <div class="page-head"><div><h1>Legends</h1><p>${board === 'vanilla'
+      ? 'The game’s own Legends board, exactly as on Open RotMG, bots included.'
+      : l.source === 'graveyard'
       ? `The ${l.size} highest-fame player deaths, ranked from every death on the server. Bots are never included.`
       : 'The highest-fame player deaths recorded so far. Bots are never included. Until the game shares every death, only deaths that reached its own Legends board are known.'} Updated ${l.updated ? ago(l.updated) : 'soon'}.</p></div></div>
-    <nav class="tabs" aria-label="Period">${Object.entries(SPANS).map(([k, t]) => h`<a href="/legends/${k}" data-link ${k === span ? raw('aria-current="page"') : ''}>${t}</a>`)}</nav>
+    <div class="controls legends-controls">
+      <nav class="tabs" style="margin:0" aria-label="Period">${Object.entries(SPANS).map(([k, t]) => h`<a href="${at(k, board)}" data-link ${k === span ? raw('aria-current="page"') : ''}>${t}</a>`)}</nav>
+      <nav class="tabs" style="margin:0 0 0 auto" aria-label="Board">
+        <a href="${at(span, 'vanilla')}" data-link ${board === 'vanilla' ? raw('aria-current="page"') : ''} title="The game’s own board, bots included">Vanilla</a>
+        <a href="${at(span, 'players')}" data-link ${board === 'players' ? raw('aria-current="page"') : ''} title="Only players, never bots">Players only</a>
+      </nav>
+    </div>
     <section class="panel"><div class="table-wrap"><table>
       <thead><tr><th>Rank</th><th>Character</th><th>Player</th><th class="n">Fame</th><th>Equipment</th><th>Killed by</th><th>Died</th></tr></thead>
       <tbody>${l.rows.length ? l.rows.map(d => h`<tr class="${d.rank === 1 ? 'top1' : ''}">
@@ -713,7 +732,7 @@ async function legends(span) {
         <td>${gear(d.equipment, 2)}</td>
         <td class="killed">${d.killed_by ?? ''}</td>
         <td>${d.died_at ? when(d.died_at) : ''}</td>
-      </tr>`) : h`<tr><td colspan="7" class="empty">No player deaths on this board yet.</td></tr>`}</tbody>
+      </tr>`) : h`<tr><td colspan="7" class="empty">${board === 'vanilla' ? 'No deaths on this board yet.' : 'No player deaths on this board yet.'}</td></tr>`}</tbody>
     </table></div></section>`);
 }
 
