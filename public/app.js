@@ -793,7 +793,8 @@ async function items() {
 async function item(id) {
   const it = ITEMS.get(id);
   if (!it) return notFound('That item is not in the game catalog');
-  const d = await get(`/api/item/${id}`);
+  const [d, E] = await Promise.all([get(`/api/item/${id}`), loadEnemies()]);
+  const sources = (E.droppedBy.get(id) ?? []).slice().sort((a, b) => a.name.localeCompare(b.name));
   const t = tierInfo(it);
   document.title = `${it.name} | OpenEye`;
   view(h`
@@ -814,7 +815,124 @@ async function item(id) {
         ${d.owners.length ? h`<ul class="rows">${d.owners.map((o, i) => h`<li><span class="grow">${playerLink(o.name, o.stars)}${i === 0 ? h` <span class="badge gold">First</span>` : ''}</span><span class="sub">${date(o.found_at)}</span></li>`)}</ul>` : h`<p class="empty">Nobody has looted this yet.</p>`}
       </section>
     </div>
+    <section class="panel" style="margin-top:24px"><header><h2>Dropped by</h2><span class="muted">In the current game code</span></header>
+      ${sources.length ? h`<div class="panel-body"><div class="catalog enemy-cards">${sources.map(e => h`<a href="/enemy/${e.id}" data-link>${enemySprite(e, 40)}<span class="grow"><span class="title">${e.name}</span>
+        <span class="sub">${e.hp !== null ? `${fmt(e.hp)} HP` : ''}${e.internal ? ` (${e.internal})` : ''}</span></span></a>`)}</div></div>` : h`<p class="empty">No enemy drops this item.</p>`}
+    </section>
     ${d.deaths.length ? h`<section class="panel" style="margin-top:24px"><header><h2>Died wearing it</h2></header>${deathRows(d.deaths)}</section>` : ''}`);
+}
+
+// ---------- enemies ----------
+// Built daily from the Open RotMG code (tools/codex): stats from objects.xml, drops from the
+// server's own loot tables, sprites from the client.
+let ENEMIES = null;
+async function loadEnemies() {
+  if (!ENEMIES) {
+    const data = await staticJson('/catalog/enemies.json').catch(() => ({sheet: {width: 0}, enemies: []}));
+    const list = data.enemies ?? [];
+    ENEMIES = {list, sheetWidth: data.sheet?.width ?? 0, byId: new Map(list.map(e => [e.id, e])), droppedBy: new Map()};
+    for (const e of list) for (const id of e.drops) {
+      if (!ENEMIES.droppedBy.has(id)) ENEMIES.droppedBy.set(id, []);
+      ENEMIES.droppedBy.get(id).push(e);
+    }
+  }
+  return ENEMIES;
+}
+const BOSS_FLAGS = ['Quest', 'God', 'Hero', 'Encounter'];
+const isBoss = e => e.flags.some(f => BOSS_FLAGS.includes(f));
+const FLAG_NAMES = {Quest: 'Quest', God: 'God', Hero: 'Hero', Encounter: 'Encounter', StasisImmune: 'Stasis immune', Flying: 'Flying', Oryx: 'Oryx'};
+// Sprites drawn at a whole-number scale that fits the box, with the game's black outline.
+function enemySprite(e, box = 40) {
+  if (!e?.sprite) return h`<span class="esprite none" style="width:${box}px;height:${box}px"></span>`;
+  const {x, y, w, h: ht} = e.sprite;
+  const s = Math.max(1, Math.floor(box / Math.max(w, ht)));
+  return h`<span class="esprite-box" style="width:${box}px;height:${box}px"><span class="esprite" role="img" aria-label="${e.name}" style="width:${w * s}px;height:${ht * s}px;background-size:${ENEMIES.sheetWidth * s}px auto;background-position:-${x * s}px -${y * s}px"></span></span>`;
+}
+const dropOrder = (a, b) => {
+  const rank = it => (!it ? 3 : it.untiered ? 0 : it.slot === 10 || it.tier === null ? 2 : 1);
+  return rank(a) - rank(b) || (b?.tier ?? 0) - (a?.tier ?? 0) || (a?.name ?? '').localeCompare(b?.name ?? '');
+};
+const fmtDamage = d => (d === null ? '–' : Array.isArray(d) ? `${fmt(d[0])} – ${fmt(d[1])}` : fmt(d));
+
+async function enemies() {
+  const E = await loadEnemies();
+  const params = new URLSearchParams(location.search);
+  document.title = 'Enemies | OpenEye';
+  view(h`
+    <div class="page-head"><div><h1>Enemies</h1><p>Every enemy in the current Open RotMG code, with its stats, attacks and the items it can drop. Rebuilt daily from the game's code.</p></div></div>
+    <div class="controls">
+      <label class="sr" for="enemy-q">Search enemies</label><input id="enemy-q" type="search" placeholder="Search enemies or items" value="${params.get('q') ?? ''}">
+      <label for="enemy-show">Show</label>
+      <select id="enemy-show"><option value="all">All enemies</option><option value="drops">With drops</option><option value="bosses">Bosses and quests</option></select>
+      <label for="enemy-sort">Sort</label>
+      <select id="enemy-sort"><option value="name">Name</option><option value="hp">Most HP</option><option value="drops">Most drops</option></select>
+      <span class="muted" id="enemy-count"></span>
+    </div>
+    <div id="enemy-list"></div>`);
+  const draw = () => {
+    const q = document.getElementById('enemy-q').value.trim().toLowerCase();
+    const show = document.getElementById('enemy-show').value, sort = document.getElementById('enemy-sort').value;
+    let rows = E.list.filter(e => (show !== 'drops' || e.drops.length) && (show !== 'bosses' || isBoss(e)));
+    if (q) rows = rows.filter(e => e.name.toLowerCase().includes(q) || e.internal?.toLowerCase().includes(q)
+      || e.drops.some(id => ITEMS.get(id)?.name.toLowerCase().includes(q)));
+    if (sort === 'hp') rows = [...rows].sort((a, b) => (b.hp ?? 0) - (a.hp ?? 0));
+    if (sort === 'drops') rows = [...rows].sort((a, b) => b.drops.length - a.drops.length);
+    document.getElementById('enemy-count').textContent = `${fmt(rows.length)} of ${fmt(E.list.length)}`;
+    document.getElementById('enemy-list').innerHTML = String(rows.length ? h`<div class="catalog enemy-cards">${rows.map(e => h`<a href="/enemy/${e.id}" data-link>
+      ${enemySprite(e, 40)}
+      <span class="grow"><span class="title">${e.name}</span>
+      <span class="sub">${e.hp !== null ? `${fmt(e.hp)} HP` : 'No HP'}${e.def ? `, ${fmt(e.def)} DEF` : ''}${e.drops.length ? `, ${e.drops.length} drop${e.drops.length === 1 ? '' : 's'}` : ''}</span></span>
+    </a>`)}</div>` : h`<p class="empty">No enemies match.</p>`);
+  };
+  for (const id of ['enemy-q', 'enemy-show', 'enemy-sort']) document.getElementById(id).addEventListener(id === 'enemy-q' ? 'input' : 'change', draw);
+  draw();
+}
+
+async function enemy(id) {
+  const E = await loadEnemies();
+  const e = E.byId.get(id);
+  if (!e) return notFound('That enemy is not in the current game code');
+  document.title = `${e.name} | OpenEye`;
+  const drops = e.drops.map(i => ITEMS.get(i)).filter(Boolean).sort(dropOrder);
+  view(h`
+    <div class="item-hero">
+      <span class="enemy-frame">${enemySprite(e, 96)}</span>
+      <div>
+        <h1>${e.name}</h1>
+        <p class="muted" style="margin-top:6px">${e.internal ? `${e.internal}, ` : ''}${e.group ? `${e.group}, ` : ''}type 0x${e.id.toString(16)}</p>
+        ${e.flags.length ? h`<p class="enemy-flags">${e.flags.map(f => h`<span class="badge${BOSS_FLAGS.includes(f) ? ' gold' : ''}">${FLAG_NAMES[f] ?? f}</span>`)}</p>` : ''}
+      </div>
+    </div>
+    <dl class="panel kv" style="margin-bottom:24px">
+      <div><dt>HP</dt><dd>${e.hp !== null ? fmt(e.hp) : '–'}</dd></div>
+      <div><dt>Defense</dt><dd>${fmt(e.def)}</dd></div>
+      ${e.level !== null ? h`<div><dt>Level</dt><dd>${fmt(e.level)}</dd></div>` : ''}
+      <div><dt>Size</dt><dd>${e.size !== null ? fmt(e.size) : '–'}</dd></div>
+      <div><dt>Attacks</dt><dd>${fmt(e.projectiles.length)}</dd></div>
+      <div><dt>Drops</dt><dd>${fmt(drops.length)}</dd></div>
+    </dl>
+    <section class="panel" style="margin-bottom:24px">
+      <header><h2>Projectiles</h2><span class="muted">Range in tiles</span></header>
+      ${e.projectiles.length ? h`<div class="table-wrap"><table>
+        <thead><tr><th>Shot</th><th class="n">Damage</th><th class="n">Range</th><th class="n">Speed</th><th class="n">Lifetime</th><th>Effects</th><th>Notes</th></tr></thead>
+        <tbody>${e.projectiles.map(p => h`<tr>
+          <td class="muted">${p.id}</td>
+          <td class="n main-metric">${fmtDamage(p.damage)}</td>
+          <td class="n">${p.range}</td>
+          <td class="n">${fmt(p.speed)}</td>
+          <td class="n">${fmt(p.lifetime)} ms</td>
+          <td>${p.effects.length ? p.effects.map(c => `${c.name}${c.duration !== null ? ` for ${c.duration} secs` : ''}`).join(', ') : h`<span class="muted">–</span>`}</td>
+          <td>${p.flags.length ? p.flags.map(f => ({MultiHit: 'Hits multiple targets', PassesCover: 'Passes through obstacles', ArmorPiercing: 'Armor piercing', Boomerang: 'Boomerang', Wavy: 'Wavy', Parametric: 'Parametric'}[f] ?? f)).join(', ') : h`<span class="muted">–</span>`}</td>
+        </tr>`)}</tbody></table></div>` : h`<p class="empty">This enemy has no projectiles.</p>`}
+    </section>
+    <section class="panel">
+      <header><h2>Drops</h2><span class="muted">Every item it can drop in the current code</span></header>
+      ${drops.length ? h`<div class="panel-body"><div class="catalog">${drops.map(it => {
+        const t = tierInfo(it);
+        return h`<a href="/item/${it.id}" data-link>${itemSprite(it.id, 2)}<span class="grow"><span class="title">${it.name}</span>
+          <span class="sub">${t.label ? h`<span class="tier ${t.cls}">${t.label}</span> ` : ''}${it.slotName}</span></span></a>`;
+      })}</div></div>` : h`<p class="empty">This enemy drops nothing.</p>`}
+    </section>`);
 }
 
 async function about() {
@@ -856,10 +974,12 @@ const routes = [
   [/^\/loot$/, () => loot(), 'loot'],
   [/^\/items$/, () => items(), 'items'],
   [/^\/item\/(\d+)$/, m => item(Number(m[1])), 'items'],
+  [/^\/enemies$/, () => enemies(), 'enemies'],
+  [/^\/enemy\/(\d+)$/, m => enemy(Number(m[1])), 'enemies'],
   [/^\/about$/, () => about(), 'about']
 ];
 
-const TITLES = {rankings: 'Rankings', graveyard: 'Legends graveyard', legends: 'Legends', loot: 'Loot', items: 'Items', about: 'About'};
+const TITLES = {rankings: 'Rankings', graveyard: 'Legends graveyard', legends: 'Legends', loot: 'Loot', items: 'Items', enemies: 'Enemies', about: 'About'};
 async function route() {
   hideTip();
   const path = location.pathname;

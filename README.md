@@ -25,6 +25,7 @@ OpenEye is a RealmEye-style tracker for Open RotMG, the open-source recreation o
 - **Latest loot** showing rare untiered drops and top-tier items as players find them
 - **Loot history** of every item players have looted, filterable by tier, item type, time range and player
 - **Item browser** with who found each item first and who died wearing it
+- **Enemies**: every enemy in the current game code with its HP, defense, projectiles (damage, range, effects) and every item it can drop, read from the server's own loot code; item pages list what drops them
 - **In-game item tooltips**: hover any item icon to see the same tooltip the game shows, built by the same rules as the 2012 client
 - **Bot separation**: the server's bots are kept out of rankings, loot and the player graveyard
 - **Live server status** with current and 24-hour peak player counts
@@ -65,6 +66,10 @@ OpenEye only uses the public endpoints that the official Open RotMG website and 
 | `POST /legacy-api/char/fame` | Once per death | Full death record |
 
 Requests are sent one at a time with a pause between them, capped at 45 per run. The Legends endpoint shares the server's guest login limit, so it is called only three times every 15 minutes.
+
+### Game data
+
+Items, tooltips, enemies and their drops are rebuilt every day by a GitHub Action (`.github/workflows/update-game-data.yml`). It downloads the latest Open RotMG server, website and client, runs the server's own loot tables (`tools/codex/loot_export.rs`) to list what each enemy can drop, reads enemy stats from `objects.xml` and sprites from the client, and commits any change. Cloudflare then deploys it. It can also be started by hand from the repository's Actions tab.
 
 ### Bots
 

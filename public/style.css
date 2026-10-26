@@ -401,3 +401,15 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--fame); }
 .crown { flex: none; vertical-align: -2px; }
 .rows .title .crown { margin-right: 5px; }
 .player-head .crown { align-self: center; margin-right: -12px; }
+
+/* ---------- enemies ---------- */
+/* The game's character outline (TextureRedrawer: a 1px black glow at full strength) and its soft shadow. */
+.esprite, .cls {
+  filter: drop-shadow(1px 0 0 #000) drop-shadow(-1px 0 0 #000) drop-shadow(0 1px 0 #000) drop-shadow(0 -1px 0 #000) drop-shadow(0 0 3px rgba(0, 0, 0, .45));
+}
+.esprite-box { display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.esprite { display: block; background: url(/catalog/enemies.png) no-repeat; image-rendering: pixelated; image-rendering: crisp-edges; }
+.esprite.none { background: var(--stone-deep); box-shadow: inset 0 0 0 2px var(--bevel-dark); filter: none; }
+.enemy-frame { display: inline-flex; padding: 12px; background: var(--stone-deep); border: 2px solid var(--bevel-dark); }
+.enemy-flags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.enemy-cards a { min-height: 56px; }

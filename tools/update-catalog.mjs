@@ -176,7 +176,7 @@ if (lootFile) {
     const missing = [...literal].filter(id => !known.has(id) && itemIds.has(id));
     if (missing.length) console.warn(`::warning::Hand-written drops not in loot_export.rs extras: ${missing.map(id => '0x' + id.toString(16)).join(', ')}`);
   }
-  await writeFile(join(out, 'enemies.json'), JSON.stringify(enemies));
+  await writeFile(join(out, 'enemies.json'), JSON.stringify({sheet: {width: sheet.width, height: sheet.height}, enemies}));
   await writeFile(join(out, 'enemies.png'), sheet.png);
   console.log(`Enemies: ${enemies.length} (${enemies.filter(e => e.drops.length).length} with drops, ${enemies.filter(e => e.sprite).length} with sprites).`);
 } else {
