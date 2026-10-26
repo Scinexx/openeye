@@ -24,7 +24,9 @@
   --bone-dim: #b2bac7;
   --muted: #a0a6b1;
   /* Signals */
-  --fame: #f2c443;
+  /* Fame numbers are always the orange of the game's fame icon, whatever the theme. */
+  --fame: #f29000;
+  --gold: #f2c443;
   /* Interface highlight colour; each theme sets its own (see the end of this file). */
   --accent: #7cb4ff;
   --accent-line: #264d82;
@@ -174,7 +176,8 @@ main { flex: 1; width: 100%; max-width: var(--max); margin: 0 auto; padding: 32p
 .panel-body.flush { padding: 0; }
 .empty { padding: 24px 16px; color: var(--bone-dim); }
 .muted { color: var(--muted); }
-.fame { color: var(--fame); }
+.fame, td.main-metric.fame { color: var(--fame); }
+.hl { color: var(--accent); }
 
 /* ---------- Server strip ---------- */
 .status-strip { display: flex; align-items: center; gap: 12px 28px; flex-wrap: wrap; padding: 14px 16px; margin-bottom: 24px; }
@@ -284,7 +287,7 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
   display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; font-size: 0.9rem;
   background: var(--stone-deep); border: 2px solid var(--bevel-dark);
 }
-.badge.gold { color: var(--fame); border-color: #6e5a22; }
+.badge.gold { color: var(--gold); border-color: #6e5a22; }
 .badge.bot { padding: 0 6px; font-size: 0.8rem; color: var(--bone-dim); }
 .panel-note { padding: 10px 16px 0; color: var(--muted); font-size: 0.9rem; }
 .rows > li > .tier { font-size: 0.95rem; }
@@ -426,7 +429,7 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 
 /* ---------- most fame earned in the last 24 hours (home) ----------
    Coloured like the game's fame icon (lofiObj3 sprite 224). */
-.fame-box { --fame-orange: #f29000; border-color: #ffb13b #9c4a00 #9c4a00 #ffb13b; margin-bottom: 16px; }
+.fame-box { --fame-orange: var(--fame); border-color: #ffb13b #9c4a00 #9c4a00 #ffb13b; margin-bottom: 16px; }
 .fame-box > header { background: linear-gradient(#5a3a12, #46300f); border-bottom-color: #9c4a00; }
 .fame-box > header h2 { display: flex; align-items: center; gap: 10px; color: #ffc24a; }
 .fame-box > header span { color: #f0b46a; font-size: 0.9rem; white-space: nowrap; }

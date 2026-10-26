@@ -364,7 +364,7 @@ async function home() {
         <thead><tr>${Object.keys(BOARDS).map(b => h`<th><a href="/rankings/${b}" data-link>${BOARDS[b].title}</a></th>`)}</tr></thead>
         <tbody>${[0, 1, 2, 3, 4].map(i => h`<tr>${Object.keys(BOARDS).map(b => {
           const p = s.top[b][i];
-          return p ? h`<td><span class="muted">${p.rank}.</span> ${playerLink(p.name, p.stars, {star: false})} <span class="fame">${fmt(p[b])}</span></td>` : h`<td class="muted">–</td>`;
+          return p ? h`<td><span class="muted">${p.rank}.</span> ${playerLink(p.name, p.stars, {star: false})} <span class="${b.includes('fame') ? 'fame' : 'hl'}">${fmt(p[b])}</span></td>` : h`<td class="muted">–</td>`;
         })}</tr>`)}</tbody>
       </table></div>
     </section>`);
@@ -382,7 +382,7 @@ async function rankings(board) {
     document.getElementById('rank-body').innerHTML = String(rows.length ? h`${rows.map(p => h`<tr class="${p.rank === 1 ? 'top1' : ''}">
       <td class="rank">${p.rank}</td>
       <td><span class="who">${playerLink(p.name, p.stars)} ${discordIcon(p.discord_id)}</span></td>
-      ${cols.map(c => h`<td class="n${c === board ? ' main-metric' : ''}">${fmt(p[c])}</td>`)}
+      ${cols.map(c => h`<td class="n${c === board ? ' main-metric' : ''}${c.includes('fame') ? ' fame' : ''}">${fmt(p[c])}</td>`)}
     </tr>`)}` : h`<tr><td colspan="${cols.length + 2}" class="empty">No players match “${filter}”.</td></tr>`);
   };
   view(h`
@@ -428,11 +428,11 @@ async function player(name) {
     </div>
     <dl class="panel scoreboard">${Object.entries(BOARDS).map(([k, b]) => h`<div class="score">
       <dt>${b.title}</dt>
-      <dd class="${k === 'stars' || k.includes('fame') ? 'fame' : ''}">${fmt(p[k])}${k === 'collection' ? h`<span class="muted" style="font-size:1rem"> / ${collectible.length}</span>` : ''}</dd>
+      <dd class="${k.includes('fame') ? 'fame' : k === 'stars' ? 'hl' : ''}">${fmt(p[k])}${k === 'collection' ? h`<span class="muted" style="font-size:1rem"> / ${collectible.length}</span>` : ''}</dd>
       <span class="rank-line">${data.ranks[k] ? h`<a href="/rankings/${k}" data-link>Rank ${data.ranks[k]}</a> of ${data.rankedPlayers}` : 'Unranked'}</span>
     </div>`)}</dl>
     ${legendsBySpan.length ? h`<section class="panel" style="margin-bottom:24px"><header><h2>On the Legends board</h2></header>
-      <div class="panel-body legend-badges">${legendsBySpan.map(l => h`<a class="badge gold" href="/death/${p.account}/${l.char_id}" data-link>${SPANS[l.timespan]}: rank ${l.rank}, ${fmt(l.total_fame)} fame</a>`)}</div></section>` : ''}
+      <div class="panel-body legend-badges">${legendsBySpan.map(l => h`<a class="badge gold" href="/death/${p.account}/${l.char_id}" data-link>${SPANS[l.timespan]}: rank ${l.rank}, <span class="fame">${fmt(l.total_fame)}</span> fame</a>`)}</div></section>` : ''}
     <div class="grid-2">
       <section class="panel">
         <header><h2>Progress</h2></header>
@@ -538,7 +538,7 @@ async function graveyard() {
         <tbody>${g.rows.length ? g.rows.map(d => h`<tr>
           <td><a class="who" href="/death/${d.account}/${d.char_id}" data-link>${classSprite(d.class, 32)} <span>${d.level ? `Level ${d.level} ` : ''}${className(d.class)}</span></a></td>
           <td>${ownerLink(d)}</td>
-          <td class="n main-metric">${fmt(d.total_fame)}</td>
+          <td class="n main-metric fame">${fmt(d.total_fame)}</td>
           <td>${gear(d.equipment, 1)}</td>
           <td class="killed">${d.killed_by ?? ''}</td>
           <td>${d.died_at ? when(d.died_at) : h`<span class="muted">Loading</span>`}</td>
@@ -609,7 +609,7 @@ async function legends(span) {
         <td class="rank">${d.rank}</td>
         <td><a class="who" href="/death/${d.account}/${d.char_id}" data-link>${classSprite(d.class, 32)} ${className(d.class)}</a></td>
         <td>${ownerLink(d)}</td>
-        <td class="n main-metric">${fmt(d.total_fame)}</td>
+        <td class="n main-metric fame">${fmt(d.total_fame)}</td>
         <td>${gear(d.equipment, 2)}</td>
         <td class="killed">${d.killed_by ?? ''}</td>
       </tr>`) : h`<tr><td colspan="6" class="empty">No deaths on this board yet.</td></tr>`}</tbody>
