@@ -840,6 +840,9 @@ async function loadEnemies() {
 }
 const BOSS_FLAGS = ['Quest', 'God', 'Hero', 'Encounter'];
 const isBoss = e => e.flags.some(f => BOSS_FLAGS.includes(f));
+// Health and Magic Potions drop from almost everything, so they do not count as "drops" in the list filter.
+const BASIC_POTIONS = new Set([0xa22, 0xa23]);
+const hasRealDrops = e => e.drops.some(id => !BASIC_POTIONS.has(id));
 const FLAG_NAMES = {Quest: 'Quest', God: 'God', Hero: 'Hero', Encounter: 'Encounter', StasisImmune: 'Stasis immune', Flying: 'Flying', Oryx: 'Oryx'};
 // Sprites drawn at a whole-number scale that fits the box, with the game's black outline.
 function enemySprite(e, box = 40) {
@@ -863,7 +866,7 @@ async function enemies() {
     <div class="controls">
       <label class="sr" for="enemy-q">Search enemies</label><input id="enemy-q" type="search" placeholder="Search enemies or items" value="${params.get('q') ?? ''}">
       <label for="enemy-show">Show</label>
-      <select id="enemy-show"><option value="all">All enemies</option><option value="drops" selected>With drops</option><option value="bosses">Bosses and quests</option></select>
+      <select id="enemy-show"><option value="all">All enemies</option><option value="drops" selected>With drops (beyond HP/MP potions)</option><option value="bosses">Bosses and quests</option></select>
       <label for="enemy-sort">Sort</label>
       <select id="enemy-sort"><option value="name">Name</option><option value="hp">Most HP</option><option value="drops">Most drops</option></select>
       <span class="muted" id="enemy-count"></span>
@@ -874,7 +877,7 @@ async function enemies() {
     const q = document.getElementById('enemy-q').value.trim().toLowerCase();
     const show = document.getElementById('enemy-show').value, sort = document.getElementById('enemy-sort').value;
     const iconless = document.getElementById('enemy-iconless').checked;
-    let rows = E.list.filter(e => (iconless || e.sprite) && (show !== 'drops' || e.drops.length) && (show !== 'bosses' || isBoss(e)));
+    let rows = E.list.filter(e => (iconless || e.sprite) && (show !== 'drops' || hasRealDrops(e)) && (show !== 'bosses' || isBoss(e)));
     if (q) rows = rows.filter(e => e.name.toLowerCase().includes(q) || e.internal?.toLowerCase().includes(q)
       || e.drops.some(id => ITEMS.get(id)?.name.toLowerCase().includes(q)));
     if (sort === 'hp') rows = [...rows].sort((a, b) => (b.hp ?? 0) - (a.hp ?? 0));
