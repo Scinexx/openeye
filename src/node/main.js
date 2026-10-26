@@ -37,9 +37,10 @@ if (mode === '--collect') {
 } else {
   let timer = null;
   if (mode !== '--web') {
-    const collector = new Collector(db, settings, log);
-    collector.tick().catch(e => log.error(e));
-    timer = setInterval(() => collector.tick().catch(e => log.error(e)), 30_000);
+    // A fresh collector per run, like each Cloudflare cron run, so the request budget resets.
+    const run = () => new Collector(db, settings, log).tick().catch(e => log.error(e));
+    run();
+    timer = setInterval(run, 30_000);
     log.info(`Collector polling ${settings.apiBase}`);
   }
   const server = startServer(db, settings, {
