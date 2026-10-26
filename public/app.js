@@ -132,59 +132,62 @@ const loadTips = () => (TIP.data ??= Promise.all([
 ]).then(([tips]) => tips, () => { TIP.data = null; return {}; }));
 const tipColor = c => (/^#[0-9a-f]{6}$/i.test(c ?? '') ? c : '#b3b3b3');
 
-// ObjectLibrary.getRedrawnTextureFromType(type, 60, true): the 8x8 sprite scaled 3x on a
-// 48px canvas, darkened towards the bottom, outlined in black, given a soft shadow, then
-// cropped by 4px on every side.
-function tipIcon(canvas, item) {
+// TextureRedrawer.redraw(): the sprite scaled up on a canvas with 12px of room around it,
+// darkened towards the bottom (GlowRedrawer's gradient), given a 1px black outline at 80%
+// (OUTLINE_FILTER) and a soft black shadow (GLOW_FILTER).
+function gameTexture(img, sx, sy, w, h, scale) {
+  const src = document.createElement('canvas');
+  src.width = w; src.height = h;
+  const s = src.getContext('2d');
+  s.drawImage(img, sx, sy, w, h, 0, 0, w, h);
+  const px = s.getImageData(0, 0, w, h).data;
+  const W = w * scale + 24, H = h * scale + 24;
+  const tex = new ImageData(W, H), d = tex.data;
+  for (let y = 0; y < H; y++) {
+    const g = Math.max(0, ((y + 0.5) / H * 255 - 127) / 128 * 0x28);
+    for (let x = 0; x < W; x++) {
+      const tx = Math.floor((x - 12) / scale), ty = Math.floor((y - 12) / scale);
+      if (tx < 0 || ty < 0 || tx >= w || ty >= h) continue;
+      const i = (ty * w + tx) * 4, o = (y * W + x) * 4;
+      if (!px[i + 3]) continue;
+      d[o] = Math.max(0, px[i] - g); d[o + 1] = Math.max(0, px[i + 1] - g); d[o + 2] = Math.max(0, px[i + 2] - g); d[o + 3] = px[i + 3];
+    }
+  }
+  const solid = Uint8Array.from({length: W * H}, (_, i) => d[i * 4 + 3] > 0);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (solid[y * W + x]) continue;
+    let near = false;
+    for (let dy = -1; dy <= 1 && !near; dy++) for (let dx = -1; dx <= 1 && !near; dx++) near = x + dx >= 0 && x + dx < W && solid[(y + dy) * W + x + dx] === 1;
+    if (near) d[(y * W + x) * 4 + 3] = 204;
+  }
+  const flat = document.createElement('canvas');
+  flat.width = W; flat.height = H;
+  flat.getContext('2d').putImageData(tex, 0, 0);
+  const out = document.createElement('canvas');
+  out.width = W; out.height = H;
+  const c = out.getContext('2d');
+  c.shadowColor = 'rgba(0,0,0,0.6)';
+  c.shadowBlur = 7;
+  c.drawImage(flat, 0, 0);
+  return out;
+}
+const sheetReady = () => new Promise(resolve => {
+  if (!TIP.sheet) { TIP.sheet = new Image(); TIP.sheet.src = '/catalog/items.png'; }
+  if (TIP.sheet.complete && TIP.sheet.naturalWidth) resolve(TIP.sheet); else TIP.sheet.addEventListener('load', () => resolve(TIP.sheet), {once: true});
+});
+// An item drawn the way the client does: tooltips use size 60 (3x, cropped by 4px), inventory slots size 80 (4x).
+async function itemTexture(item, scale) {
+  const key = `${item.id}:${scale}`;
+  if (!TIP.icons.has(key)) TIP.icons.set(key, gameTexture(await sheetReady(), item.sprite.x + 4, item.sprite.y + 4, 8, 8, scale));
+  return TIP.icons.get(key);
+}
+async function tipIcon(canvas, item) {
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, 40, 40);
   if (!item?.sprite) return;
-  const draw = () => {
-    let icon = TIP.icons.get(item.id);
-    if (!icon) {
-      const src = document.createElement('canvas');
-      src.width = src.height = 8;
-      const s = src.getContext('2d');
-      s.drawImage(TIP.sheet, item.sprite.x + 4, item.sprite.y + 4, 8, 8, 0, 0, 8, 8);
-      const px = s.getImageData(0, 0, 8, 8).data;
-      const tex = new ImageData(48, 48), d = tex.data;
-      for (let y = 0; y < 48; y++) {
-        // GlowRedrawer's gradient: nothing above the middle, up to 0x28 subtracted at the bottom.
-        const g = Math.max(0, ((y + 0.5) / 48 * 255 - 127) / 128 * 0x28);
-        for (let x = 0; x < 48; x++) {
-          const sx = Math.floor((x - 12) / 3), sy = Math.floor((y - 12) / 3);
-          if (sx < 0 || sy < 0 || sx > 7 || sy > 7) continue;
-          const i = (sy * 8 + sx) * 4, o = (y * 48 + x) * 4;
-          if (!px[i + 3]) continue;
-          d[o] = Math.max(0, px[i] - g); d[o + 1] = Math.max(0, px[i + 1] - g); d[o + 2] = Math.max(0, px[i + 2] - g); d[o + 3] = px[i + 3];
-        }
-      }
-      // OUTLINE_FILTER: black glow, 1.4px blur at full strength, 80% alpha.
-      const solid = Uint8Array.from({length: 48 * 48}, (_, i) => d[i * 4 + 3] > 0);
-      for (let y = 0; y < 48; y++) for (let x = 0; x < 48; x++) {
-        if (solid[y * 48 + x]) continue;
-        let near = false;
-        for (let dy = -1; dy <= 1 && !near; dy++) for (let dx = -1; dx <= 1 && !near; dx++) near = solid[(y + dy) * 48 + x + dx] === 1 && x + dx >= 0 && x + dx < 48;
-        if (near) d[(y * 48 + x) * 4 + 3] = 204;
-      }
-      const flat = document.createElement('canvas');
-      flat.width = flat.height = 48;
-      flat.getContext('2d').putImageData(tex, 0, 0);
-      icon = document.createElement('canvas');
-      icon.width = icon.height = 48;
-      const c = icon.getContext('2d');
-      // GLOW_FILTER: black, 30% alpha at strength 2, 12px blur.
-      c.shadowColor = 'rgba(0,0,0,0.6)';
-      c.shadowBlur = 7;
-      c.drawImage(flat, 0, 0);
-      TIP.icons.set(item.id, icon);
-    }
-    ctx.clearRect(0, 0, 40, 40);
-    ctx.drawImage(icon, -4, -4);
-  };
-  if (TIP.sheet?.complete) return draw();
-  if (!TIP.sheet) { TIP.sheet = new Image(); TIP.sheet.src = '/catalog/items.png'; }
-  TIP.sheet.addEventListener('load', draw, {once: true});
+  const icon = await itemTexture(item, 3);
+  ctx.clearRect(0, 0, 40, 40);
+  ctx.drawImage(icon, -4, -4);
 }
 
 const tipLines = lines => lines.map(line => h`<div>${line.length ? line.map(([text, color]) => (color ? h`<span style="color:${tipColor(color)}">${text}</span>` : text)) : raw('&#8203;')}</div>`);
@@ -192,9 +195,6 @@ const tipBreak = () => raw('<div class="itip-line" aria-hidden="true"><svg width
 
 async function showTip(target, x, y) {
   TIP.for = target;
-  const id = Number(target.dataset.tip);
-  const tip = (await loadTips())[id];
-  if (TIP.for !== target || !tip) return;
   if (!TIP.el) {
     TIP.el = document.createElement('div');
     TIP.el.className = 'itip';
@@ -202,6 +202,15 @@ async function showTip(target, x, y) {
     document.body.append(TIP.el);
   }
   const el = TIP.el;
+  // TextToolTip: a bold white title and a grey line, in the same box (used by the Nexus button).
+  if (target.dataset.tipTitle) {
+    el.innerHTML = String(h`<div class="itip-title itip-text">${target.dataset.tipTitle}</div><div class="itip-desc itip-text">${target.dataset.tipText ?? ''}</div>`);
+    el.hidden = false;
+    return moveTip(x, y);
+  }
+  const id = Number(target.dataset.tip);
+  const tip = (await loadTips())[id];
+  if (TIP.for !== target || !tip) return;
   el.innerHTML = String(h`
     <div class="itip-head"><canvas width="40" height="40"></canvas>
       <div class="itip-name"><div class="itip-title">${tip.t}</div>${tip.r ? h`<div class="itip-tier"${tip.r === 'UT' ? raw(' style="color:#8a2be2"') : ''}>${tip.r}</div>` : ''}</div></div>
@@ -239,8 +248,8 @@ function hideTip() {
   if (TIP.el) TIP.el.hidden = true;
 }
 const tipTarget = node => {
-  const el = node?.closest?.('.slot, [data-tip]');
-  return el?.matches('[data-tip]') ? el : el?.querySelector('[data-tip]') ?? null;
+  const el = node?.closest?.('.slot, [data-tip], [data-tip-title]');
+  return el?.matches('[data-tip], [data-tip-title]') ? el : el?.querySelector('[data-tip]') ?? null;
 };
 document.addEventListener('pointerover', e => {
   if (e.pointerType === 'touch') return;
@@ -1117,11 +1126,31 @@ const THEMES = [
 ];
 const themeButton = document.getElementById('theme-button');
 const themeMenu = document.getElementById('theme-menu');
+// The theme menu is the game's inventory: eight slots (InventoryGrid: 40px slots, 4px apart,
+// corner cuts on the grid's outside corners, hotkey numbers 1-8 behind the items) holding the
+// eight stat potions, on the HUD's #363636, with the HUD's Nexus button to go back to the default.
+const SLOT_CUTS = {0: 'tl', 3: 'tr', 4: 'bl', 7: 'br'};
 function drawThemeMenu() {
   const current = document.documentElement.dataset.theme ?? '';
-  const byName = new Map([...ITEMS.values()].map(i => [i.name, i.id]));
-  themeMenu.innerHTML = String(h`<p class="theme-title">Theme</p>${THEMES.map(([key, label, potion]) => h`<button type="button" role="menuitemradio" aria-checked="${key === current}" data-theme-key="${key}">
-    ${potion && byName.has(potion) ? raw(String(itemSprite(byName.get(potion), 2)).replace(/ data-tip="\d+"/, '')) : h`<img class="theme-swatch" src="/icons/nexus.png" width="32" height="32" alt="">`}<span class="grow">${label}</span>${key === current ? h`<span class="tick" aria-hidden="true">✓</span>` : ''}</button>`)}`);
+  const byName = new Map([...ITEMS.values()].map(i => [i.name, i]));
+  const potions = THEMES.filter(t => t[2]);
+  themeMenu.innerHTML = String(h`<div class="inv-panel">
+    <button type="button" class="inv-nexus" role="menuitemradio" aria-checked="${current === ''}" aria-label="Nexus: default theme" data-theme-key="" data-tip-title="Nexus" data-tip-text="Default theme"><canvas width="40" height="40"></canvas></button>
+    <div class="inv-grid">${potions.map(([key, label, potion], i) => {
+      const it = byName.get(potion);
+      return h`<button type="button" class="inv-slot ${SLOT_CUTS[i] ?? ''}" role="menuitemradio" aria-checked="${key === current}" aria-label="${label} theme" data-theme-key="${key}" ${it ? raw(`data-tip="${it.id}"`) : ''}><span class="inv-num" aria-hidden="true">${i + 1}</span><canvas width="56" height="56" data-potion="${it?.id ?? ''}"></canvas></button>`;
+    })}</div></div>`);
+  themeMenu.querySelectorAll('canvas[data-potion]').forEach(async c => {
+    const it = ITEMS.get(Number(c.dataset.potion));
+    if (it?.sprite) c.getContext('2d').drawImage(await itemTexture(it, 4), 0, 0);
+  });
+  // IconButton: the Nexus icon (lofiInterfaceBig 6) redrawn at its own size, tinted gold on hover.
+  const nexus = new Image();
+  nexus.src = '/icons/nexus.png';
+  nexus.onload = () => {
+    const c = themeMenu.querySelector('.inv-nexus canvas');
+    if (c) c.getContext('2d').drawImage(gameTexture(nexus, 0, 0, 16, 16, 1), 0, 0);
+  };
 }
 // With a potion theme, the logo becomes that potion (sprite positions come from the item catalog).
 function drawBrand() {

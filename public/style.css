@@ -110,22 +110,27 @@ p { margin: 0; }
 .cog:hover, .cog[aria-expanded="true"] { color: var(--accent); }
 .cog svg { transition: transform .2s; }
 .cog[aria-expanded="true"] svg { transform: rotate(30deg); }
-.theme-menu {
-  position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; width: 200px; padding: 4px;
-  background: var(--panel-raised); border: 2px solid; border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
-  box-shadow: 0 8px 0 rgba(0, 0, 0, 0.25);
-}
-.theme-menu .theme-title { margin: 4px 8px 6px; font: 0.9rem var(--display); color: var(--muted); }
-.theme-menu button {
-  display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 8px; text-align: left; cursor: pointer;
-  font: 1rem var(--body); color: var(--bone); background: none; border: 0;
-}
-.theme-menu button:hover, .theme-menu button:focus-visible { background: var(--stone-deep); color: var(--accent); outline: none; }
-.theme-menu button[aria-checked="true"] { color: var(--accent); }
-.theme-menu .tick { margin-left: auto; }
-/* The Nexus button icon from the game's interface sheet (lofiInterfaceBig 6), drawn at 16px. */
-.theme-swatch { width: 32px; height: 32px; flex: none; padding: 8px; image-rendering: pixelated; filter: drop-shadow(1px 0 0 #000) drop-shadow(-1px 0 0 #000) drop-shadow(0 1px 0 #000) drop-shadow(0 -1px 0 #000); }
-.theme-menu button { padding: 2px 8px; }
+/* The theme menu: the game's inventory panel (HUD #363636, InventoryGrid slots, IconButton). */
+.theme-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; filter: drop-shadow(0 0 8px rgba(0, 0, 0, .9)); }
+.inv-panel { position: relative; width: 200px; height: 142px; background: #363636; }
+.inv-panel button { position: absolute; padding: 0; border: 0; background: none; cursor: pointer; }
+.inv-panel button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.inv-panel canvas { position: absolute; image-rendering: pixelated; pointer-events: none; }
+.inv-nexus { left: 160px; top: -4px; width: 40px; height: 40px; }
+.inv-nexus canvas { left: 0; top: 0; }
+/* IconButton mouseOverCT: ColorTransform(1, 220/255, 133/255). */
+.inv-nexus:hover canvas, .inv-nexus:focus-visible canvas { filter: url(#nexus-hover); }
+.inv-grid { position: absolute; left: 14px; top: 44px; width: 172px; height: 84px; }
+.inv-slot { position: absolute !important; width: 40px; height: 40px; }
+.inv-slot:nth-child(4n+2) { left: 44px; } .inv-slot:nth-child(4n+3) { left: 88px; } .inv-slot:nth-child(4n) { left: 132px; } .inv-slot:nth-child(4n+1) { left: 0; }
+.inv-slot:nth-child(-n+4) { top: 0; } .inv-slot:nth-child(n+5) { top: 44px; }
+.inv-slot::before { content: ""; position: absolute; inset: 0; background: #545454; }
+.inv-slot.tl::before { clip-path: polygon(4px 0, 100% 0, 100% 100%, 0 100%, 0 4px); }
+.inv-slot.tr::before { clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 0 100%); }
+.inv-slot.bl::before { clip-path: polygon(0 0, 100% 0, 100% 100%, 4px 100%, 0 calc(100% - 4px)); }
+.inv-slot.br::before { clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%); }
+.inv-num { position: absolute; left: 0; right: 0; top: 2px; text-align: center; font: 700 26px/30px "Tooltip Sans", "Myriad Pro", sans-serif; color: #363636; }
+.inv-slot canvas { left: -8px; top: -8px; }
 .search-mode { display: flex; margin-left: 6px; }
 .search-mode button:first-child { border-left-width: 2px; }
 /* No yellow focus ring on the search box, or on the page after Enter moves focus to it. */
@@ -473,3 +478,7 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 :root[data-theme="dexterity"] { --stone: #4d2d18; --stone-deep: #3e2514; --panel: #673d20; --panel-raised: #774625; --bevel-light: #a26033; --bevel-dark: #321d10; --muted: #b99379; --bone: #f1e3da; --bone-dim: #d2b9a8; --accent: #ff8c3a; --accent-line: #774522; --accent-wash: #3b291c; }
 :root[data-theme="vitality"] { --stone: #4c191d; --stone-deep: #3e1518; --panel: #652227; --panel-raised: #75272e; --bevel-light: #a0353e; --bevel-dark: #311013; --muted: #b87a7f; --bone: #f0dbdd; --bone-dim: #d0a9ac; --accent: #ff4d63; --accent-line: #77222d; --accent-wash: #3b1c20; }
 :root[data-theme="wisdom"] { --stone: #202945; --stone-deep: #1a2138; --panel: #2b375c; --panel-raised: #323f6a; --bevel-light: #445691; --bevel-dark: #151a2c; --muted: #838daf; --bone: #dde1ee; --bone-dim: #aeb5cc; --accent: #6fa6ff; --accent-line: #224377; --accent-wash: #1c283b; }
+/* TextToolTip (the Nexus button's hover text): title and one grey line, no fixed width. */
+.itip:has(.itip-text) { width: auto; }
+.itip .itip-text { width: auto; height: auto; margin: 0; }
+.itip .itip-desc.itip-text { margin-top: 2px; }
