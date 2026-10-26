@@ -1,0 +1,53 @@
+# Runs Open RotMG's own CI checks (from its build-storage.yml) against a branch of a
+# server fork, so a pull request can be submitted with test evidence. Started by hand.
+name: Check server branch
+
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: Server repository
+        default: Scinexx/Open-RotMG-Server
+      ref:
+        description: Branch
+        default: public-characters-graveyard
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          repository: ${{ inputs.repository }}
+          ref: ${{ inputs.ref }}
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install 1.94.1 --profile minimal --component rustfmt --component clippy && rustup default 1.94.1
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Run the project's checks
+        run: |
+          set +e
+          summary=""
+          run() {
+            name="$1"; shift
+            "$@" > "$name.log" 2>&1
+            code=$?
+            tail -5 "$name.log"
+            if [ $code -eq 0 ]; then
+              summary="$summary$name: passed%0A"
+            else
+              summary="$summary$name: FAILED%0A"
+              msg=$(grep -E -A15 '^(error|warning)|panicked|FAILED|^Diff in' "$name.log" | head -80 | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')
+              echo "::error title=$name failed::${msg:-$(tail -40 "$name.log" | sed ':a;N;$!ba;s/\n/%0A/g')}"
+            fi
+          }
+          run "script tests" python3 -B -W error::ResourceWarning -m unittest discover -s scripts -p 'test_cargo*.py'
+          run "cargo fmt" cargo fmt --check
+          run "cargo clippy" cargo clippy --locked --all-targets -- -D warnings
+          run "cargo test" cargo test --locked -- --test-threads=2
+          results=$(grep -h '^test result:' "cargo test.log" | sed ':a;N;$!ba;s/\n/%0A/g')
+          echo "::notice title=Summary for ${{ inputs.ref }} at $(git rev-parse --short HEAD)::${summary}${results}"
+          case "$summary" in *FAILED*) exit 1 ;; esac
