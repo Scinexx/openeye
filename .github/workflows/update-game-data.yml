@@ -20,9 +20,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
 
@@ -42,8 +42,17 @@ jobs:
         working-directory: .openrotmg/Open-RotMG-Server
         run: |
           cat "$GITHUB_WORKSPACE/tools/codex/loot_export.rs" >> src/loot.rs
-          OPENEYE_LOOT_OUT="$GITHUB_WORKSPACE/.openrotmg/loot.json" cargo test --locked openeye_export -- --nocapture
-          test -s "$GITHUB_WORKSPACE/.openrotmg/loot.json"
+          set +e
+          OPENEYE_LOOT_OUT="$GITHUB_WORKSPACE/.openrotmg/loot.json" cargo test openeye_export -- --nocapture 2>&1 | tee cargo.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ] || [ ! -s "$GITHUB_WORKSPACE/.openrotmg/loot.json" ]; then
+            # Surface the build or test errors as annotations, which are readable without the full log.
+            # (GitHub keeps only 10 annotations per step, so it is sent as one, with %0A line breaks.)
+            msg=$(grep -E -A12 '^error|panicked|FAILED' cargo.log | grep -v '^\s*Compiling' | head -80 | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')
+            echo "::error title=Loot export failed::${msg:-$(tail -40 cargo.log | sed ':a;N;$!ba;s/\n/%0A/g')}"
+            exit 1
+          fi
 
       - name: Rebuild the catalog
         run: node tools/update-catalog.mjs --from .openrotmg --loot .openrotmg/loot.json
