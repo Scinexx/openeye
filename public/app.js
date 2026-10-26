@@ -1121,7 +1121,7 @@ function drawThemeMenu() {
   const current = document.documentElement.dataset.theme ?? '';
   const byName = new Map([...ITEMS.values()].map(i => [i.name, i.id]));
   themeMenu.innerHTML = String(h`<p class="theme-title">Theme</p>${THEMES.map(([key, label, potion]) => h`<button type="button" role="menuitemradio" aria-checked="${key === current}" data-theme-key="${key}">
-    ${potion && byName.has(potion) ? raw(String(itemSprite(byName.get(potion), 2)).replace(/ data-tip="\d+"/, '')) : h`<span class="theme-swatch"></span>`}<span class="grow">${label}</span>${key === current ? h`<span class="tick" aria-hidden="true">✓</span>` : ''}</button>`)}`);
+    ${potion && byName.has(potion) ? raw(String(itemSprite(byName.get(potion), 2)).replace(/ data-tip="\d+"/, '')) : h`<img class="theme-swatch" src="/icons/nexus.png" width="32" height="32" alt="">`}<span class="grow">${label}</span>${key === current ? h`<span class="tick" aria-hidden="true">✓</span>` : ''}</button>`)}`);
 }
 // With a potion theme, the logo becomes that potion (sprite positions come from the item catalog).
 function drawBrand() {
@@ -1131,7 +1131,7 @@ function drawBrand() {
   const el = document.getElementById('brand-potion');
   if (!it?.sprite) { el.removeAttribute('style'); return; }
   const s = 4; // 8px sprite at 4x, 32px tall like the logo
-  el.style.cssText = `background-size:${320 * s}px auto;background-position:-${(it.sprite.x + 4) * s}px -${(it.sprite.y + 4) * s}px`;
+  el.style.cssText = `background-image:url(/catalog/items.png);background-size:${320 * s}px auto;background-position:-${(it.sprite.x + 4) * s}px -${(it.sprite.y + 4) * s}px`;
 }
 function setTheme(key) {
   if (key) document.documentElement.dataset.theme = key; else delete document.documentElement.dataset.theme;

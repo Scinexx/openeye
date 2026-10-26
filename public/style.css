@@ -13,22 +13,22 @@
 
 :root {
   /* Nexus stone */
-  --stone: #2b2f3a;
-  --stone-deep: #23262f;
-  --panel: #3a3f4d;
-  --panel-raised: #434959;
-  --bevel-light: #5d6478;
-  --bevel-dark: #1b1e26;
+  --stone: #373f4c;
+  --stone-deep: #2f3641;
+  --panel: #464f60;
+  --panel-raised: #4e596c;
+  --bevel-light: #66758d;
+  --bevel-dark: #282e38;
   /* Ink */
-  --bone: #ebe6d9;
-  --bone-dim: #b4b3ad;
-  --muted: #8f94a3;
+  --bone: #e0e4eb;
+  --bone-dim: #b2bac7;
+  --muted: #a0a6b1;
   /* Signals */
   --fame: #f2c443;
   /* Interface highlight colour; each theme sets its own (see the end of this file). */
-  --accent: #f2c443;
-  --accent-line: #6e5a22;
-  --accent-wash: #2f2c25;
+  --accent: #7cb4ff;
+  --accent-line: #264d82;
+  --accent-wash: #26384f;
   --blood: #e0604f;
   --blood-deep: #8c2f27;
   --online: #7fc96b;
@@ -85,7 +85,7 @@ p { margin: 0; }
 }
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font: 700 1.5rem var(--display); }
 .brand-mark { height: 28px; width: auto; image-rendering: pixelated; }
-.brand-potion { display: none; width: 32px; height: 32px; background: url(/catalog/items.png) no-repeat; image-rendering: pixelated;
+.brand-potion { display: none; width: 32px; height: 32px; background-repeat: no-repeat; image-rendering: pixelated;
   filter: drop-shadow(1px 0 0 #000) drop-shadow(-1px 0 0 #000) drop-shadow(0 1px 0 #000) drop-shadow(0 -1px 0 #000); }
 :root[data-theme] .brand-mark { display: none; }
 :root[data-theme] .brand-potion { display: block; }
@@ -121,7 +121,8 @@ p { margin: 0; }
 .theme-menu button:hover, .theme-menu button:focus-visible { background: var(--stone-deep); color: var(--accent); outline: none; }
 .theme-menu button[aria-checked="true"] { color: var(--accent); }
 .theme-menu .tick { margin-left: auto; }
-.theme-swatch { width: 32px; height: 32px; flex: none; padding: 8px; background: linear-gradient(135deg, #3a3f4d 50%, #f2c443 50%) content-box; }
+/* The Nexus button icon from the game's interface sheet (lofiInterfaceBig 6), drawn at 16px. */
+.theme-swatch { width: 32px; height: 32px; flex: none; padding: 8px; image-rendering: pixelated; filter: drop-shadow(1px 0 0 #000) drop-shadow(-1px 0 0 #000) drop-shadow(0 1px 0 #000) drop-shadow(0 -1px 0 #000); }
 .theme-menu button { padding: 2px 8px; }
 .search-mode { display: flex; margin-left: 6px; }
 .search-mode button:first-child { border-left-width: 2px; }
@@ -461,11 +462,11 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 .controls .push-right { margin-left: auto; }
 
 /* ---------- themes, one per stat potion (colours from the potion sprites) ---------- */
-:root[data-theme="life"] { --stone: #234042; --stone-deep: #1d3435; --panel: #2f5658; --panel-raised: #376365; --bevel-light: #4b878b; --bevel-dark: #17292a; --muted: #87aaab; --accent: #4fe3e8; --accent-line: #2c6b6d; --accent-wash: #203637; }
-:root[data-theme="mana"] { --stone: #403925; --stone-deep: #342f1e; --panel: #554d32; --panel-raised: #62593a; --bevel-light: #86794f; --bevel-dark: #292518; --muted: #a9a189; --accent: #f2d45f; --accent-line: #706229; --accent-wash: #38331e; }
-:root[data-theme="attack"] { --stone: #3d2540; --stone-deep: #311e34; --panel: #513255; --panel-raised: #5e3a62; --bevel-light: #804f86; --bevel-dark: #271829; --muted: #a589a9; --accent: #e27af2; --accent-line: #662a6f; --accent-wash: #341f38; }
-:root[data-theme="defense"] { --stone: #323232; --stone-deep: #292929; --panel: #444444; --panel-raised: #4e4e4e; --bevel-light: #6b6b6b; --bevel-dark: #212121; --muted: #999999; --accent: #d4d4d4; --accent-line: #4c4c4c; --accent-wash: #2b2b2b; }
-:root[data-theme="speed"] { --stone: #25402f; --stone-deep: #1e3427; --panel: #32553f; --panel-raised: #3a6249; --bevel-light: #4f8664; --bevel-dark: #18291f; --muted: #89a995; --accent: #4fe68a; --accent-line: #2d6c46; --accent-wash: #203729; }
-:root[data-theme="dexterity"] { --stone: #423023; --stone-deep: #35271d; --panel: #58412f; --panel-raised: #654b37; --bevel-light: #8b664b; --bevel-dark: #2a1f17; --muted: #ab9787; --accent: #f2954a; --accent-line: #714928; --accent-wash: #382a1e; }
-:root[data-theme="vitality"] { --stone: #422323; --stone-deep: #351d1d; --panel: #582f2f; --panel-raised: #653737; --bevel-light: #8b4b4b; --bevel-dark: #2a1717; --muted: #ab8787; --accent: #ff5a6e; --accent-line: #77222d; --accent-wash: #3b1c20; }
-:root[data-theme="wisdom"] { --stone: #212944; --stone-deep: #1b2237; --panel: #2d375b; --panel-raised: #334069; --bevel-light: #46578f; --bevel-dark: #161b2c; --muted: #848eae; --accent: #6fa6ff; --accent-line: #224377; --accent-wash: #1c283b; }
+:root[data-theme="life"] { --stone: #234042; --stone-deep: #1d3435; --panel: #2f5658; --panel-raised: #376365; --bevel-light: #4b878b; --bevel-dark: #17292a; --muted: #87aaab; --bone: #deeced; --bone-dim: #afc9cb; --accent: #4fe3e8; --accent-line: #2c6b6d; --accent-wash: #203637; }
+:root[data-theme="mana"] { --stone: #413a24; --stone-deep: #352f1e; --panel: #564e31; --panel-raised: #645a38; --bevel-light: #887b4d; --bevel-dark: #2a2618; --muted: #aaa288; --bone: #eeeadd; --bone-dim: #ccc5ae; --accent: #f5d75a; --accent-line: #726327; --accent-wash: #39341e; }
+:root[data-theme="attack"] { --stone: #3d2441; --stone-deep: #321e35; --panel: #523156; --panel-raised: #5f3864; --bevel-light: #814d88; --bevel-dark: #28182a; --muted: #a688aa; --bone: #ebdeed; --bone-dim: #c7b0ca; --accent: #e57af5; --accent-line: #672871; --accent-wash: #351e38; }
+:root[data-theme="defense"] { --stone: #323232; --stone-deep: #292929; --panel: #444444; --panel-raised: #4e4e4e; --bevel-light: #6b6b6b; --bevel-dark: #212121; --muted: #999999; --bone: #e6e6e6; --bone-dim: #bdbdbd; --accent: #d4d4d4; --accent-line: #4c4c4c; --accent-wash: #2b2b2b; }
+:root[data-theme="speed"] { --stone: #24412f; --stone-deep: #1e3526; --panel: #31563f; --panel-raised: #386449; --bevel-light: #4d8864; --bevel-dark: #182a1f; --muted: #88aa95; --bone: #deede4; --bone-dim: #b0caba; --accent: #4fe68a; --accent-line: #2d6c46; --accent-wash: #203729; }
+:root[data-theme="dexterity"] { --stone: #4d2d18; --stone-deep: #3e2514; --panel: #673d20; --panel-raised: #774625; --bevel-light: #a26033; --bevel-dark: #321d10; --muted: #b99379; --bone: #f1e3da; --bone-dim: #d2b9a8; --accent: #ff8c3a; --accent-line: #774522; --accent-wash: #3b291c; }
+:root[data-theme="vitality"] { --stone: #4c191d; --stone-deep: #3e1518; --panel: #652227; --panel-raised: #75272e; --bevel-light: #a0353e; --bevel-dark: #311013; --muted: #b87a7f; --bone: #f0dbdd; --bone-dim: #d0a9ac; --accent: #ff4d63; --accent-line: #77222d; --accent-wash: #3b1c20; }
+:root[data-theme="wisdom"] { --stone: #202945; --stone-deep: #1a2138; --panel: #2b375c; --panel-raised: #323f6a; --bevel-light: #445691; --bevel-dark: #151a2c; --muted: #838daf; --bone: #dde1ee; --bone-dim: #aeb5cc; --accent: #6fa6ff; --accent-line: #224377; --accent-wash: #1c283b; }
