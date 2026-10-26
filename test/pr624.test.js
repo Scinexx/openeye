@@ -6,7 +6,7 @@ import {setup, rows, one} from './helpers.js';
 
 const meta = async (db, key) => (await one(db, 'SELECT value FROM meta WHERE key = ?', key))?.value ?? null;
 
-test('without the PR: no characters, the graveyard is never requested, wording stays limited', async () => {
+test('without the PR: no characters, the graveyard is never requested, graveyard stays off', async () => {
   const t = await setup({ticking: false});
   try {
     await t.db.prepare("INSERT INTO meta(key, value) VALUES('graveyard_enabled', '1')").run();
@@ -20,7 +20,6 @@ test('without the PR: no characters, the graveyard is never requested, wording s
     assert.ok(!('graveyard' in s.jobs));
     const p = await t.api.player(t.mock.players[0].name);
     assert.deepEqual(p.characters, []);
-    assert.equal((await t.api.graveyard({})).full, false);
   } finally { t.close(); }
 });
 
@@ -94,7 +93,6 @@ test('with the PR and switched on: every player death is backfilled once, bots n
     assert.equal(s.features.graveyard, true);
     assert.ok('graveyard' in s.jobs);
     const g = await t.api.graveyard({});
-    assert.equal(g.full, true);
     assert.equal(g.totals.players, storedPlayers.length + 1);
   } finally { t.close(); }
 });

@@ -312,8 +312,8 @@ const main = document.getElementById('main');
 const view = (html) => { main.innerHTML = String(html); };
 const loading = () => view(h`<p class="loading">Loading…</p>`);
 
-function deathRows(rows, {showPlayer = true, full = false} = {}) {
-  if (!rows.length) return h`<p class="empty">${full ? 'No deaths recorded yet.' : 'No deaths on the Legends board yet.'}</p>`;
+function deathRows(rows, {showPlayer = true} = {}) {
+  if (!rows.length) return h`<p class="empty">No deaths recorded yet.</p>`;
   return h`<ul class="rows">${rows.map(d => h`<li>
     ${classSprite(d.class, 32)}
     <span class="grow">
@@ -333,7 +333,7 @@ async function home() {
   const hasData = s.counts.players > 0;
   view(h`
     <section class="hero">
-      <p>Rankings, ${s.status.features.characters ? 'living characters, ' : ''}item collections and ${s.status.features.graveyard ? 'every player death' : 'a limited graveyard'}, recorded from the live Open RotMG server around the clock.</p>
+      <p>Rankings, ${s.status.features.characters ? 'living characters, ' : ''}item collections and every player death, recorded from the live Open RotMG server around the clock.</p>
     </section>
     ${!hasData ? h`<div class="notice"><strong>Fetching the latest data.</strong> This page fills in within a few minutes.</div>` : ''}
     <section class="panel fame-box" aria-labelledby="fame-box-title">
@@ -354,8 +354,8 @@ async function home() {
     </section>
     <div class="grid-2">
       <section class="panel">
-        <header><h2>${s.status.features.graveyard ? 'Recent deaths' : 'Recent leaderboard deaths'}</h2><a href="/graveyard" data-link>Graveyard</a></header>
-        ${deathRows(s.recentDeaths, {full: s.status.features.graveyard})}
+        <header><h2>Latest player deaths</h2><a href="/graveyard" data-link>Graveyard</a></header>
+        ${deathRows(s.recentDeaths)}
       </section>
       <section class="panel">
         <header><h2>Latest loot</h2><a href="/items" data-link>All items</a></header>
@@ -453,8 +453,8 @@ async function player(name) {
         </div>
       </section>
       <section class="panel">
-        <header><h2>Graveyard</h2><span class="muted">${data.features.graveyard ? `${fmt(data.deaths.length)} death${data.deaths.length === 1 ? '' : 's'}` : `${data.deaths.length} on the Legends board`}</span></header>
-        ${deathRows(data.deaths, {showPlayer: false, full: data.features.graveyard})}
+        <header><h2>Graveyard</h2><span class="muted">${fmt(data.deaths.length)} death${data.deaths.length === 1 ? '' : 's'}</span></header>
+        ${deathRows(data.deaths, {showPlayer: false})}
       </section>
     </div>
     <section class="panel" style="margin-top:24px">
@@ -536,55 +536,84 @@ function characterPanel(chars, p) {
 
 async function graveyard() {
   const params = new URLSearchParams(location.search);
-  const page = Number(params.get('page')) || 1, sort = params.get('sort') === 'fame' ? 'fame' : 'recent', cls = Number(params.get('class')) || 0;
-  const who = params.get('who') === 'bots' ? 'bots' : 'players';
-  const g = await get(`/api/graveyard?page=${page}&sort=${sort}&who=${who}${cls ? `&class=${cls}` : ''}`);
-  const pages = Math.max(1, Math.ceil(g.total / g.per));
-  const link = (changes) => {
-    const p = new URLSearchParams({who, page, sort, ...(cls ? {class: cls} : {}), ...changes});
-    if (p.get('who') === 'players') p.delete('who');
-    if (p.get('class') === '0') p.delete('class');
-    if (p.get('page') === '1') p.delete('page');
-    if (p.get('sort') === 'recent') p.delete('sort');
-    const qs = p.toString();
-    return `/graveyard${qs ? `?${qs}` : ''}`;
+  // Bot deaths (seen on the Legends boards) stay hidden unless the checkbox is ticked.
+  const st = {
+    page: Number(params.get('page')) || 1,
+    sort: params.get('sort') === 'fame' ? 'fame' : 'recent',
+    cls: Number(params.get('class')) || 0,
+    bots: params.get('bots') === '1' || params.get('who') === 'bots',
+    q: (params.get('q') ?? '').trim().slice(0, 20)
   };
-  const counts = new Map(g.byClass.map(c => [c.class, c]));
-  if (g.full) document.title = 'Graveyard | OpenEye';
-  view(h`
-    <div class="page-head"><div>${g.full ? h`<h1>Graveyard</h1><p>Every player death on the server</p>` : h`<h1>Legends graveyard</h1><p>Deaths that made it to the leaderboard</p>`}</div></div>
-    <nav class="tabs" aria-label="Whose deaths">
-      <a href="${link({who: 'players', page: 1, class: 0})}" data-link ${who === 'players' ? raw('aria-current="page"') : ''}>Players <span class="muted">${fmt(g.totals.players)}</span></a>
-      <a href="${link({who: 'bots', page: 1, class: 0})}" data-link ${who === 'bots' ? raw('aria-current="page"') : ''}>Bots <span class="muted">${fmt(g.totals.bots)}</span></a>
-    </nav>
-    <div class="controls">
+  const qs = (changes = {}) => {
+    const s = {...st, ...changes};
+    const p = new URLSearchParams();
+    if (s.q) p.set('q', s.q);
+    if (s.sort !== 'recent') p.set('sort', s.sort);
+    if (s.cls) p.set('class', s.cls);
+    if (s.bots) p.set('bots', '1');
+    if (s.page > 1) p.set('page', s.page);
+    return p.toString();
+  };
+  const link = changes => { const s = qs(changes); return `/graveyard${s ? `?${s}` : ''}`; };
+  const load = () => get(`/api/graveyard?${qs({page: st.page || 1})}`);
+
+  const draw = g => {
+    const pages = Math.max(1, Math.ceil(g.total / g.per));
+    const counts = new Map(g.byClass.map(c => [c.class, c.n]));
+    document.getElementById('gy-filters').innerHTML = String(h`
       <nav class="tabs" style="margin:0" aria-label="Sort">
-        <a href="${link({sort: 'recent', page: 1})}" data-link ${sort === 'recent' ? raw('aria-current="page"') : ''}>Most recent</a>
-        <a href="${link({sort: 'fame', page: 1})}" data-link ${sort === 'fame' ? raw('aria-current="page"') : ''}>Most fame</a>
+        <a href="${link({sort: 'recent', page: 1})}" data-link ${st.sort === 'recent' ? raw('aria-current="page"') : ''}>Most recent</a>
+        <a href="${link({sort: 'fame', page: 1})}" data-link ${st.sort === 'fame' ? raw('aria-current="page"') : ''}>Most fame</a>
       </nav>
       <div class="class-filter tabs" style="margin:0" aria-label="Filter by class">
-        <a href="${link({class: 0, page: 1})}" data-link ${!cls ? raw('aria-current="page"') : ''}>All</a>
-        ${[...CLASSES.values()].map(c => h`<a href="${link({class: c.id, page: 1})}" data-link ${cls === c.id ? raw('aria-current="page"') : ''} title="${c.name}: ${counts.get(c.id)?.n ?? 0} deaths" style="padding:4px 6px;line-height:0">${classSprite(c.id, 24)}</a>`)}
-      </div>
+        <a href="${link({cls: 0, page: 1})}" data-link ${!st.cls ? raw('aria-current="page"') : ''}>All</a>
+        ${[...CLASSES.values()].map(c => h`<a href="${link({cls: c.id, page: 1})}" data-link ${st.cls === c.id ? raw('aria-current="page"') : ''} title="${c.name}: ${counts.get(c.id) ?? 0} deaths" style="padding:4px 6px;line-height:0">${classSprite(c.id, 24)}</a>`)}
+      </div>`);
+    document.getElementById('gy-body').innerHTML = String(g.rows.length ? h`${g.rows.map(d => h`<tr>
+      <td><a class="who" href="/death/${d.account}/${d.char_id}" data-link>${classSprite(d.class, 32)} <span>${d.level ? `Level ${d.level} ` : ''}${className(d.class)}</span>${d.in_legends ? h`<span class="badge gold legend-tag" data-tip-title="Legend" data-tip-text="On a Legends board right now">Legend</span>` : ''}</a></td>
+      <td>${ownerLink(d)}</td>
+      <td class="n main-metric fame">${fmt(d.total_fame)}</td>
+      <td>${gear(d.equipment, 1)}</td>
+      <td class="killed">${d.killed_by ?? ''}</td>
+      <td>${d.died_at ? when(d.died_at) : h`<span class="muted">Loading</span>`}</td>
+    </tr>`)}` : h`<tr><td colspan="6" class="empty">${st.q ? `No deaths match “${st.q}”${st.cls ? ` for ${className(st.cls)}` : ''}.` : `No deaths recorded${st.cls ? ` for ${className(st.cls)}` : ''} yet.`}</td></tr>`);
+    document.getElementById('gy-pager').innerHTML = String(h`
+      <span class="muted">${fmt(g.total)} death${g.total === 1 ? '' : 's'}, page ${Math.min(st.page, pages)} of ${pages}</span>
+      ${st.page > 1 ? h`<a class="btn" href="${link({page: st.page - 1})}" data-link>Previous</a>` : ''}
+      ${st.page < pages ? h`<a class="btn" href="${link({page: st.page + 1})}" data-link>Next</a>` : ''}`);
+  };
+
+  const first = await load();
+  view(h`
+    <div class="page-head"><div><h1>Graveyard</h1><p>Every player death on the server, newest first</p></div></div>
+    <div class="controls">
+      <label class="sr" for="gy-search">Search by name</label>
+      <input id="gy-search" type="search" placeholder="Search by name" maxlength="20" autocomplete="off" value="${st.q}">
+      <label class="check push-right"><input type="checkbox" id="gy-bots" ${st.bots ? raw('checked') : ''}> Show bots</label>
     </div>
+    <div class="controls" id="gy-filters"></div>
     <section class="panel">
       <div class="table-wrap"><table>
-        <thead><tr><th>Character</th><th>${who === 'bots' ? 'Bot' : 'Player'}</th><th class="n">Fame</th><th>Equipment</th><th>Killed by</th><th>Died</th></tr></thead>
-        <tbody>${g.rows.length ? g.rows.map(d => h`<tr>
-          <td><a class="who" href="/death/${d.account}/${d.char_id}" data-link>${classSprite(d.class, 32)} <span>${d.level ? `Level ${d.level} ` : ''}${className(d.class)}</span>${g.full && d.in_legends ? h`<span class="badge gold legend-tag" data-tip-title="Legend" data-tip-text="On a Legends board right now">Legend</span>` : ''}</a></td>
-          <td>${ownerLink(d)}</td>
-          <td class="n main-metric fame">${fmt(d.total_fame)}</td>
-          <td>${gear(d.equipment, 1)}</td>
-          <td class="killed">${d.killed_by ?? ''}</td>
-          <td>${d.died_at ? when(d.died_at) : h`<span class="muted">Loading</span>`}</td>
-        </tr>`) : h`<tr><td colspan="6" class="empty">No ${who === 'bots' ? 'bot' : 'player'} deaths recorded${cls ? ` for ${className(cls)}` : ''} yet.</td></tr>`}</tbody>
+        <thead><tr><th>Character</th><th>Player</th><th class="n">Fame</th><th>Equipment</th><th>Killed by</th><th>Died</th></tr></thead>
+        <tbody id="gy-body"></tbody>
       </table></div>
-      <div class="pager">
-        <span class="muted">${fmt(g.total)} ${who === 'bots' ? 'bot ' : ''}deaths, page ${page} of ${pages}</span>
-        ${page > 1 ? h`<a class="btn" href="${link({page: page - 1})}" data-link>Previous</a>` : ''}
-        ${page < pages ? h`<a class="btn" href="${link({page: page + 1})}" data-link>Next</a>` : ''}
-      </div>
+      <div class="pager" id="gy-pager"></div>
     </section>`);
+  draw(first);
+
+  // Typing and the bots checkbox refresh the list in place, keeping the URL shareable.
+  let seq = 0, timer = null;
+  const refresh = async () => {
+    const mine = ++seq;
+    history.replaceState(null, '', link({}));
+    const g = await load();
+    if (mine === seq && location.pathname === '/graveyard') draw(g);
+  };
+  document.getElementById('gy-search').addEventListener('input', e => {
+    clearTimeout(timer);
+    timer = setTimeout(() => { st.q = e.target.value.trim().slice(0, 20); st.page = 1; refresh(); }, 250);
+  });
+  document.getElementById('gy-bots').addEventListener('change', e => { st.bots = e.target.checked; st.page = 1; refresh(); });
 }
 
 async function death(account, charId) {
@@ -1023,7 +1052,7 @@ const routes = [
   [/^\/about$/, () => about(), 'about']
 ];
 
-const TITLES = {rankings: 'Rankings', graveyard: 'Legends graveyard', legends: 'Legends', loot: 'Loot', items: 'Items', enemies: 'Enemies', about: 'About'};
+const TITLES = {rankings: 'Rankings', graveyard: 'Graveyard', legends: 'Legends', loot: 'Loot', items: 'Items', enemies: 'Enemies', about: 'About'};
 async function route() {
   hideTip();
   const path = location.pathname;

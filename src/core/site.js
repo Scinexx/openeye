@@ -192,19 +192,26 @@ export function makeApi(db, catalog, settings) {
       characters: characters.map(c => ({...c, stats: JSON.parse(c.stats), equipment: JSON.parse(c.equipment)}))};
   }
 
-  async function graveyard({page = 1, sort = 'recent', cls = null, bots = false, per = 40}) {
+  /** Deaths, newest (or most fame) first. Bots are left out unless asked for; `name`
+   *  matches the character's name or the player's current name. */
+  async function graveyard({page = 1, sort = 'recent', cls = null, bots = false, name = '', per = 40}) {
     const order = sort === 'fame' ? 'd.total_fame DESC, d.died_at DESC' : 'COALESCE(d.died_at, d.discovered_at) DESC';
-    const who = bots ? IS_BOT : `NOT ${IS_BOT}`;
-    const where = `WHERE ${who}${cls ? ' AND d.class = ?' : ''}`;
-    const args = cls ? [cls] : [];
+    const conds = [], args = [];
+    if (!bots) conds.push(`NOT ${IS_BOT}`);
+    if (name) {
+      const like = `%${name.replace(/[%_\\]/g, m => '\\' + m)}%`;
+      conds.push(`(d.name LIKE ? ESCAPE '\\' OR p.name LIKE ? ESCAPE '\\')`);
+      args.push(like, like);
+    }
+    const base = `FROM deaths d LEFT JOIN players p ON p.account = d.account${conds.length ? ` WHERE ${conds.join(' AND ')}` : ''}`;
+    const where = `${base}${cls ? `${conds.length ? ' AND' : ' WHERE'} d.class = ?` : ''}`;
     const [total, rows, byClass, totals] = await Promise.all([
-      one(`SELECT COUNT(*) AS n FROM deaths d ${where}`, ...args),
-      q(`SELECT ${DEATH_COLS}, p.name AS player FROM deaths d LEFT JOIN players p ON p.account = d.account ${where}
-        ORDER BY ${order} LIMIT ? OFFSET ?`, ...args, per, (page - 1) * per),
-      q(`SELECT class, COUNT(*) AS n FROM deaths d WHERE ${who} GROUP BY class`),
+      one(`SELECT COUNT(*) AS n ${where}`, ...args, ...(cls ? [cls] : [])),
+      q(`SELECT ${DEATH_COLS}, p.name AS player ${where} ORDER BY ${order} LIMIT ? OFFSET ?`, ...args, ...(cls ? [cls] : []), per, (page - 1) * per),
+      q(`SELECT d.class, COUNT(*) AS n ${base} GROUP BY d.class`, ...args),
       one(`SELECT SUM(NOT ${IS_BOT}) AS players, SUM(${IS_BOT}) AS bots FROM deaths d`)
     ]);
-    return {total: total.n, page, per, rows: rows.map(parseDeath), byClass, bots, full: (await getMeta(db, 'graveyard_ok')) !== null,
+    return {total: total.n, page, per, rows: rows.map(parseDeath), byClass, bots, name,
       totals: {players: totals?.players ?? 0, bots: totals?.bots ?? 0}};
   }
 
@@ -291,7 +298,8 @@ export async function routeApi(api, url) {
       page: int(url.searchParams.get('page'), 100000),
       sort: url.searchParams.get('sort') === 'fame' ? 'fame' : 'recent',
       cls: Number(url.searchParams.get('class')) || null,
-      bots: url.searchParams.get('who') === 'bots'
+      bots: url.searchParams.get('bots') === '1' || url.searchParams.get('who') === 'bots',
+      name: (url.searchParams.get('q') ?? '').trim().slice(0, 20)
     });
   }
   if ((m = p.match(/^\/api\/death\/(\d{1,10})\/(\d{1,10})$/))) return api.death(Number(m[1]), Number(m[2]));

@@ -24,20 +24,32 @@ test('bot names from /api/bots are recorded', async () => {
   assert.equal((await one(t.db, 'SELECT COUNT(*) n FROM bots')).n, 8);
 });
 
-test('bot deaths are separated from player deaths', async () => {
-  const players = await t.api.graveyard({bots: false});
-  const bots = await t.api.graveyard({bots: true});
-  assert.ok(bots.total > 0, 'the mock world has bot deaths');
+test('bot deaths are hidden from the graveyard unless shown', async () => {
+  const players = await t.api.graveyard({bots: false, per: 1000});
+  const all = await t.api.graveyard({bots: true, per: 1000});
+  const bots = all.rows.filter(d => d.is_bot);
+  assert.ok(bots.length > 0, 'the mock world has bot deaths');
   assert.ok(players.rows.every(d => !d.is_bot && d.account < 9000));
-  assert.ok(bots.rows.every(d => d.is_bot && d.account >= 9000));
+  assert.ok(bots.every(d => d.account >= 9000));
+  assert.equal(all.total, players.total + bots.length);
   assert.equal(players.totals.players + players.totals.bots, (await one(t.db, 'SELECT COUNT(*) n FROM deaths')).n);
-  assert.ok(bots.rows.some(d => d.bot_confirmed));
+  assert.ok(bots.some(d => d.bot_confirmed));
+});
+
+test('the graveyard searches character and player names', async () => {
+  const any = (await t.api.graveyard({})).rows[0];
+  const part = any.name.slice(1, 4).toLowerCase();
+  const found = await t.api.graveyard({name: part, per: 1000});
+  assert.ok(found.total > 0 && found.rows.every(d => d.name.toLowerCase().includes(part) || (d.player ?? '').toLowerCase().includes(part)));
+  assert.equal((await t.api.graveyard({name: '%_'})).total, 0, 'wildcards are matched literally');
+  const cls = await t.api.graveyard({name: part, cls: any.class, per: 1000});
+  assert.ok(cls.rows.every(d => d.class === any.class));
 });
 
 test('bots never appear on the home page, rankings, search or item pages', async () => {
   const s = await t.api.summary();
   assert.ok(s.recentDeaths.every(d => !d.is_bot));
-  assert.equal(s.counts.botDeaths, (await t.api.graveyard({bots: true})).total);
+  assert.equal(s.counts.botDeaths, (await t.api.graveyard({bots: true})).totals.bots);
   const botNames = new Set((await rows(t.db, 'SELECT name FROM bots')).map(r => r.name));
   assert.ok((await t.api.rankings('stars')).players.every(p => !botNames.has(p.name)));
   assert.equal((await t.api.search('Cake')).players.length, 0);
