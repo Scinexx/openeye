@@ -77,29 +77,37 @@ p { margin: 0; }
 }
 .topbar-inner {
   max-width: var(--max); margin: 0 auto; padding: 10px var(--gutter);
-  display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+  display: flex; align-items: center; gap: 12px 18px; flex-wrap: wrap;
 }
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font: 700 1.5rem var(--display); }
 .brand-mark { height: 28px; width: auto; image-rendering: pixelated; }
 .nav { display: flex; gap: 4px; flex-wrap: wrap; }
 .nav a {
   font-family: var(--display); font-size: 1.05rem; text-decoration: none;
-  padding: 6px 12px; border: 2px solid transparent; color: var(--bone-dim);
+  padding: 6px 9px; border: 2px solid transparent; color: var(--bone-dim);
 }
 .nav a:hover { color: var(--bone); }
 .nav a[aria-current="page"] {
   color: var(--fame); background: var(--stone-deep);
   border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
 }
-.search { margin-left: auto; position: relative; }
+.search { margin-left: auto; position: relative; display: flex; align-items: stretch; }
+.search-mode { display: flex; }
+.search-mode button {
+  font: 0.85rem var(--display); color: var(--bone-dim); background: var(--panel); padding: 0 7px; cursor: pointer;
+  border: 2px solid; border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light); border-left-width: 0;
+}
+.search-mode button[aria-pressed="true"] { color: var(--fame); background: var(--stone-deep); border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark); }
+.search-mode button:hover { color: var(--fame); }
+.search-results .player .sprite, .search-results .player .esprite-box { margin-right: 2px; }
 .search input {
-  width: min(240px, 60vw); font: 1rem var(--body); color: var(--bone);
+  width: min(165px, 50vw); font: 1rem var(--body); color: var(--bone);
   background: var(--stone-deep); padding: 8px 12px;
   border: 2px solid; border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
 }
 .search input::placeholder { color: var(--muted); }
 .search-results {
-  position: absolute; right: 0; top: calc(100% + 4px); width: 280px; margin: 0; padding: 4px; list-style: none;
+  position: absolute; right: 0; top: calc(100% + 4px); width: 340px; max-width: calc(100vw - 32px); margin: 0; padding: 4px; list-style: none;
   background: var(--panel-raised); border: 2px solid; border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
   box-shadow: 0 8px 0 rgba(0, 0, 0, 0.25);
 }
@@ -302,7 +310,7 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--fame); }
   .topbar-inner { gap: 10px 16px; }
   .nav a { padding: 6px 8px; }
   .search { margin-left: 0; width: 100%; }
-  .search input { width: 100%; }
+  .search input { width: 100%; flex: 1; min-width: 0; }
   .search-results { width: 100%; }
   .rows > li { flex-wrap: wrap; }
   .rows > li > .gear { order: 3; width: 100%; padding-left: 44px; }

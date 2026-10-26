@@ -107,11 +107,14 @@ async function loadCrown() {
   try { CROWN = (await get('/api/crown')).name?.toLowerCase() ?? null; } catch { /* keep the last holder */ }
 }
 const crowned = name => !!CROWN && String(name ?? '').toLowerCase() === CROWN;
-function crownIcon(size = 16) {
-  return h`<svg class="crown" width="${size}" height="${size}" viewBox="0 0 16 16" role="img" aria-label="Most fame earned in the last 24 hours"><title>Most fame earned in the last 24 hours</title><path fill="#ffcf3a" stroke="#1b1e26" stroke-width="1.2" stroke-linejoin="round" d="M1.5 4.5l3.5 3 3-5 3 5 3.5-3-1.2 8H2.7z"/><path fill="#e58a00" stroke="#1b1e26" stroke-width="1.2" d="M2.7 12.5h10.6v2H2.7z"/><circle cx="8" cy="9.5" r="1.1" fill="#c1272d"/></svg>`;
+function crownIcon(stars, size = 16) {
+  // Our own crown, filled with the same colour as the player's rank star.
+  const tier = Math.min(5, Math.floor((stars ?? 0) / Math.max(1, CLASSES.size)));
+  const label = 'Most fame earned in the last 24 hours';
+  return h`<svg class="crown" width="${size}" height="${size}" viewBox="0 0 24 24" role="img" aria-label="${label}"><title>${label}</title><path fill="${STAR_COLORS[tier]}" stroke="#1b1e26" stroke-width="1.6" stroke-linejoin="round" d="M2.5 7.5l5 4.5 4.5-8 4.5 8 5-4.5-1.8 12.5H4.3z"/><path fill="#1b1e26" fill-opacity=".28" d="M4 17.2h16l-.3 2.3H4.3z"/><circle cx="2.5" cy="7.2" r="1.5" fill="${STAR_COLORS[tier]}" stroke="#1b1e26" stroke-width="1.2"/><circle cx="12" cy="3.4" r="1.5" fill="${STAR_COLORS[tier]}" stroke="#1b1e26" stroke-width="1.2"/><circle cx="21.5" cy="7.2" r="1.5" fill="${STAR_COLORS[tier]}" stroke="#1b1e26" stroke-width="1.2"/></svg>`;
 }
-const rankIcon = (name, stars, size = 16) => (crowned(name) ? crownIcon(size) : starIcon(stars, size));
-const playerLink = (name, stars) => h`<span class="player">${rankIcon(name, stars)}<a href="/player/${encodeURIComponent(name)}" data-link>${name}</a></span>`;
+const rankIcon = (name, stars, size = 16, star = true) => (crowned(name) ? crownIcon(stars, size) : star ? starIcon(stars, size) : '');
+const playerLink = (name, stars, {star = true} = {}) => h`<span class="player">${rankIcon(name, stars, 16, star)}<a href="/player/${encodeURIComponent(name)}" data-link>${name}</a></span>`;
 // Bots have no player page, so their name is plain text with a badge.
 const ownerLink = d => (d.is_bot ? h`<span class="who">${d.name} <span class="badge bot" title="A computer-controlled character run by the game server">Bot</span></span>` : playerLink(d.player ?? d.name, d.player_stars));
 const discordIcon = id => (id ? h`<a class="discord" href="https://discord.com/users/${id}" rel="noopener" title="Discord account linked" aria-label="Discord profile"><svg viewBox="0 0 16 12" width="16" height="12" aria-hidden="true"><path fill="#8b9cf7" d="M13.5 1A13 13 0 0 0 10.3 0l-.4.8a12 12 0 0 0-3.8 0L5.7 0a13 13 0 0 0-3.2 1C.4 4 0 7 .2 9.9A13 13 0 0 0 4.1 12l.8-1.3a8 8 0 0 1-1.3-.6l.3-.2a9 9 0 0 0 8.2 0l.3.2-1.3.6.8 1.3a13 13 0 0 0 3.9-2c.3-3.4-.5-6.3-2.3-8.9ZM5.4 8.3c-.8 0-1.4-.7-1.4-1.6s.6-1.6 1.4-1.6 1.4.7 1.4 1.6-.6 1.6-1.4 1.6Zm5.2 0c-.8 0-1.4-.7-1.4-1.6s.6-1.6 1.4-1.6S12 5.8 12 6.7s-.6 1.6-1.4 1.6Z"/></svg></a>` : '');
@@ -361,7 +364,7 @@ async function home() {
         <thead><tr>${Object.keys(BOARDS).map(b => h`<th><a href="/rankings/${b}" data-link>${BOARDS[b].title}</a></th>`)}</tr></thead>
         <tbody>${[0, 1, 2, 3, 4].map(i => h`<tr>${Object.keys(BOARDS).map(b => {
           const p = s.top[b][i];
-          return p ? h`<td><span class="muted">${p.rank}.</span> ${playerLink(p.name)} <span class="fame">${fmt(p[b])}</span></td>` : h`<td class="muted">–</td>`;
+          return p ? h`<td><span class="muted">${p.rank}.</span> ${playerLink(p.name, p.stars, {star: false})} <span class="fame">${fmt(p[b])}</span></td>` : h`<td class="muted">–</td>`;
         })}</tr>`)}</tbody>
       </table></div>
     </section>`);
@@ -413,7 +416,7 @@ async function player(name) {
 
   view(h`
     <div class="player-head">
-      ${crowned(p.name) ? crownIcon(34) : ''}${starIcon(p.stars, 34)}
+      ${crowned(p.name) ? crownIcon(p.stars, 34) : ''}${starIcon(p.stars, 34)}
       <h1>${p.name}</h1>
       ${discordIcon(p.discord_id)}
       ${!p.listed ? h`<span class="badge">No longer on the hiscores</span>` : ''}
@@ -1015,26 +1018,70 @@ document.addEventListener('click', e => {
 });
 window.addEventListener('popstate', route);
 
-// ---------- player search ----------
+// ---------- header search: players, or items and enemies ----------
 const input = document.getElementById('search-input');
 const results = document.getElementById('search-results');
-let searchTimer, active = -1;
+const MODES = {player: 'Find a player', codex: 'Find an item or enemy'};
+let searchMode = 'player';
+try { if (localStorage.getItem('searchMode') === 'codex') searchMode = 'codex'; } catch { /* storage unavailable */ }
+let searchTimer, active = -1, pending = null;
 const closeSearch = () => { results.hidden = true; active = -1; };
-input.addEventListener('input', () => {
+function setSearchMode(mode) {
+  searchMode = mode;
+  try { localStorage.setItem('searchMode', mode); } catch { /* storage unavailable */ }
+  document.querySelectorAll('[data-search-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.searchMode === mode)));
+  input.placeholder = MODES[mode];
+  document.getElementById('search-label').textContent = MODES[mode];
+  if (input.value.trim()) runSearch(); else closeSearch();
+}
+document.querySelectorAll('[data-search-mode]').forEach(b => b.addEventListener('click', () => { setSearchMode(b.dataset.searchMode); input.focus(); }));
+
+// Best matches first: exact name, then names starting with the text, then anywhere in the name.
+const matchScore = (name, q) => { const n = name.toLowerCase(); return n === q ? 0 : n.startsWith(q) ? 1 : n.split(/[\s'-]+/).some(w => w.startsWith(q)) ? 2 : n.includes(q) ? 3 : -1; };
+async function codexResults(q) {
+  const E = await loadEnemies();
+  const found = [];
+  for (const it of ITEMS.values()) { const s = matchScore(it.name, q); if (s >= 0) found.push({s, name: it.name, item: it}); }
+  // Same-named enemy variants collapse to the one with the most drops.
+  const best = new Map();
+  for (const e of E.list) {
+    const s = matchScore(e.name, q);
+    if (s < 0) continue;
+    const prev = best.get(e.name);
+    if (!prev || e.drops.length > prev.enemy.drops.length || (!prev.enemy.sprite && e.sprite)) best.set(e.name, {s, name: e.name, enemy: e});
+  }
+  found.push(...best.values());
+  found.sort((a, b) => a.s - b.s || a.name.length - b.name.length || a.name.localeCompare(b.name));
+  return found.slice(0, 10).map(r => r.item
+    ? h`<li><a href="/item/${r.item.id}" data-link><span class="player">${itemSprite(r.item.id, 1)}${r.item.name}</span><span class="muted">${tierInfo(r.item).label || 'Item'}</span></a></li>`
+    : h`<li><a href="/enemy/${r.enemy.id}" data-link><span class="player">${enemySprite(r.enemy, 16)}${r.enemy.name}</span><span class="muted">Enemy</span></a></li>`);
+}
+async function playerResults(q) {
+  const r = await get(`/api/search?q=${encodeURIComponent(q)}`).catch(() => ({players: [], former: []}));
+  return [
+    ...r.players.map(p => h`<li><a href="/player/${encodeURIComponent(p.name)}" data-link><span class="player">${rankIcon(p.name, p.stars)}${p.name}</span><span class="muted">${fmt(p.stars)}</span></a></li>`),
+    ...r.former.map(f => h`<li><a href="/player/${encodeURIComponent(f.name)}" data-link><span class="player">${rankIcon(f.name, f.stars)}${f.name}</span><span class="muted">was ${f.former}</span></a></li>`)
+  ];
+}
+function runSearch() {
   clearTimeout(searchTimer);
   const q = input.value.trim();
-  if (!q) return closeSearch();
-  searchTimer = setTimeout(async () => {
-    const r = await get(`/api/search?q=${encodeURIComponent(q)}`).catch(() => ({players: [], former: []}));
-    const items = [
-      ...r.players.map(p => h`<li><a href="/player/${encodeURIComponent(p.name)}" data-link><span class="player">${rankIcon(p.name, p.stars)}${p.name}</span><span class="muted">${fmt(p.stars)}</span></a></li>`),
-      ...r.former.map(f => h`<li><a href="/player/${encodeURIComponent(f.name)}" data-link><span class="player">${rankIcon(f.name, f.stars)}${f.name}</span><span class="muted">was ${f.former}</span></a></li>`)
-    ];
-    results.innerHTML = String(items.length ? h`${items}` : h`<li class="hint">No player called “${q}” has been seen yet.</li>`);
-    results.hidden = false;
-    active = -1;
-  }, 120);
-});
+  if (!q) { pending = null; return closeSearch(); }
+  const mode = searchMode;
+  const job = new Promise(resolve => {
+    searchTimer = setTimeout(async () => {
+      const rows = mode === 'player' ? await playerResults(q) : await codexResults(q.toLowerCase());
+      if (pending === job) {
+        results.innerHTML = String(rows.length ? h`${rows}` : h`<li class="hint">${mode === 'player' ? `No player called “${q}” has been seen yet.` : `No item or enemy matches “${q}”.`}</li>`);
+        results.hidden = false;
+        active = -1;
+      }
+      resolve();
+    }, mode === 'player' ? 120 : 0);
+  });
+  pending = job;
+}
+input.addEventListener('input', runSearch);
 input.addEventListener('keydown', e => {
   const links = [...results.querySelectorAll('a')];
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
@@ -1044,17 +1091,22 @@ input.addEventListener('keydown', e => {
     links.forEach((l, i) => l.classList.toggle('active', i === active));
   } else if (e.key === 'Escape') closeSearch();
 });
-input.form.addEventListener('submit', e => {
+// Enter opens the highlighted result, or the top one; it waits for a search still in flight.
+input.form.addEventListener('submit', async e => {
   e.preventDefault();
+  if (pending) await pending;
   const links = [...results.querySelectorAll('a')];
   const target = links[Math.max(0, active)];
   if (target) navigate(target.getAttribute('href'));
-  else if (input.value.trim()) navigate(`/player/${encodeURIComponent(input.value.trim())}`);
+  else if (searchMode === 'player' && input.value.trim()) navigate(`/player/${encodeURIComponent(input.value.trim())}`);
+  else return;
   input.value = '';
+  pending = null;
   closeSearch();
 });
-results.addEventListener('click', () => { input.value = ''; closeSearch(); });
+results.addEventListener('click', () => { input.value = ''; pending = null; closeSearch(); });
 document.addEventListener('click', e => { if (!input.form.contains(e.target)) closeSearch(); });
+setSearchMode(searchMode);
 
 // ---------- footer status ----------
 async function footer() {

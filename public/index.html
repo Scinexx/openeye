@@ -40,8 +40,12 @@
         <a href="/about" data-link data-nav="about">About</a>
       </nav>
       <form class="search" role="search" autocomplete="off">
-        <label class="sr" for="search-input">Find a player</label>
-        <input id="search-input" type="search" placeholder="Find a player" spellcheck="false" maxlength="20">
+        <label class="sr" for="search-input" id="search-label">Find a player</label>
+        <input id="search-input" type="search" placeholder="Find a player" spellcheck="false" maxlength="40">
+        <div class="search-mode" role="group" aria-label="Search for">
+          <button type="button" data-search-mode="player" aria-pressed="true">Player</button>
+          <button type="button" data-search-mode="codex" aria-pressed="false">Item/enemy</button>
+        </div>
         <ul class="search-results" id="search-results" role="listbox" hidden></ul>
       </form>
     </div>
