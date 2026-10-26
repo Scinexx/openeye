@@ -222,12 +222,20 @@ export class Collector {
   async syncGraveyard() {
     const db = this.db;
     if ((await getMeta(db, 'graveyard_enabled')) !== '1') return;
+    // While the server answers 404 (endpoint not reachable yet), only ask once an hour.
+    if (Number(await getMeta(db, 'graveyard_missing_at') ?? 0) > now() - 3600) return;
     let since = Number(await getMeta(db, 'graveyard_since') ?? 0);
     let added = 0;
     for (let page = 0; page < 5; page++) {
       if (this.left() < 1) return false;
       if (page) await sleep(this.s.requestGapMs);
-      const deaths = await this.api.graveyard(since);
+      let deaths;
+      try {
+        deaths = await this.api.graveyard(since);
+      } catch (e) {
+        if (e.status === 404) await setMetaStmt(db, 'graveyard_missing_at', now()).run();
+        throw e;
+      }
       const at = now();
       if (!deaths.length) break;
       const listed = new Set((await this.all('SELECT account FROM players')).map(r => r.account));

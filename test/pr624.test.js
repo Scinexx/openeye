@@ -13,7 +13,12 @@ test('without the PR: no characters, the graveyard is never requested, graveyard
     await t.collector().tick(true);
     assert.equal((await one(t.db, 'SELECT COUNT(*) AS n FROM characters')).n, 0);
     assert.equal(await meta(t.db, 'characters_at'), null);
-    // Switched on against a server without the endpoint: the request fails and nothing changes.
+    // Switched on against a server without the endpoint: the request fails, nothing changes,
+    // and it is not asked again for an hour.
+    assert.equal(t.mock.stats.requests['/api/graveyard'], 1);
+    await t.collector().tick(['graveyard']);
+    assert.equal(t.mock.stats.requests['/api/graveyard'], 1);
+    assert.ok(await meta(t.db, 'graveyard_missing_at'));
     assert.equal(await meta(t.db, 'graveyard_ok'), null);
     const s = await t.api.status();
     assert.deepEqual(s.features, {characters: false, graveyard: false});
