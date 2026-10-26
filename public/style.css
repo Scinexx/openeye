@@ -85,6 +85,10 @@ p { margin: 0; }
 }
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font: 700 1.5rem var(--display); }
 .brand-mark { height: 28px; width: auto; image-rendering: pixelated; }
+.brand-potion { display: none; width: 32px; height: 32px; background: url(/catalog/items.png) no-repeat; image-rendering: pixelated;
+  filter: drop-shadow(1px 0 0 #000) drop-shadow(-1px 0 0 #000) drop-shadow(0 1px 0 #000) drop-shadow(0 -1px 0 #000); }
+:root[data-theme] .brand-mark { display: none; }
+:root[data-theme] .brand-potion { display: block; }
 .nav { display: flex; gap: 2px; flex-wrap: wrap; }
 .nav a {
   font-family: var(--display); font-size: 1.05rem; text-decoration: none;

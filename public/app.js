@@ -1123,10 +1123,21 @@ function drawThemeMenu() {
   themeMenu.innerHTML = String(h`<p class="theme-title">Theme</p>${THEMES.map(([key, label, potion]) => h`<button type="button" role="menuitemradio" aria-checked="${key === current}" data-theme-key="${key}">
     ${potion && byName.has(potion) ? raw(String(itemSprite(byName.get(potion), 2)).replace(/ data-tip="\d+"/, '')) : h`<span class="theme-swatch"></span>`}<span class="grow">${label}</span>${key === current ? h`<span class="tick" aria-hidden="true">✓</span>` : ''}</button>`)}`);
 }
+// With a potion theme, the logo becomes that potion (sprite positions come from the item catalog).
+function drawBrand() {
+  const key = document.documentElement.dataset.theme ?? '';
+  const potion = THEMES.find(t => t[0] === key)?.[2];
+  const it = potion && [...ITEMS.values()].find(i => i.name === potion);
+  const el = document.getElementById('brand-potion');
+  if (!it?.sprite) { el.removeAttribute('style'); return; }
+  const s = 4; // 8px sprite at 4x, 32px tall like the logo
+  el.style.cssText = `background-size:${320 * s}px auto;background-position:-${(it.sprite.x + 4) * s}px -${(it.sprite.y + 4) * s}px`;
+}
 function setTheme(key) {
   if (key) document.documentElement.dataset.theme = key; else delete document.documentElement.dataset.theme;
   try { if (key) localStorage.setItem('theme', key); else localStorage.removeItem('theme'); } catch { /* storage unavailable */ }
   drawThemeMenu();
+  drawBrand();
 }
 const closeThemes = () => { themeMenu.hidden = true; themeButton.setAttribute('aria-expanded', 'false'); };
 themeButton.addEventListener('click', e => {
@@ -1155,6 +1166,7 @@ async function footer() {
 }
 
 await Promise.all([loadCatalog(), loadCrown()]);
+drawBrand();
 route();
 footer();
 setInterval(() => { footer(); loadCrown(); }, 60000);
