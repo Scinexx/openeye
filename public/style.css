@@ -527,3 +527,15 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 .itip:has(.itip-text) { width: auto; }
 .itip .itip-text { width: auto; height: auto; margin: 0; }
 .itip .itip-desc.itip-text { margin-top: 2px; }
+
+/* ---------- Legends: same layout on both boards, so switching never moves the table ---------- */
+.legends-head p { min-height: 4.5em; }
+.legends-table { table-layout: fixed; width: 100%; min-width: 960px; }
+.legends-table .c-rank { width: 64px; }
+.legends-table .c-char { width: 22%; }
+.legends-table .c-player { width: 18%; }
+.legends-table .c-fame { width: 90px; }
+.legends-table .c-gear { width: 200px; }
+.legends-table .c-died { width: 130px; }
+.legends-table td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 720px) { .legends-head p { min-height: 7.5em; } }
