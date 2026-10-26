@@ -852,7 +852,8 @@ function enemySprite(e, box = 40) {
   return h`<span class="esprite-box" style="width:${box}px;height:${box}px"><span class="esprite" role="img" aria-label="${e.name}" style="width:${w * s}px;height:${ht * s}px;background-size:${ENEMIES.sheetWidth * s}px auto;background-position:-${x * s}px -${y * s}px"></span></span>`;
 }
 const dropOrder = (a, b) => {
-  const rank = it => (!it ? 3 : it.untiered ? 0 : it.slot === 10 || it.tier === null ? 2 : 1);
+  // Consumables (potions first) at the top, then untiered items, then tiers from highest down.
+  const rank = it => (!it ? 4 : it.slot === 10 ? (/^Potion of /.test(it.name) ? 0 : 1) : it.untiered ? 2 : 3);
   return rank(a) - rank(b) || (b?.tier ?? 0) - (a?.tier ?? 0) || (a?.name ?? '').localeCompare(b?.name ?? '');
 };
 const fmtDamage = d => (d === null ? '–' : Array.isArray(d) ? `${fmt(d[0])} – ${fmt(d[1])}` : fmt(d));
