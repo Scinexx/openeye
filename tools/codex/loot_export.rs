@@ -12,16 +12,21 @@ mod openeye_export {
         let Ok(out) = std::env::var("OPENEYE_LOOT_OUT") else { return };
         let content = Content::load(std::path::Path::new("data")).expect("load data");
         let mut drops = BTreeMap::<u16, BTreeSet<u16>>::new();
-        // chest_table() panics for objects that are not chests, so try it quietly for every object.
-        let hook = std::panic::take_hook();
-        std::panic::set_hook(Box::new(|_| {}));
         for &kind in content.objects.keys() {
             let mut items = BTreeSet::new();
-            for (_, pick) in table(kind).iter().chain(fauna_private_table(kind)) {
-                items.extend(candidates(&content, *pick));
+            // table() only answers for objects with an encounter profile, as in collectibles().
+            if crate::encounter::profile(kind).is_some() {
+                for (_, pick) in table(kind).iter().chain(fauna_private_table(kind)) {
+                    items.extend(candidates(&content, *pick));
+                }
+                items.extend(bonus(kind).iter().map(|(_, item)| *item));
             }
-            items.extend(bonus(kind).iter().map(|(_, item)| *item));
-            if let Ok(chest) = std::panic::catch_unwind(|| chest_table(kind)) {
+            // chest_table() panics for objects that are not chests, so try it quietly for every object.
+            let hook = std::panic::take_hook();
+            std::panic::set_hook(Box::new(|_| {}));
+            let chest = std::panic::catch_unwind(|| chest_table(kind));
+            std::panic::set_hook(hook);
+            if let Ok(chest) = chest {
                 for (_, pick) in chest {
                     items.extend(candidates(&content, pick));
                 }
@@ -30,7 +35,6 @@ mod openeye_export {
                 drops.insert(kind, items);
             }
         }
-        std::panic::set_hook(hook);
         // Drops written by hand in the world's loot code rather than in these tables.
         let extras: &[(u16, &[u16], &str)] = &[
             (0xe37, &[0xc25], "world.rs: rum"),
