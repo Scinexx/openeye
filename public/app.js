@@ -881,7 +881,7 @@ async function enemies() {
     document.getElementById('enemy-list').innerHTML = String(rows.length ? h`<div class="catalog enemy-cards">${rows.map(e => h`<a href="/enemy/${e.id}" data-link>
       ${enemySprite(e, 40)}
       <span class="grow"><span class="title">${e.name}</span>
-      <span class="sub">${e.hp !== null ? `${fmt(e.hp)} HP` : 'No HP'}${e.def ? `, ${fmt(e.def)} DEF` : ''}${e.drops.length ? `, ${e.drops.length} drop${e.drops.length === 1 ? '' : 's'}` : ''}</span></span>
+      <span class="sub">${e.internal ? `${e.internal}: ` : ''}${e.hp !== null ? `${fmt(e.hp)} HP` : 'No HP'}${e.def ? `, ${fmt(e.def)} DEF` : ''}${e.drops.length ? `, ${e.drops.length} drop${e.drops.length === 1 ? '' : 's'}` : ''}</span></span>
     </a>`)}</div>` : h`<p class="empty">No enemies match.</p>`);
   };
   for (const id of ['enemy-q', 'enemy-show', 'enemy-sort']) document.getElementById(id).addEventListener(id === 'enemy-q' ? 'input' : 'change', draw);
