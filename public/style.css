@@ -92,7 +92,10 @@ p { margin: 0; }
   border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
 }
 .search { margin-left: auto; position: relative; display: flex; align-items: stretch; }
-.search-mode { display: flex; }
+.search-mode { display: flex; margin-left: 6px; }
+.search-mode button:first-child { border-left-width: 2px; }
+/* No yellow focus ring on the search box, or on the page after Enter moves focus to it. */
+.search input:focus, .search input:focus-visible, #main:focus, #main:focus-visible { outline: none; }
 .search-mode button {
   font: 0.85rem var(--display); color: var(--bone-dim); background: var(--panel); padding: 0 7px; cursor: pointer;
   border: 2px solid; border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light); border-left-width: 0;
