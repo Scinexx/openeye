@@ -1135,10 +1135,11 @@ function drawThemeMenu() {
   const byName = new Map([...ITEMS.values()].map(i => [i.name, i]));
   const potions = THEMES.filter(t => t[2]);
   themeMenu.innerHTML = String(h`<div class="inv-panel">
+    <span class="inv-title">Themes</span>
     <button type="button" class="inv-nexus" role="menuitemradio" aria-checked="${current === ''}" aria-label="Nexus: default theme" data-theme-key="" data-tip-title="Nexus" data-tip-text="Default theme"><canvas width="40" height="40"></canvas></button>
     <div class="inv-grid">${potions.map(([key, label, potion], i) => {
       const it = byName.get(potion);
-      return h`<button type="button" class="inv-slot ${SLOT_CUTS[i] ?? ''}" role="menuitemradio" aria-checked="${key === current}" aria-label="${label} theme" data-theme-key="${key}" ${it ? raw(`data-tip="${it.id}"`) : ''}><span class="inv-num" aria-hidden="true">${i + 1}</span><canvas width="56" height="56" data-potion="${it?.id ?? ''}"></canvas></button>`;
+      return h`<button type="button" class="inv-slot ${SLOT_CUTS[i] ?? ''}" role="menuitemradio" aria-checked="${key === current}" aria-label="${label} theme" data-theme-key="${key}"><span class="inv-num" aria-hidden="true">${i + 1}</span><canvas width="56" height="56" data-potion="${it?.id ?? ''}"></canvas></button>`;
     })}</div></div>`);
   themeMenu.querySelectorAll('canvas[data-potion]').forEach(async c => {
     const it = ITEMS.get(Number(c.dataset.potion));
