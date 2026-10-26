@@ -319,8 +319,6 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 .char-stats .maxed b { color: var(--gold); }
 /* "Toggle potions to max" swaps each stat for the potions it still needs. */
 .chars:not(.potions) .pot-val, .chars.potions .stat-val { display: none; }
-.chars .c-maxed .pot-val { display: block; }
-.chars:not(.potions) .c-maxed .pot-val { display: none; }
 .chars header h2 .count { font: 400 0.95rem var(--body); margin-left: 8px; }
 .chars .pot-toggle { cursor: pointer; white-space: nowrap; }
 .chars > header { flex-wrap: wrap; gap: 8px 16px; }

@@ -536,13 +536,12 @@ function characterPanel(chars, p) {
         const max = CLASSES.get(c.class)?.max;
         const left = max ? potionsLeft(c, max) : null;
         const maxed = left ? left.filter(n => n === 0).length : null;
-        const total = left ? left.reduce((a, b) => a + b, 0) : null;
         return h`<tr>
           <td class="c-who"><span class="who">${classSprite(c.class, 40)} <span>${className(c.class)}${c.created_at ? h`<span class="sub">Created ${day(c.created_at)}</span>` : ''}</span></span></td>
           <td class="n c-level" data-label="Level">${c.level}</td>
           <td class="n fame main-metric c-fame" data-label="Fame">${fmt(c.fame)}</td>
           <td class="c-gear">${gear(c.equipment, 2)}</td>
-          <td class="n c-maxed${maxed === 8 ? ' hl' : ''}" data-label="Maxed">${maxed === null ? '–' : `${maxed}/8`}${total ? h`<span class="pot-val sub">${fmt(total)} potions</span>` : ''}</td>
+          <td class="n c-maxed${maxed === 8 ? ' hl' : ''}" data-label="Maxed">${maxed === null ? '–' : `${maxed}/8`}</td>
           <td class="c-stats"><span class="char-stats">${STAT_KEYS.map(([k, label], i) => {
             if (!max) return h`<span><b>${label}</b>${c.stats[i]}</span>`;
             const done = left[i] === 0;
