@@ -701,7 +701,7 @@ async function legends(span) {
   view(h`
     <div class="page-head"><div><h1>Legends</h1><p>${l.source === 'graveyard'
       ? `The ${l.size} highest-fame player deaths, ranked from every death on the server. Bots are never included.`
-      : 'The highest-fame player deaths on the game’s Legends board, with bots left out.'} Updated ${l.updated ? ago(l.updated) : 'soon'}.</p></div></div>
+      : 'The highest-fame player deaths recorded so far. Bots are never included. Until the game shares every death, only deaths that reached its own Legends board are known.'} Updated ${l.updated ? ago(l.updated) : 'soon'}.</p></div></div>
     <nav class="tabs" aria-label="Period">${Object.entries(SPANS).map(([k, t]) => h`<a href="/legends/${k}" data-link ${k === span ? raw('aria-current="page"') : ''}>${t}</a>`)}</nav>
     <section class="panel"><div class="table-wrap"><table>
       <thead><tr><th>Rank</th><th>Character</th><th>Player</th><th class="n">Fame</th><th>Equipment</th><th>Killed by</th><th>Died</th></tr></thead>

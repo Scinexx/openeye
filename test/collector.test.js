@@ -102,7 +102,7 @@ test('website API returns sensible shapes', async () => {
   assert.ok(g.rows[0].total_fame >= g.rows[1].total_fame);
   const d = await t.api.death(g.rows[0].account, g.rows[0].char_id);
   assert.equal(d.death.equipment.length, 12);
-  // Before the full graveyard: the game's list with bots taken out, re-ranked from 1.
+  // Before the full graveyard: ranked from the player deaths known so far, bots never.
   const game = await t.api.legends('all');
   assert.equal(game.source, 'game');
   assert.ok(game.rows.length > 0 && game.rows.length <= 20 && game.rows.every((d, i) => !d.is_bot && d.rank === i + 1));

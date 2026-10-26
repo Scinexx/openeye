@@ -118,33 +118,26 @@ export function makeApi(db, catalog, settings) {
   }
 
   // ---- Legends: players only, never bots ----
-  // Once the full graveyard is collected (the server's /api/graveyard), the boards are ranked
-  // from every recorded player death, by the game's own rules (src/store/legends.rs): deaths in
-  // the last 7 or 30 days or ever, most total fame first, earlier death first on a tie, top 20.
-  // Before that, the game's own Legends lists are used with bot deaths taken out.
+  // Ranked from the player deaths OpenEye has recorded, by the game's own rules
+  // (src/store/legends.rs): deaths in the last 7 or 30 days or ever, most total fame,
+  // earlier death first on a tie, top 20. With the full graveyard (the server's
+  // /api/graveyard) that is every player death; before it, only deaths that reached the
+  // game's own Legends lists are known.
   const SPANS = {week: 7 * 86400, month: 30 * 86400, all: null};
   const LEGENDS_SIZE = 20;
   const fullGraveyard = async () => (await getMeta(db, 'graveyard_ok')) !== null;
-  async function legendBoard(span, full) {
-    let rows;
-    if (full) {
-      const since = SPANS[span] ? now() - SPANS[span] : null;
-      rows = await q(`SELECT ${DEATH_COLS}, p.name AS player FROM deaths d JOIN players p ON p.account = d.account
-        WHERE d.died_at IS NOT NULL${since ? ' AND d.died_at > ?' : ''}
-        ORDER BY d.total_fame DESC, d.died_at ASC, d.char_id ASC LIMIT ${LEGENDS_SIZE}`, ...(since ? [since] : []));
-    } else {
-      rows = await q(`SELECT ${DEATH_COLS}, p.name AS player FROM legends l
-        JOIN deaths d ON d.account = l.account AND d.char_id = l.char_id
-        LEFT JOIN players p ON p.account = l.account WHERE l.timespan = ? AND NOT ${IS_BOT} ORDER BY l.rank`, span);
-    }
+  async function legendBoard(span) {
+    const since = SPANS[span] ? now() - SPANS[span] : null;
+    const rows = await q(`SELECT ${DEATH_COLS}, p.name AS player FROM deaths d JOIN players p ON p.account = d.account
+      WHERE d.died_at IS NOT NULL${since ? ' AND d.died_at > ?' : ''}
+      ORDER BY d.total_fame DESC, d.died_at ASC, d.char_id ASC LIMIT ${LEGENDS_SIZE}`, ...(since ? [since] : []));
     return rows.map((d, i) => ({...parseDeath(d), rank: i + 1}));
   }
   /** Every death on a players-only board: "account:char" -> [{timespan, rank}]. */
   async function legendPlaces() {
-    const full = await fullGraveyard();
     const places = new Map();
     for (const span of Object.keys(SPANS)) {
-      for (const d of await legendBoard(span, full)) {
+      for (const d of await legendBoard(span)) {
         const key = `${d.account}:${d.char_id}`;
         if (!places.has(key)) places.set(key, []);
         places.get(key).push({timespan: span, rank: d.rank, char_id: d.char_id, total_fame: d.total_fame});
@@ -264,7 +257,7 @@ export function makeApi(db, catalog, settings) {
     if (!(span in SPANS)) throw new HttpError(404, 'Unknown legends period');
     const full = await fullGraveyard();
     const updated = Number(await getMeta(db, full ? 'last_ok:graveyard' : 'last_ok:legends') ?? 0) || null;
-    return {span, rows: await legendBoard(span, full), source: full ? 'graveyard' : 'game', size: LEGENDS_SIZE, updated};
+    return {span, rows: await legendBoard(span), source: full ? 'graveyard' : 'game', size: LEGENDS_SIZE, updated};
   }
 
   /** All-time history of collected items, newest first, with item name, tier, type, time and player filters. */
