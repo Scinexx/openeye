@@ -863,7 +863,7 @@ async function enemies() {
     <div class="controls">
       <label class="sr" for="enemy-q">Search enemies</label><input id="enemy-q" type="search" placeholder="Search enemies or items" value="${params.get('q') ?? ''}">
       <label for="enemy-show">Show</label>
-      <select id="enemy-show"><option value="all">All enemies</option><option value="drops">With drops</option><option value="bosses">Bosses and quests</option></select>
+      <select id="enemy-show"><option value="all">All enemies</option><option value="drops" selected>With drops</option><option value="bosses">Bosses and quests</option></select>
       <label for="enemy-sort">Sort</label>
       <select id="enemy-sort"><option value="name">Name</option><option value="hp">Most HP</option><option value="drops">Most drops</option></select>
       <span class="muted" id="enemy-count"></span>
