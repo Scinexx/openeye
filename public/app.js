@@ -1108,6 +1108,43 @@ results.addEventListener('click', () => { input.value = ''; pending = null; clos
 document.addEventListener('click', e => { if (!input.form.contains(e.target)) closeSearch(); });
 setSearchMode(searchMode);
 
+// ---------- themes ----------
+// One theme per stat potion, coloured from the potion sprites; the choice is kept in this browser.
+const THEMES = [
+  ['', 'Nexus', null], ['life', 'Life', 'Potion of Life'], ['mana', 'Mana', 'Potion of Mana'],
+  ['attack', 'Attack', 'Potion of Attack'], ['defense', 'Defense', 'Potion of Defense'], ['speed', 'Speed', 'Potion of Speed'],
+  ['dexterity', 'Dexterity', 'Potion of Dexterity'], ['vitality', 'Vitality', 'Potion of Vitality'], ['wisdom', 'Wisdom', 'Potion of Wisdom']
+];
+const themeButton = document.getElementById('theme-button');
+const themeMenu = document.getElementById('theme-menu');
+function drawThemeMenu() {
+  const current = document.documentElement.dataset.theme ?? '';
+  const byName = new Map([...ITEMS.values()].map(i => [i.name, i.id]));
+  themeMenu.innerHTML = String(h`<p class="theme-title">Theme</p>${THEMES.map(([key, label, potion]) => h`<button type="button" role="menuitemradio" aria-checked="${key === current}" data-theme-key="${key}">
+    ${potion && byName.has(potion) ? raw(String(itemSprite(byName.get(potion), 2)).replace(/ data-tip="\d+"/, '')) : h`<span class="theme-swatch"></span>`}<span class="grow">${label}</span>${key === current ? h`<span class="tick" aria-hidden="true">✓</span>` : ''}</button>`)}`);
+}
+function setTheme(key) {
+  if (key) document.documentElement.dataset.theme = key; else delete document.documentElement.dataset.theme;
+  try { if (key) localStorage.setItem('theme', key); else localStorage.removeItem('theme'); } catch { /* storage unavailable */ }
+  drawThemeMenu();
+}
+const closeThemes = () => { themeMenu.hidden = true; themeButton.setAttribute('aria-expanded', 'false'); };
+themeButton.addEventListener('click', e => {
+  e.stopPropagation();
+  if (!themeMenu.hidden) return closeThemes();
+  drawThemeMenu();
+  themeMenu.hidden = false;
+  themeButton.setAttribute('aria-expanded', 'true');
+});
+// The menu stays open after a pick, so themes can be compared one after another.
+themeMenu.addEventListener('click', e => {
+  e.stopPropagation();
+  const b = e.target.closest('[data-theme-key]');
+  if (b) setTheme(b.dataset.themeKey);
+});
+document.addEventListener('click', e => { if (!themeMenu.hidden && !e.target.closest('.settings')) closeThemes(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !themeMenu.hidden) { closeThemes(); themeButton.focus(); } });
+
 // ---------- footer status ----------
 async function footer() {
   try {

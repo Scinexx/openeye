@@ -28,6 +28,7 @@ OpenEye is a RealmEye-style tracker for Open RotMG, the open-source recreation o
 - **Enemies**: every enemy in the current game code with its HP, defense, projectiles (damage, range, effects) and every item it can drop, read from the server's own loot code; item pages list what drops them
 - **In-game item tooltips**: hover any item icon to see the same tooltip the game shows, built by the same rules as the 2012 client
 - **Bot separation**: the server's bots are kept out of rankings, loot and the player graveyard
+- **Themes**: a settings cog with nine colour themes, the default plus one for each stat potion, remembered per browser
 - **Live server status** with current and 24-hour peak player counts
 
 ## How it works
