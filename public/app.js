@@ -548,7 +548,7 @@ function characterPanel(chars, p) {
             const pot = ITEMS.get(STAT_POTIONS[i][0]);
             return h`<span class="${done ? 'maxed' : ''}">
               <span class="stat-val" title="${label} ${c.stats[i]} of ${max[k]}"><b>${label}</b>${c.stats[i]}</span>
-              <span class="pot-val" title="${done ? `${label} is maxed` : `${left[i]} ${pot?.name ?? 'potion'}${left[i] === 1 ? '' : 's'} to max ${label} (${max[k] - c.stats[i]} more)`}"><b>${label}</b>${done ? 'Max' : left[i]}</span>
+              <span class="pot-val" title="${done ? `${label} is maxed` : `${left[i]} ${pot?.name ?? 'potion'}${left[i] === 1 ? '' : 's'} to max ${label} (${max[k] - c.stats[i]} more)`}"><b>${label}</b>${left[i]}</span>
             </span>`;
           })}</span></td>
         </tr>`;
