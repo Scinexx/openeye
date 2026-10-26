@@ -328,7 +328,7 @@ async function home() {
     </section>
     ${!hasData ? h`<div class="notice"><strong>Fetching the latest data.</strong> This page fills in within a few minutes.</div>` : ''}
     <section class="panel fame-box" aria-labelledby="fame-box-title">
-      <header><h2 id="fame-box-title"><img class="fame-icon" src="/icons/fame.png" width="24" height="24" alt="">Most fame earned</h2><span>Last 24 hours</span></header>
+      <header><h2 id="fame-box-title"><img class="fame-icon" src="/icons/fame.png" width="24" height="24" alt="">Most fame earned today</h2><span>Last 24 hours</span></header>
       ${s.fameToday.length ? h`<ol class="fame-top">${s.fameToday.map((f, i) => h`<li>
         <span class="place">${i + 1}</span>
         ${playerLink(f.name, f.stars)}
@@ -339,13 +339,13 @@ async function home() {
       ${online}
       <div class="stat"><strong>${st?.ok ? fmt(st.players) : '–'}</strong><span>${st?.ok ? 'playing now' : st ? 'server unreachable' : 'checking server'}</span></div>
       <div class="stat"><strong>${s.status.peak24h ?? '–'}</strong><span>24h peak</span></div>
-      <div class="stat"><strong>${fmt(s.counts.players)}</strong><span>ranked players</span></div>
+      <div class="stat"><strong>${fmt(s.counts.players)}</strong><span>registered players</span></div>
       <div class="stat"><strong>${fmt(s.counts.distinctItems)}<span class="muted"> / ${fmt(s.counts.collectible)}</span></strong><span>items discovered</span></div>
       ${sparkline(dayPoints)}
     </section>
     <div class="grid-2">
       <section class="panel">
-        <header><h2>Recent deaths</h2><a href="/graveyard" data-link>Graveyard</a></header>
+        <header><h2>Recent leaderboard deaths</h2><a href="/graveyard" data-link>Graveyard</a></header>
         ${deathRows(s.recentDeaths)}
       </section>
       <section class="panel">
