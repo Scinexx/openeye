@@ -523,6 +523,11 @@ const STAT_KEYS = [['hp', 'HP'], ['mp', 'MP'], ['att', 'ATT'], ['def', 'DEF'], [
 // Mana +5, the rest +1). The server stops a potion at the class cap, so the potions still
 // needed are ceil((class max - base) / amount).
 const STAT_POTIONS = [[2793, 5], [2794, 5], [2591, 1], [2592, 1], [2593, 1], [2636, 1], [2612, 1], [2613, 1]];
+// Equipment stat bonuses (ActivateOnEquip IncrementStat). Stat ids as in the game: MaxHP 0,
+// MaxMP 3, Attack 20, Defense 21, Speed 22, Dexterity 28, Vitality 26, Wisdom 27.
+const STAT_IDS = [0, 3, 20, 21, 22, 28, 26, 27];
+const gearBoosts = equipment => STAT_IDS.map(id => (equipment ?? []).reduce((sum, item) =>
+  sum + (ITEMS.get(item)?.bonuses ?? []).filter(b => b.stat === id).reduce((n, b) => n + b.amount, 0), 0));
 const potionsLeft = (c, max) => STAT_KEYS.map(([k], i) => Math.max(0, Math.ceil((max[k] - c.stats[i]) / STAT_POTIONS[i][1])));
 let showPotions = false;
 try { showPotions = localStorage.getItem('potionsToMax') === '1'; } catch { /* storage unavailable */ }
@@ -535,6 +540,7 @@ function characterPanel(chars, p) {
       <tbody>${chars.map(c => {
         const max = CLASSES.get(c.class)?.max;
         const left = max ? potionsLeft(c, max) : null;
+        const boost = gearBoosts(c.equipment);
         const maxed = left ? left.filter(n => n === 0).length : null;
         return h`<tr>
           <td class="c-who"><span class="who">${classSprite(c.class, 40)} <span>${className(c.class)}${c.created_at ? h`<span class="sub">Created ${day(c.created_at)}</span>` : ''}</span></span></td>
@@ -543,11 +549,16 @@ function characterPanel(chars, p) {
           <td class="c-gear">${gear(c.equipment, 2)}</td>
           <td class="n c-maxed${maxed === 8 ? ' hl' : ''}" data-label="Maxed">${maxed === null ? '–' : `${maxed}/8`}</td>
           <td class="c-stats"><span class="char-stats">${STAT_KEYS.map(([k, label], i) => {
-            if (!max) return h`<span><b>${label}</b>${c.stats[i]}</span>`;
+            // As in the client's StatView: total with the gear bonus in brackets, gold when the
+            // base stat is maxed, else green for a bonus and red for a penalty.
+            const total = c.stats[i] + boost[i];
+            const shown = boost[i] ? `${total} (${boost[i] > 0 ? '+' : ''}${boost[i]})` : String(total);
+            const tone = boost[i] > 0 ? 'boosted' : boost[i] < 0 ? 'lowered' : '';
+            if (!max) return h`<span class="${tone}"><b>${label}</b>${shown}</span>`;
             const done = left[i] === 0;
             const pot = ITEMS.get(STAT_POTIONS[i][0]);
-            return h`<span class="${done ? 'maxed' : ''}">
-              <span class="stat-val" title="${label} ${c.stats[i]} of ${max[k]}"><b>${label}</b>${c.stats[i]}</span>
+            return h`<span class="${done ? 'maxed' : tone}">
+              <span class="stat-val" title="${label} ${c.stats[i]} of ${max[k]}${boost[i] ? `, ${boost[i] > 0 ? '+' : ''}${boost[i]} from equipment` : ''}"><b>${label}</b>${shown}</span>
               <span class="pot-val" title="${done ? `${label} is maxed` : `${left[i]} ${pot?.name ?? 'potion'}${left[i] === 1 ? '' : 's'} to max ${label} (${max[k] - c.stats[i]} more)`}"><b>${label}</b>${left[i]}</span>
             </span>`;
           })}</span></td>

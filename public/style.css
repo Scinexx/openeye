@@ -316,10 +316,12 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 .char-stats > span { color: var(--bone-dim); font-variant-numeric: tabular-nums; }
 .char-stats b { display: inline-block; min-width: 2.6em; color: var(--muted); font-weight: 700; font-size: 0.75rem; }
 .char-stats .maxed { color: var(--gold); }
+.char-stats .boosted { color: #5eb531; }
+.char-stats .lowered { color: #ff3838; }
 .char-stats .maxed b { color: var(--gold); }
 /* "Toggle potions to max" swaps each stat for the potions it still needs. */
 .chars:not(.potions) .pot-val, .chars.potions .stat-val { display: none; }
-.chars.potions .char-stats .maxed { color: var(--bone-dim); }
+.chars.potions .char-stats .maxed, .chars.potions .char-stats .boosted, .chars.potions .char-stats .lowered { color: var(--bone-dim); }
 .chars.potions .char-stats .maxed b { color: var(--muted); }
 .chars header h2 .count { font: 400 0.95rem var(--body); margin-left: 8px; }
 .chars .pot-toggle { cursor: pointer; white-space: nowrap; }
