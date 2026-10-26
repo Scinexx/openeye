@@ -413,3 +413,4 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--fame); }
 .enemy-frame { display: inline-flex; padding: 12px; background: var(--stone-deep); border: 2px solid var(--bevel-dark); }
 .enemy-flags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
 .enemy-cards a { min-height: 56px; }
+.controls .push-right { margin-left: auto; }

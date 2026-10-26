@@ -867,24 +867,26 @@ async function enemies() {
       <label for="enemy-sort">Sort</label>
       <select id="enemy-sort"><option value="name">Name</option><option value="hp">Most HP</option><option value="drops">Most drops</option></select>
       <span class="muted" id="enemy-count"></span>
+      <label class="push-right"><input type="checkbox" id="enemy-iconless"> Show icon-less enemies</label>
     </div>
     <div id="enemy-list"></div>`);
   const draw = () => {
     const q = document.getElementById('enemy-q').value.trim().toLowerCase();
     const show = document.getElementById('enemy-show').value, sort = document.getElementById('enemy-sort').value;
-    let rows = E.list.filter(e => (show !== 'drops' || e.drops.length) && (show !== 'bosses' || isBoss(e)));
+    const iconless = document.getElementById('enemy-iconless').checked;
+    let rows = E.list.filter(e => (iconless || e.sprite) && (show !== 'drops' || e.drops.length) && (show !== 'bosses' || isBoss(e)));
     if (q) rows = rows.filter(e => e.name.toLowerCase().includes(q) || e.internal?.toLowerCase().includes(q)
       || e.drops.some(id => ITEMS.get(id)?.name.toLowerCase().includes(q)));
     if (sort === 'hp') rows = [...rows].sort((a, b) => (b.hp ?? 0) - (a.hp ?? 0));
     if (sort === 'drops') rows = [...rows].sort((a, b) => b.drops.length - a.drops.length);
-    document.getElementById('enemy-count').textContent = `${fmt(rows.length)} of ${fmt(E.list.length)}`;
+    document.getElementById('enemy-count').textContent = `${fmt(rows.length)} shown`;
     document.getElementById('enemy-list').innerHTML = String(rows.length ? h`<div class="catalog enemy-cards">${rows.map(e => h`<a href="/enemy/${e.id}" data-link>
       ${enemySprite(e, 40)}
       <span class="grow"><span class="title">${e.name}</span>
       <span class="sub">${e.internal ? `${e.internal}: ` : ''}${e.hp !== null ? `${fmt(e.hp)} HP` : 'No HP'}${e.def ? `, ${fmt(e.def)} DEF` : ''}${e.drops.length ? `, ${e.drops.length} drop${e.drops.length === 1 ? '' : 's'}` : ''}</span></span>
     </a>`)}</div>` : h`<p class="empty">No enemies match.</p>`);
   };
-  for (const id of ['enemy-q', 'enemy-show', 'enemy-sort']) document.getElementById(id).addEventListener(id === 'enemy-q' ? 'input' : 'change', draw);
+  for (const id of ['enemy-q', 'enemy-show', 'enemy-sort', 'enemy-iconless']) document.getElementById(id).addEventListener(id === 'enemy-q' ? 'input' : 'change', draw);
   draw();
 }
 
