@@ -699,18 +699,21 @@ async function legends(span) {
   if (!SPANS[span]) return notFound();
   const l = await get(`/api/legends/${span}`);
   view(h`
-    <div class="page-head"><div><h1>Legends</h1><p>The 20 highest-fame deaths from the game’s own Legends board, bots included. Updated ${l.updated ? ago(l.updated) : 'soon'}.</p></div></div>
+    <div class="page-head"><div><h1>Legends</h1><p>${l.source === 'graveyard'
+      ? `The ${l.size} highest-fame player deaths, ranked from every death on the server. Bots are never included.`
+      : 'The highest-fame player deaths on the game’s Legends board, with bots left out.'} Updated ${l.updated ? ago(l.updated) : 'soon'}.</p></div></div>
     <nav class="tabs" aria-label="Period">${Object.entries(SPANS).map(([k, t]) => h`<a href="/legends/${k}" data-link ${k === span ? raw('aria-current="page"') : ''}>${t}</a>`)}</nav>
     <section class="panel"><div class="table-wrap"><table>
-      <thead><tr><th>Rank</th><th>Character</th><th>Player</th><th class="n">Fame</th><th>Equipment</th><th>Killed by</th></tr></thead>
+      <thead><tr><th>Rank</th><th>Character</th><th>Player</th><th class="n">Fame</th><th>Equipment</th><th>Killed by</th><th>Died</th></tr></thead>
       <tbody>${l.rows.length ? l.rows.map(d => h`<tr class="${d.rank === 1 ? 'top1' : ''}">
         <td class="rank">${d.rank}</td>
-        <td><a class="who" href="/death/${d.account}/${d.char_id}" data-link>${classSprite(d.class, 32)} ${className(d.class)}</a></td>
+        <td><a class="who" href="/death/${d.account}/${d.char_id}" data-link>${classSprite(d.class, 32)} ${d.level ? `Level ${d.level} ` : ''}${className(d.class)}</a></td>
         <td>${ownerLink(d)}</td>
         <td class="n main-metric fame">${fmt(d.total_fame)}</td>
         <td>${gear(d.equipment, 2)}</td>
         <td class="killed">${d.killed_by ?? ''}</td>
-      </tr>`) : h`<tr><td colspan="6" class="empty">No deaths on this board yet.</td></tr>`}</tbody>
+        <td>${d.died_at ? when(d.died_at) : ''}</td>
+      </tr>`) : h`<tr><td colspan="7" class="empty">No player deaths on this board yet.</td></tr>`}</tbody>
     </table></div></section>`);
 }
 

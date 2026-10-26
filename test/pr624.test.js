@@ -101,3 +101,30 @@ test('with the PR and switched on: every player death is backfilled once, bots n
     assert.equal(g.totals.players, storedPlayers.length + 1);
   } finally { t.close(); }
 });
+
+test('with the full graveyard, Legends are ranked from every player death, never bots', async () => {
+  const t = await setup({ticking: false, pr624: true, leakBots: true});
+  try {
+    await t.collector().syncHiscores();
+    await t.collector().syncLegends();
+    await t.db.prepare("INSERT INTO meta(key, value) VALUES('graveyard_enabled', '1')").run();
+    await t.collector().syncGraveyard();
+    const botAccounts = new Set(t.mock.bots.map(b => b.account));
+    const at = Math.floor(Date.now() / 1000);
+    for (const [span, window] of [['week', 7 * 86400], ['month', 30 * 86400], ['all', Infinity]]) {
+      const l = await t.api.legends(span);
+      assert.equal(l.source, 'graveyard');
+      const expected = t.mock.deaths.filter(d => !botAccounts.has(d.account) && d.diedAt > at - window - 5)
+        .sort((a, b) => b.total - a.total || a.diedAt - b.diedAt || a.charId - b.charId).slice(0, 20);
+      assert.deepEqual(l.rows.map(d => d.char_id), expected.map(d => d.charId), span);
+      assert.ok(l.rows.every((d, i) => d.rank === i + 1 && !d.is_bot));
+    }
+    // Profiles, death pages and graveyard tags follow the same players-only boards.
+    const top = (await t.api.legends('all')).rows[0];
+    const prof = await t.api.player(top.player);
+    assert.ok(prof.legends.some(x => x.timespan === 'all' && x.rank === 1 && x.char_id === top.char_id));
+    assert.ok((await t.api.death(top.account, top.char_id)).legends.some(x => x.timespan === 'all' && x.rank === 1));
+    const g = await t.api.graveyard({sort: 'fame', per: 1000});
+    assert.ok(g.rows.find(d => d.char_id === top.char_id).in_legends);
+  } finally { t.close(); }
+});

@@ -22,7 +22,7 @@ OpenEye is a RealmEye-style tracker for Open RotMG, the open-source recreation o
 - **Player profiles** with ranks, a progress graph for every stat, Legends placements, and a full item collection that can be filtered by tier
 - **Living characters** on each profile: class, level, fame, equipment and base stats against the class maximum
 - **Graveyard** of every player death, searchable by name, with complete death records: killer, equipment, fame bonuses, accuracy, kills and dungeons cleared
-- **Legends boards** for this week, this month and all time
+- **Legends boards** for this week, this month and all time, players only: ranked from every recorded player death once the full graveyard is collected (same rules as the game: last 7 or 30 days or ever, most total fame, top 20), and until then the game's own lists with bot deaths removed
 - **Latest loot** showing rare untiered drops and top-tier items as players find them
 - **Loot history** of every item players have looted, filterable by tier, item type, time range and player
 - **Item browser** with who found each item first and who died wearing it
