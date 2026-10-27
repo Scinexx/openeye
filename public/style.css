@@ -782,3 +782,20 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 .aura-big { zoom: 2; display: inline-flex; flex: none; margin: 4px; }
 
 .estimate-note { margin: 2px 0 0; color: var(--muted); font-size: 0.85rem; font-style: italic; }
+
+/* ---------- Drinking potions and the Nexus loading screen ---------- */
+/* Drinking cross-fades the whole page into the new theme. */
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .7s; animation-timing-function: ease-in-out; }
+/* A drunk potion leaves an empty slot (and no selection ring) until the next Nexus. */
+.inv-slot.drunk { cursor: default; }
+.inv-slot.drunk[aria-checked="true"]::before { background: #545454; }
+.inv-slot.drunk[aria-checked="true"]::after { display: none; }
+/* The client's map loading screen, laid out on its 800x600 stage around the window centre:
+   character centred at y 246, the map name's top at y 290.5. */
+.map-loading { position: fixed; inset: 0; z-index: 1000; background: #000; transition: opacity .4s linear; }
+.map-loading.out { opacity: 0; }
+.map-loading .ml-char { position: absolute; left: 50%; top: calc(50% - 54px); transform: translate(-50%, -50%); line-height: 0; }
+.map-loading .ml-char .cls { width: 40px; height: 40px; image-rendering: pixelated; }
+.map-loading .ml-name { position: absolute; left: 50%; top: calc(50% - 9.5px); transform: translateX(-50%);
+  font: 700 30px "Tooltip Sans", sans-serif; color: #fff; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { ::view-transition-old(root), ::view-transition-new(root) { animation: none; } .map-loading { transition: none; } }

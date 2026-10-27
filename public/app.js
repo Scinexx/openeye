@@ -1440,6 +1440,48 @@ const themeMenu = document.getElementById('theme-menu');
 // corner cuts on the grid's outside corners, hotkey numbers 1-8 behind the items) holding the
 // eight stat potions, on the HUD's #363636, with the HUD's Nexus button to go back to the default.
 const SLOT_CUTS = {0: 'tl', 3: 'tr', 4: 'bl', 7: 'br'};
+// Drinking: double-click a potion to drink it, as in the game. It plays the game's own
+// use_potion sound, fades the site into that theme and leaves the slot empty until the
+// next Nexus, which refills every potion and resets the theme.
+let drunk = new Set();
+try { drunk = new Set(JSON.parse(localStorage.getItem('drunkPotions') ?? '[]')); } catch { /* storage unavailable */ }
+const saveDrunk = () => { try { localStorage.setItem('drunkPotions', JSON.stringify([...drunk])); } catch { /* storage unavailable */ } };
+const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+function playSound(src, volume = 0.5) {
+  try { const a = new Audio(src); a.volume = volume; a.play().catch(() => {}); } catch { /* no audio */ }
+}
+function drink(key) {
+  if (!key || drunk.has(key)) return;
+  hideTip();
+  drunk.add(key);
+  saveDrunk();
+  playSound('/sfx/use_potion.mp3');
+  const apply = () => setTheme(key);
+  if (document.startViewTransition && !reducedMotion()) document.startViewTransition(apply); else apply();
+}
+// Nexus: the client's map loading screen (MapLoadingView in client.swf: black, the character
+// centred at (399.5, 246) and the map name in bold white 30px below it at y 290.5, shown for
+// at least 1 second, then a 0.4 second fade). The character is a random class each time.
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function nexus() {
+  closeThemes();
+  const classes = [...CLASSES.values()];
+  const c = classes[Math.floor(Math.random() * classes.length)];
+  const screen = document.createElement('div');
+  screen.className = 'map-loading';
+  screen.setAttribute('role', 'status');
+  screen.innerHTML = String(h`<span class="ml-char">${c ? classSprite(c.id, 40) : ''}</span><span class="ml-name">Nexus</span>`);
+  document.body.append(screen);
+  drunk.clear();
+  saveDrunk();
+  setTheme('');
+  if (location.pathname !== '/') navigate('/');
+  await sleep(1000);
+  screen.classList.add('out');
+  await sleep(reducedMotion() ? 0 : 400);
+  screen.remove();
+}
+
 function drawThemeMenu() {
   const current = document.documentElement.dataset.theme ?? '';
   const byName = new Map([...ITEMS.values()].map(i => [i.name, i]));
@@ -1449,7 +1491,8 @@ function drawThemeMenu() {
     <button type="button" class="inv-nexus" role="menuitemradio" aria-checked="${current === ''}" aria-label="Nexus: default theme" data-theme-key="" data-tip-title="Nexus" data-tip-text="Default theme"><canvas width="40" height="40"></canvas></button>
     <div class="inv-grid">${potions.map(([key, label, potion], i) => {
       const it = byName.get(potion);
-      return h`<button type="button" class="inv-slot ${SLOT_CUTS[i] ?? ''}" role="menuitemradio" aria-checked="${key === current}" aria-label="${label} theme" data-theme-key="${key}"><span class="inv-num" aria-hidden="true">${i + 1}</span><canvas width="56" height="56" data-potion="${it?.id ?? ''}"></canvas></button>`;
+      const gone = drunk.has(key);
+      return h`<button type="button" class="inv-slot ${SLOT_CUTS[i] ?? ''}${gone ? ' drunk' : ''}" role="menuitemradio" aria-checked="${key === current}" aria-label="${gone ? `${label} potion, drunk` : `Drink the ${label} potion (double-click)`}" data-theme-key="${key}"${!gone && it ? raw(` data-tip="${it.id}"`) : ''}><span class="inv-num" aria-hidden="true">${i + 1}</span>${gone ? '' : h`<canvas width="56" height="56" data-potion="${it?.id ?? ''}"></canvas>`}</button>`;
     })}</div></div>`);
   themeMenu.querySelectorAll('canvas[data-potion]').forEach(async c => {
     const it = ITEMS.get(Number(c.dataset.potion));
@@ -1487,11 +1530,20 @@ themeButton.addEventListener('click', e => {
   themeMenu.hidden = false;
   themeButton.setAttribute('aria-expanded', 'true');
 });
-// The menu stays open after a pick, so themes can be compared one after another.
+// Potions are drunk with a double-click (or Enter), the Nexus is a single click. The menu stays
+// open, so potions can be drunk one after another.
 themeMenu.addEventListener('click', e => {
   e.stopPropagation();
-  const b = e.target.closest('[data-theme-key]');
-  if (b) setTheme(b.dataset.themeKey);
+  if (e.target.closest('.inv-nexus')) nexus();
+});
+themeMenu.addEventListener('dblclick', e => {
+  e.stopPropagation();
+  const b = e.target.closest('.inv-slot');
+  if (b) drink(b.dataset.themeKey);
+});
+themeMenu.addEventListener('keydown', e => {
+  const b = e.target.closest('.inv-slot');
+  if (b && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); drink(b.dataset.themeKey); }
 });
 document.addEventListener('click', e => { if (!themeMenu.hidden && !e.target.closest('.settings')) closeThemes(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !themeMenu.hidden) { closeThemes(); themeButton.focus(); } });
