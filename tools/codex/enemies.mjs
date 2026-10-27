@@ -6,7 +6,7 @@ import {encodePng} from './swf.mjs';
 // Sprite sheets as the client registers them (AssetLoader.as). Static sheets are cut into
 // tiles; animated sheets into blocks of frames, whose first frame is the standing pose.
 // Two sheets have obfuscated names in this client build, so they are listed by name.
-const STATIC = {
+export const STATIC = {
   lofiChar8x8: ['Embeds_lofiCharEmbed_', 8, 8], lofiChar16x8: ['Embeds_lofiCharEmbed_', 16, 8], lofiChar16x16: ['Embeds_lofiCharEmbed_', 16, 16],
   lofiChar28x8: ['Embeds_lofiChar2Embed_', 8, 8], lofiChar216x8: ['Embeds_lofiChar2Embed_', 16, 8], lofiChar216x16: ['Embeds_lofiChar2Embed_', 16, 16],
   lofiCharBig: ['_-hU', 16, 16], lofiObjBig: ['_-p1', 16, 16],

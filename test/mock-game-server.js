@@ -65,6 +65,8 @@ function addDeath(when) {
     dens: Math.floor(rand() * 5), sprites: Math.floor(rand() * 3), tombs: Math.floor(rand() * 2)
   };
   d.stats.hits = Math.floor(d.stats.shots * (0.4 + rand() * 0.4));
+  // Base stats at death, which /api/graveyard can include as "stats".
+  d.baseStats = ['hp', 'mp', 'att', 'def', 'spd', 'dex', 'vit', 'wis'].map(k => (rand() < 0.35 ? cls.max[k] : cls.base[k] + Math.floor(rand() * (cls.max[k] - cls.base[k]))));
   if (p.items) p.total_fame += d.total;
   deaths.push(d);
 }
@@ -109,7 +111,7 @@ const form = req => new Promise(res => { let b = ''; req.on('data', c => (b += c
  *   OpenRotMG PR #624 do. Without it both are missing, as on servers before that PR.
  *   leakBots also lists a bot's character and death, to check OpenEye drops them itself.
  */
-export function createMock({ticking = true, pr624 = false, leakBots = false} = {}) {
+export function createMock({ticking = true, pr624 = false, leakBots = false, deathStats = false} = {}) {
   const stats = {requests: {}};
   return createServer(async (req, res) => {
     const url = new URL(req.url, 'http://x');
@@ -136,7 +138,8 @@ export function createMock({ticking = true, pr624 = false, leakBots = false} = {
       const rows = deaths.filter(d => d.diedAt >= since && (leakBots || !botAccounts.has(d.account)))
         .sort((a, b) => a.diedAt - b.diedAt || a.charId - b.charId).slice(0, 500);
       return sendJson({deaths: rows.map(d => ({account: d.account, id: d.charId, name: d.name, class: d.class, level: d.level,
-        base_fame: d.base, total_fame: d.total, died_at: d.diedAt, killed_by: d.killedBy, equipment: d.equipment.slice(0, 4), tex1: 0, tex2: 0}))});
+        base_fame: d.base, total_fame: d.total, died_at: d.diedAt, killed_by: d.killedBy, equipment: d.equipment.slice(0, 4), tex1: 0, tex2: 0,
+        ...(deathStats && d.baseStats ? {stats: d.baseStats} : {})}))});
     }
     const col = url.pathname.match(/^\/api\/collection\/(\d+)$/);
     if (col) {
@@ -168,5 +171,5 @@ export function createMock({ticking = true, pr624 = false, leakBots = false} = {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const port = Number(process.argv[2] ?? 18900);
-  createMock({pr624: process.argv.includes('--pr624')}).listen(port, '127.0.0.1', () => console.log(`Mock OpenRotMG API on http://127.0.0.1:${port}`));
+  createMock({pr624: process.argv.includes('--pr624'), deathStats: process.argv.includes('--death-stats')}).listen(port, '127.0.0.1', () => console.log(`Mock OpenRotMG API on http://127.0.0.1:${port}`));
 }

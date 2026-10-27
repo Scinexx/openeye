@@ -13,8 +13,8 @@ export const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const catalogItems = JSON.parse(readFileSync(join(root, 'public/catalog/items.json'), 'utf8'));
 export const quiet = {info() {}, warn() {}, error() {}};
 
-export async function setup({ticking = true, pr624 = false, leakBots = false} = {}) {
-  const mock = createMock({ticking, pr624, leakBots});
+export async function setup({ticking = true, pr624 = false, leakBots = false, deathStats = false} = {}) {
+  const mock = createMock({ticking, pr624, leakBots, deathStats});
   await new Promise(r => mock.listen(0, '127.0.0.1', r));
   const settings = loadSettings({API_BASE: `http://127.0.0.1:${mock.address().port}`, REQUEST_GAP_MS: '0'});
   const db = new SqliteD1(':memory:');

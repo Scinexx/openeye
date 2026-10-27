@@ -139,3 +139,21 @@ test('Best characters lists every living character of ranked players, never bots
     assert.ok(!characters.some(c => t.mock.bots.some(b => b.account === c.account)));
   } finally { t.close(); }
 });
+
+test('stats at death: from the graveyard when sent, else the last seen living stats', async () => {
+  const t = await setup({ticking: false, pr624: true, deathStats: true});
+  try {
+    await t.collector().syncHiscores();
+    // A living character that later dies keeps its last seen stats.
+    const alive = t.mock.living[0];
+    await t.db.prepare("INSERT INTO meta(key, value) VALUES('graveyard_enabled', '1')").run();
+    await t.collector().syncGraveyard();
+    const withStats = t.mock.deaths.find(d => t.mock.players.some(p => p.account === d.account));
+    const got = await t.api.death(withStats.account, withStats.charId);
+    assert.deepEqual(got.death.base_stats, withStats.baseStats);
+    t.mock.deaths.push({account: alive.account, charId: alive.id, name: 'x', class: alive.class, level: alive.level, base: 1, total: 1,
+      diedAt: Math.floor(Date.now() / 1000), killedBy: 'Pirate', equipment: [-1, -1, -1, -1], stats: {}, bonuses: []});
+    await t.collector().syncGraveyard();
+    assert.deepEqual((await t.api.death(alive.account, alive.id)).death.base_stats, alive.stats);
+  } finally { t.close(); }
+});

@@ -317,6 +317,37 @@ const main = document.getElementById('main');
 const view = (html) => { main.innerHTML = String(html); };
 const loading = () => view(h`<p class="loading">Loading…</p>`);
 
+// ---- Graves ----
+// The gravestone a death leaves, by the server's rule (src/world.rs finish_death): with no
+// base stat maxed, Gravestone 1/2/3 by level (1, under 20, 20); with n maxed, Gravestone
+// 3 + n (1 to 6), 10 (7) or 11 (8). Stats come from the death record when the server sends
+// them, otherwise from the character's last seen stats; unknown stats show a plain grave.
+let GRAVES = null;
+async function loadGraves() {
+  if (!GRAVES) GRAVES = await staticJson('/catalog/graves.json').catch(() => ({sheet: {width: 0}, graves: {}}));
+  return GRAVES;
+}
+function deathMaxed(d) {
+  const max = CLASSES.get(d.class)?.max;
+  if (!max || !Array.isArray(d.base_stats) || d.base_stats.length !== 8) return null;
+  return [['hp'], ['mp'], ['att'], ['def'], ['spd'], ['dex'], ['vit'], ['wis']].filter(([k], i) => d.base_stats[i] >= max[k]).length;
+}
+function graveType(d) {
+  const n = deathMaxed(d);
+  if (n === null) return 0x725;
+  if (n === 0) return d.level === 1 ? 0x723 : (d.level ?? 1) < 20 ? 0x724 : 0x725;
+  return n === 7 ? 0x734 : n === 8 ? 0x735 : 0x725 + n;
+}
+function graveSprite(d, scale = 2) {
+  const g = GRAVES?.graves?.[graveType(d)];
+  if (!g) return '';
+  return h`<span class="grave-sprite" role="img" aria-label="${g.name}" style="width:${g.w * scale}px;height:${g.h * scale}px;background-size:${GRAVES.sheet.width * scale}px auto;background-position:-${g.x * scale}px -${g.y * scale}px"></span>`;
+}
+const graveBadge = (d, scale = 2) => {
+  const n = deathMaxed(d);
+  return h`<span class="grave${n === 8 ? ' hl' : ''}" title="${n === null ? 'Stats at death unknown' : `${n} of 8 stats maxed`}">${graveSprite(d, scale)}<span>${n === null ? '?' : n}/8</span></span>`;
+};
+
 function deathRows(rows, {showPlayer = true} = {}) {
   if (!rows.length) return h`<p class="empty">No deaths recorded yet.</p>`;
   return h`<ul class="rows">${rows.map(d => h`<li>
@@ -326,6 +357,7 @@ function deathRows(rows, {showPlayer = true} = {}) {
       <span class="sub">${showPlayer ? `${className(d.class)}${d.level ? `, level ${d.level}` : ''}` : ''}${d.killed_by ? raw(`${showPlayer ? ', ' : ''}killed by <span class="killed">${esc(d.killed_by)}</span>`) : ''}${d.died_at ? raw(` ${when(d.died_at)}`) : ''}</span>
     </span>
     ${gear(d.equipment, 1)}
+    ${graveBadge(d, 1)}
     <span class="num fame">${fmt(d.total_fame)}</span>
   </li>`)}</ul>`;
 }
@@ -664,17 +696,18 @@ async function graveyard() {
       <td><a class="who" href="/death/${d.account}/${d.char_id}" data-link>${classSprite(d.class, 32)} <span>${d.level ? `Level ${d.level} ` : ''}${className(d.class)}</span>${d.in_legends ? h`<span class="badge gold legend-tag" data-tip-title="Legend" data-tip-text="On a Legends board right now">Legend</span>` : ''}</a></td>
       <td>${ownerLink(d)}</td>
       <td class="n main-metric fame">${fmt(d.total_fame)}</td>
+      <td>${graveBadge(d, 2)}</td>
       <td>${gear(d.equipment, 1)}</td>
       <td class="killed">${d.killed_by ?? ''}</td>
       <td>${d.died_at ? when(d.died_at) : h`<span class="muted">Loading</span>`}</td>
-    </tr>`)}` : h`<tr><td colspan="6" class="empty">${st.q ? `No deaths match “${st.q}”${st.cls ? ` for ${className(st.cls)}` : ''}.` : `No deaths recorded${st.cls ? ` for ${className(st.cls)}` : ''} yet.`}</td></tr>`);
+    </tr>`)}` : h`<tr><td colspan="7" class="empty">${st.q ? `No deaths match “${st.q}”${st.cls ? ` for ${className(st.cls)}` : ''}.` : `No deaths recorded${st.cls ? ` for ${className(st.cls)}` : ''} yet.`}</td></tr>`);
     document.getElementById('gy-pager').innerHTML = String(h`
       <span class="muted">${fmt(g.total)} death${g.total === 1 ? '' : 's'}, page ${Math.min(st.page, pages)} of ${pages}</span>
       ${st.page > 1 ? h`<a class="btn" href="${link({page: st.page - 1})}" data-link>Previous</a>` : ''}
       ${st.page < pages ? h`<a class="btn" href="${link({page: st.page + 1})}" data-link>Next</a>` : ''}`);
   };
 
-  const first = await load();
+  const [first] = await Promise.all([load(), loadGraves()]);
   view(h`
     <div class="page-head"><div><h1>Graveyard</h1><p>Every player death on the server, newest first</p></div></div>
     <div class="controls">
@@ -684,7 +717,7 @@ async function graveyard() {
     <div class="controls" id="gy-filters"></div>
     <section class="panel">
       <div class="table-wrap"><table>
-        <thead><tr><th>Character</th><th>Player</th><th class="n">Fame</th><th>Equipment</th><th>Killed by</th><th>Died</th></tr></thead>
+        <thead><tr><th>Character</th><th>Player</th><th class="n">Fame</th><th>Grave</th><th>Equipment</th><th>Killed by</th><th>Died</th></tr></thead>
         <tbody id="gy-body"></tbody>
       </table></div>
       <div class="pager" id="gy-pager"></div>
@@ -707,7 +740,7 @@ async function graveyard() {
 
 async function death(account, charId) {
   let data;
-  try { data = await get(`/api/death/${account}/${charId}`); }
+  try { [data] = await Promise.all([get(`/api/death/${account}/${charId}`), loadGraves()]); }
   catch (e) { if (e.status === 404) return notFound(e.message); throw e; }
   const d = data.death, s = d.stats;
   const cls = CLASSES.get(d.class);
@@ -722,7 +755,7 @@ async function death(account, charId) {
     <section class="panel"><div class="panel-body tombstone">
       <div>${classSprite(d.class, 96)}</div>
       <div class="stack" style="gap:16px">
-        <div><span class="fame-total">${fmt(d.total_fame)}</span> <span class="muted">total fame</span></div>
+        <div class="death-head-line"><span><span class="fame-total">${fmt(d.total_fame)}</span> <span class="muted">total fame</span></span>${graveBadge(d, 3)}</div>
         <div>${gear(d.equipment, 3, 4)}</div>
         ${d.equipment.slice(4).some(i => i !== -1) ? h`<div><span class="muted">Inventory</span><div style="margin-top:6px">${gear(d.equipment.slice(4), 2, 8)}</div></div>` : ''}
         <p class="muted">${d.is_bot ? 'Bot' : 'Player'}: ${ownerLink(d)}${data.legends.length ? h`. On the Legends board: ${data.legends.map(l => `${SPANS[l.timespan]} rank ${l.rank}`).join(', ')}` : ''}.</p>
@@ -1365,7 +1398,7 @@ async function footer() {
   } catch { /* server stopped */ }
 }
 
-await Promise.all([loadCatalog(), loadCrown()]);
+await Promise.all([loadCatalog(), loadCrown(), loadGraves()]);
 drawBrand();
 route();
 footer();

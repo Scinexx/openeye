@@ -26,6 +26,7 @@ const BOT_CONFIRMED = 'EXISTS (SELECT 1 FROM bots b WHERE b.name = d.name)';
 
 const DEATH_COLS = `d.account, d.char_id, d.name, d.class, d.tex1, d.tex2, d.equipment, d.total_fame, d.base_fame,
   d.level, d.died_at, d.killed_by, d.discovered_at, d.detail_status,
+  COALESCE(d.base_stats, (SELECT cs.stats FROM char_stats cs WHERE cs.char_id = d.char_id)) AS base_stats,
   ${IS_BOT} AS is_bot, ${BOT_CONFIRMED} AS bot_confirmed,
   (SELECT sp.stars FROM players sp WHERE sp.account = d.account) AS player_stars`;
 
@@ -34,6 +35,7 @@ const parseDeath = d => d && ({
   is_bot: !!d.is_bot,
   bot_confirmed: !!d.bot_confirmed,
   equipment: JSON.parse(d.equipment),
+  base_stats: d.base_stats ? JSON.parse(d.base_stats) : null,
   stats: d.stats ? JSON.parse(d.stats) : null,
   bonuses: d.bonuses ? JSON.parse(d.bonuses) : null
 });

@@ -539,3 +539,13 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 .legends-table .c-died { width: 130px; }
 .legends-table td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 720px) { .legends-head p { min-height: 7.5em; } }
+
+/* ---------- Graves: the gravestone a death leaves, with stats maxed ---------- */
+.grave { display: inline-flex; align-items: flex-end; gap: 6px; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--bone-dim); }
+.grave.hl { color: var(--accent); }
+.grave > span:last-child { line-height: 1; }
+.grave-sprite { display: block; flex: none; background: url(/catalog/graves.png) no-repeat; image-rendering: pixelated; image-rendering: crisp-edges;
+  filter: drop-shadow(1px 0 0 #000) drop-shadow(-1px 0 0 #000) drop-shadow(0 1px 0 #000) drop-shadow(0 -1px 0 #000) drop-shadow(0 0 3px rgba(0, 0, 0, .45)); }
+.rows .grave { font-size: 0.9rem; min-width: 3.4em; }
+.death-head-line { display: flex; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
+.death-head-line .grave { font: 700 1.3rem var(--display); }

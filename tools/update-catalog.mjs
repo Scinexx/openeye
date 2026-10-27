@@ -11,6 +11,7 @@ import {join, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {parseElement, equipmentTooltip} from './tooltip.mjs';
 import {swfBitmaps} from './codex/swf.mjs';
+import {buildGraves} from './codex/graves.mjs';
 import {buildEnemies, literalDrops} from './codex/enemies.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -181,6 +182,12 @@ if (lootFile) {
   console.log(`Enemies: ${enemies.length} (${enemies.filter(e => e.drops.length).length} with drops, ${enemies.filter(e => e.sprite).length} with sprites).`);
 } else {
   console.log('Enemies not rebuilt: pass --loot <file> from tools/codex/loot_export.rs.');
+}
+// ---- gravestones ----
+{
+  const {graves, sheet} = buildGraves({objects, sheets: swfBitmaps(await get(SOURCES.client, true))});
+  await writeFile(join(out, 'graves.json'), JSON.stringify({sheet: {width: sheet.width, height: sheet.height}, graves}));
+  await writeFile(join(out, 'graves.png'), sheet.png);
 }
 await writeFile(join(out, 'items.png'), await get(SOURCES.sheet, true));
 await writeFile(join(out, 'items.json'), JSON.stringify(items));

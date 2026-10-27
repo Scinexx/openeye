@@ -117,6 +117,10 @@ export class Collector {
           SELECT json_extract(value, '$.id'), json_extract(value, '$.account'), json_extract(value, '$.class'), json_extract(value, '$.level'),
             json_extract(value, '$.exp'), json_extract(value, '$.fame'), json_extract(value, '$.stats'), json_extract(value, '$.equipment'),
             json_extract(value, '$.tex1'), json_extract(value, '$.tex2'), json_extract(value, '$.created_at'), ? FROM json_each(?)`).bind(at, chars),
+        db.prepare(`INSERT INTO char_stats(char_id, account, class, level, stats, seen_at)
+          SELECT json_extract(value, '$.id'), json_extract(value, '$.account'), json_extract(value, '$.class'),
+            json_extract(value, '$.level'), json_extract(value, '$.stats'), ? FROM json_each(?) WHERE true
+          ON CONFLICT(char_id) DO UPDATE SET level = excluded.level, stats = excluded.stats, seen_at = excluded.seen_at`).bind(at, chars),
         setMetaStmt(db, 'characters_at', at)
       );
     }
@@ -246,19 +250,21 @@ export class Collector {
         account: d.account, id: d.id, name: d.name, class: d.class, level: Number.isSafeInteger(d.level) ? d.level : null,
         base_fame: Number.isSafeInteger(d.base_fame) ? d.base_fame : null, total_fame: d.total_fame, died_at: d.died_at,
         killed_by: typeof d.killed_by === 'string' ? d.killed_by : null, equipment: JSON.stringify(d.equipment.slice(0, 4)),
-        tex1: Number.isSafeInteger(d.tex1) ? d.tex1 : 0, tex2: Number.isSafeInteger(d.tex2) ? d.tex2 : 0
+        tex1: Number.isSafeInteger(d.tex1) ? d.tex1 : 0, tex2: Number.isSafeInteger(d.tex2) ? d.tex2 : 0,
+        base_stats: Array.isArray(d.stats) && d.stats.length === 8 && d.stats.every(Number.isSafeInteger) ? JSON.stringify(d.stats) : null
       }));
       const last = deaths[deaths.length - 1].died_at;
       const next = waiting.length ? Math.min(last, ...waiting.map(d => d.died_at)) : last;
       const [res] = await db.batch([
-        db.prepare(`INSERT INTO deaths(account, char_id, name, class, tex1, tex2, equipment, total_fame, base_fame, level, died_at, killed_by, discovered_at)
+        db.prepare(`INSERT INTO deaths(account, char_id, name, class, tex1, tex2, equipment, total_fame, base_fame, level, died_at, killed_by, base_stats, discovered_at)
           SELECT json_extract(value, '$.account'), json_extract(value, '$.id'), json_extract(value, '$.name'), json_extract(value, '$.class'),
             json_extract(value, '$.tex1'), json_extract(value, '$.tex2'), json_extract(value, '$.equipment'), json_extract(value, '$.total_fame'),
-            json_extract(value, '$.base_fame'), json_extract(value, '$.level'), json_extract(value, '$.died_at'), json_extract(value, '$.killed_by'), ?
+            json_extract(value, '$.base_fame'), json_extract(value, '$.level'), json_extract(value, '$.died_at'), json_extract(value, '$.killed_by'),
+            json_extract(value, '$.base_stats'), ?
           FROM json_each(?) WHERE true
           ON CONFLICT(account, char_id) DO UPDATE SET level = COALESCE(deaths.level, excluded.level),
             died_at = COALESCE(deaths.died_at, excluded.died_at), killed_by = COALESCE(deaths.killed_by, excluded.killed_by),
-            base_fame = COALESCE(deaths.base_fame, excluded.base_fame)`).bind(at, JSON.stringify(keep)),
+            base_fame = COALESCE(deaths.base_fame, excluded.base_fame), base_stats = COALESCE(excluded.base_stats, deaths.base_stats)`).bind(at, JSON.stringify(keep)),
         setMetaStmt(db, 'graveyard_since', next),
         setMetaStmt(db, 'graveyard_ok', at)
       ]);

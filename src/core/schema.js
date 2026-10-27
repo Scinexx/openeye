@@ -50,12 +50,19 @@ export const SCHEMA = [
     char_id INTEGER PRIMARY KEY, account INTEGER NOT NULL, class INTEGER NOT NULL, level INTEGER NOT NULL,
     exp INTEGER NOT NULL DEFAULT 0, fame INTEGER NOT NULL DEFAULT 0, stats TEXT NOT NULL, equipment TEXT NOT NULL,
     tex1 INTEGER NOT NULL DEFAULT 0, tex2 INTEGER NOT NULL DEFAULT 0, created_at INTEGER, seen_at INTEGER NOT NULL)`,
-  `CREATE INDEX IF NOT EXISTS characters_by_account ON characters(account)`
+  `CREATE INDEX IF NOT EXISTS characters_by_account ON characters(account)`,
+  // Last seen base stats of every character, kept after it dies so its grave (x/8 maxed)
+  // is known even though the death records do not include stats.
+  `CREATE TABLE IF NOT EXISTS char_stats (
+    char_id INTEGER PRIMARY KEY, account INTEGER NOT NULL, class INTEGER NOT NULL, level INTEGER NOT NULL,
+    stats TEXT NOT NULL, seen_at INTEGER NOT NULL)`
 ];
 // Columns added after the first release. SQLite has no ADD COLUMN IF NOT EXISTS, so
 // "duplicate column" errors are expected and ignored.
 const COLUMNS = [
-  'ALTER TABLE players ADD COLUMN fame_earned INTEGER NOT NULL DEFAULT 0'
+  'ALTER TABLE players ADD COLUMN fame_earned INTEGER NOT NULL DEFAULT 0',
+  // Base stats at death [hp, mp, att, def, spd, dex, vit, wis], when the graveyard sends them.
+  'ALTER TABLE deaths ADD COLUMN base_stats TEXT'
 ];
 
 /** Create every table and index if missing. `db` is a D1 database or the local adapter. */
