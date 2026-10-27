@@ -185,7 +185,7 @@ export function makeApi(db, catalog, settings) {
    *  recorded player death instead (bots never), with its fame, gear and stats at death. */
   async function characters({dead = false} = {}) {
     if (dead) {
-      const rows = await q(`SELECT d.char_id, d.account, p.name, p.stars, d.class, d.level, COALESCE(d.base_fame, d.total_fame) AS fame,
+      const rows = await q(`SELECT d.char_id, d.account, p.name, p.stars, d.class, d.tex1, d.tex2, d.level, COALESCE(d.base_fame, d.total_fame) AS fame,
           d.total_fame, d.equipment, d.died_at,
           COALESCE(d.base_stats, (SELECT cs.stats FROM char_stats cs WHERE cs.char_id = d.char_id)) AS stats
         FROM deaths d JOIN players p ON p.account = d.account AND ${rankedWhere(settings.minRankedStat, 'p.')}

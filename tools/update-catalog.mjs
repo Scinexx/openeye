@@ -17,6 +17,7 @@ import {buildAuras} from './codex/auras.mjs';
 import {decodePng} from './codex/png.mjs';
 import {buildEnemies, literalDrops} from './codex/enemies.mjs';
 import {buildCellar} from './codex/cellar.mjs';
+import {buildDyes} from './codex/dyes.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'public', 'catalog');
@@ -206,6 +207,11 @@ if (lootFile) {
   const {graves, sheet} = buildGraves({objects, sheets: clientSheets});
   await writeFile(join(out, 'graves.json'), JSON.stringify({sheet: {width: sheet.width, height: sheet.height}, graves}));
   await writeFile(join(out, 'graves.png'), sheet.png);
+  // Dyes and cloths, to draw characters in what they wore.
+  const dyes = buildDyes({classes, objects, sheets: clientSheets});
+  await writeFile(join(out, 'dyes.png'), dyes.dyes.png);
+  await writeFile(join(out, 'textiles.png'), dyes.textiles.png);
+  await writeFile(join(out, 'dyes.json'), JSON.stringify({rows: dyes.rows, textiles: dyes.textiles.sheets, items: dyes.items, icons: dyes.icons}));
   // A theme backdrop only: if the map ever changes shape, keep the last good one.
   try {
     const cellar = buildCellar({map: await get(SOURCES.cellar, true), grounds: await get(SOURCES.grounds), objects, sheets: clientSheets});

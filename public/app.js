@@ -75,6 +75,8 @@ function itemSprite(id, scale = 2, {missing = false} = {}) {
   const it = ITEMS.get(id);
   const size = 16 * scale;
   if (!it?.sprite) return h`<span class="sprite none" ${it ? raw(`data-tip="${Number(id)}"`) : ''} style="width:${size}px;height:${size}px"></span>`;
+  const dye = dyeIcon(id);
+  if (dye) return h`<span class="sprite${missing ? ' missing' : ''}" data-tip="${id}" style="width:${size}px;height:${size}px;background:url(${dye}) 0 0 / 100% 100%"></span>`;
   return h`<span class="sprite${missing ? ' missing' : ''}" data-tip="${id}" style="width:${size}px;height:${size}px;background-size:${320 * scale}px auto;background-position:-${it.sprite.x * scale}px -${it.sprite.y * scale}px"></span>`;
 }
 function itemSlot(id, scale = 2, opts = {}) {
@@ -85,10 +87,90 @@ function itemSlot(id, scale = 2, opts = {}) {
   const title = it ? `${it.name}${t.label ? ` (${t.label})` : ''}` : `Unknown item ${id}`;
   return h`<a class="slot ${bag(it)}" href="/item/${id}" data-link aria-label="${title}">${itemSprite(id, scale, opts)}</a>`;
 }
-function classSprite(classId, size = 32) {
+function classSprite(classId, size = 32, char = null) {
   const c = CLASSES.get(classId);
   if (!c) return h`<span class="sprite none" style="width:${size}px;height:${size}px"></span>`;
-  return h`<img class="cls" src="/catalog/classes/${c.slug}.png" width="${size}" height="${size}" alt="${c.name}" title="${c.name}">`;
+  const dyed = char && dyedSprite(classId, char.tex1, char.tex2);
+  return h`<img class="cls" src="${dyed ?? `/catalog/classes/${c.slug}.png`}" width="${size}" height="${size}" alt="${c.name}" title="${c.name}">`;
+}
+
+// ---- Dyes and cloths ----
+// Characters are drawn in the dyes and cloths they wore, the way the 2012 client does it
+// (TextureRedrawer and its texture shader, read from client.swf): the sprite is scaled 5x;
+// where its mask (dyes.png, cut from the client) is red, the first dye/cloth (tex1) replaces
+// the colour, where it is green the second (tex2), each times the mask's brightness. A tex
+// value's top byte is 1 for a dye (the low 24 bits are its colour) or a cloth's tile size
+// (4, 5, 9 or 10, the low bits its index in that textile sheet); cloth tiles repeat one
+// texel per pixel of the 5x sprite, so they are finer than the sprite's own pixels.
+let DYES = null;
+const imagePixels = src => new Promise((resolve, reject) => {
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = img.naturalWidth; c.height = img.naturalHeight;
+    const g = c.getContext('2d');
+    g.drawImage(img, 0, 0);
+    resolve(g.getImageData(0, 0, c.width, c.height));
+  };
+  img.onerror = reject;
+  img.src = src;
+});
+async function loadDyes() {
+  try {
+    const [meta, chars, textiles] = await Promise.all([staticJson('/catalog/dyes.json'), imagePixels('/catalog/dyes.png'), imagePixels('/catalog/textiles.png')]);
+    DYES = {meta, chars, textiles, cache: new Map()};
+  } catch { DYES = null; }
+}
+function dyeTexture(tex) {
+  if (!tex) return null;
+  const size = Math.floor(tex / 0x1000000) & 255, value = tex % 0x1000000;
+  if (size === 1) { const rgb = [value >> 16 & 255, value >> 8 & 255, value & 255]; return () => rgb; }
+  const sheet = DYES.meta.textiles[size];
+  if (!sheet) return null;
+  const per = Math.floor(sheet.width / size), cx = (value % per) * size, cy = sheet.y + Math.floor(value / per) * size;
+  if (cy + size > sheet.y + sheet.height) return null;
+  const t = DYES.textiles;
+  return (x, y) => { const i = ((cy + y % size) * t.width + cx + x % size) * 4; return [t.data[i], t.data[i + 1], t.data[i + 2]]; };
+}
+// Draws row `row` of dyes.png (a sprite and its mask) recoloured by tex1/tex2, at 5x, with
+// `pad` empty sprite pixels around it.
+function dyedImage(row, tex1, tex2, pad = 0) {
+  const key = `${row}:${tex1}:${tex2}:${pad}`;
+  if (DYES.cache.has(key)) return DYES.cache.get(key);
+  let url = null;
+  if (row !== undefined) {
+    const t1 = dyeTexture(tex1), t2 = dyeTexture(tex2), src = DYES.chars, size = (8 + 2 * pad) * 5;
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const g = c.getContext('2d'), out = g.createImageData(size, size);
+    for (let oy = 0; oy < 40; oy++) for (let ox = 0; ox < 40; ox++) {
+      const sx = Math.floor(ox / 5), sy = row * 8 + Math.floor(oy / 5);
+      const si = (sy * src.width + sx) * 4, mi = (sy * src.width + 8 + sx) * 4, di = ((oy + pad * 5) * size + ox + pad * 5) * 4;
+      const mr = src.data[mi], mg = src.data[mi + 1], ma = src.data[mi + 3];
+      const t = ma === 0 ? null : mr > 0 ? t1 && [t1, mr] : mg > 0 ? t2 && [t2, mg] : null;
+      if (!t) { for (let k = 0; k < 4; k++) out.data[di + k] = src.data[si + k]; continue; }
+      const [rgb, m] = [t[0](ox, oy), t[1] / 255];
+      out.data[di] = rgb[0] * m; out.data[di + 1] = rgb[1] * m; out.data[di + 2] = rgb[2] * m; out.data[di + 3] = 255;
+    }
+    g.putImageData(out, 0, 0);
+    url = c.toDataURL();
+  }
+  DYES.cache.set(key, url);
+  return url;
+}
+function dyedSprite(classId, tex1, tex2) {
+  if (!DYES || (!tex1 && !tex2)) return null;
+  return dyedImage(DYES.meta.rows[classId], tex1, tex2);
+}
+// A dye or cloth item in its own colour, as a 16px item cell (8px art, 4px around it).
+function dyeIcon(id) {
+  const icon = DYES?.meta.icons?.[id];
+  return icon ? dyedImage(icon.row, icon.tex1, icon.tex2, 4) : null;
+}
+// The dye or cloth items behind a character's look, for its death page.
+function dyeItems(char) {
+  if (!DYES || !char) return [];
+  return [[char.tex1, 'clothing'], [char.tex2, 'accessory']].map(([tex, part]) => DYES.meta.items[tex]?.[part]).filter(id => id && ITEMS.has(id));
 }
 const className = id => CLASSES.get(id)?.name ?? 'Unknown class';
 // Star colours and thresholds from the 2012 client (FameUtil.as): the colour steps up
@@ -417,7 +499,7 @@ function mountPager(el, {pages, page = 1, onPage}) {
 function deathRows(rows, {showPlayer = true} = {}) {
   if (!rows.length) return h`<p class="empty">No deaths recorded yet.</p>`;
   return h`<ul class="rows">${rows.map(d => h`<li>
-    ${classSprite(d.class, 32)}
+    ${classSprite(d.class, 32, d)}
     <span class="grow">
       <a class="title" href="/death/${d.account}/${d.char_id}" data-link>${showPlayer ? h`${d.is_bot ? starIcon(d.player_stars) : rankIcon(d.name, d.player_stars)}${d.name}` : `${d.level ? `Level ${d.level} ` : ''}${className(d.class)}`}</a>
       <span class="sub">${showPlayer ? `${className(d.class)}${d.level ? `, level ${d.level}` : ''}` : ''}${d.killed_by ? raw(`${showPlayer ? ', ' : ''}killed by <span class="killed">${esc(d.killed_by)}</span>`) : ''}${d.died_at ? raw(` ${when(d.died_at)}`) : ''}</span>
@@ -522,7 +604,7 @@ async function bestCharacters() {
     const shown = rows.filter(c => c.name.toLowerCase().includes(f) || className(c.class).toLowerCase().includes(f));
     document.getElementById('char-body').innerHTML = String(shown.length ? h`${shown.map(c => h`<tr class="${c.rank === 1 ? 'top1' : ''}">
       <td class="rank">${c.rank}</td>
-      <td>${dead ? h`<a class="who" href="/death/${c.account}/${c.char_id}" data-link>${classSprite(c.class, 32)} <span>${className(c.class)}</span></a>` : h`<span class="who">${classSprite(c.class, 32)} <span>${className(c.class)}</span></span>`}</td>
+      <td>${dead ? h`<a class="who" href="/death/${c.account}/${c.char_id}" data-link>${classSprite(c.class, 32, c)} <span>${className(c.class)}</span></a>` : h`<span class="who">${classSprite(c.class, 32, c)} <span>${className(c.class)}</span></span>`}</td>
       <td>${playerLink(c.name, c.stars)}</td>
       <td class="n">${c.level ?? '–'}</td>
       <td class="n fame${sort === 'fame' ? ' main-metric' : ''}">${fmt(c.fame)}</td>
@@ -729,7 +811,7 @@ function characterPanel(chars, p) {
         const boost = gearBoosts(c.equipment);
         const maxed = left ? left.filter(n => n === 0).length : null;
         return h`<tr>
-          <td class="c-who"><span class="who">${classSprite(c.class, 40)} <span>${className(c.class)}${c.created_at ? h`<span class="sub">Created ${day(c.created_at)}</span>` : ''}</span></span></td>
+          <td class="c-who"><span class="who">${classSprite(c.class, 40, c)} <span>${className(c.class)}${c.created_at ? h`<span class="sub">Created ${day(c.created_at)}</span>` : ''}</span></span></td>
           <td class="n c-level" data-label="Level">${c.level}</td>
           <td class="n fame main-metric c-fame" data-label="Fame">${fmt(c.fame)}</td>
           <td class="c-gear">${gear(c.equipment, 2)}</td>
@@ -787,7 +869,7 @@ async function graveyard() {
         ${[...CLASSES.values()].map(c => h`<a href="${link({cls: c.id, page: 1})}" data-link ${st.cls === c.id ? raw('aria-current="page"') : ''} title="${c.name}: ${counts.get(c.id) ?? 0} deaths" style="padding:4px 6px;line-height:0">${classSprite(c.id, 24)}</a>`)}
       </div>`);
     document.getElementById('gy-body').innerHTML = String(g.rows.length ? h`${g.rows.map(d => h`<tr>
-      <td><a class="who" href="/death/${d.account}/${d.char_id}" data-link>${classSprite(d.class, 32)} <span>${d.level ? `Level ${d.level} ` : ''}${className(d.class)}</span>${d.in_legends ? h`<span class="badge gold legend-tag" data-tip-title="Legend" data-tip-text="On a Legends board right now">Legend</span>` : ''}</a></td>
+      <td><a class="who" href="/death/${d.account}/${d.char_id}" data-link>${classSprite(d.class, 32, d)} <span>${d.level ? `Level ${d.level} ` : ''}${className(d.class)}</span>${d.in_legends ? h`<span class="badge gold legend-tag" data-tip-title="Legend" data-tip-text="On a Legends board right now">Legend</span>` : ''}</a></td>
       <td>${ownerLink(d)}</td>
       <td class="n main-metric fame">${fmt(d.total_fame)}</td>
       <td>${graveBadge(d, 2)}</td>
@@ -846,11 +928,12 @@ async function death(account, charId) {
       <p>${d.died_at ? h`${d.level ? `Level ${d.level} ` : ''}${className(d.class)} who died ${date(d.died_at)}${d.killed_by ? h`, killed by <span class="killed">${d.killed_by}</span>` : ''}.` : 'Full details for this death are still loading. Check back in a few minutes.'}</p>
     </div></div>
     <section class="panel"><div class="panel-body tombstone">
-      <div>${classSprite(d.class, 96)}</div>
+      <div>${classSprite(d.class, 96, d)}</div>
       <div class="stack" style="gap:16px">
         <div class="death-head-line"><span><span class="fame-total">${fmt(d.total_fame)}</span> <span class="muted">total fame</span></span>${graveBadge(d, 3)}</div>
         <div>${gear(d.equipment, 3, 4)}</div>
         ${d.equipment.slice(4).some(i => i !== -1) ? h`<div><span class="muted">Inventory</span><div style="margin-top:6px">${gear(d.equipment.slice(4), 2, 8)}</div></div>` : ''}
+        ${dyeItems(d).length ? h`<div class="dyes"><span class="muted">Dyes</span>${dyeItems(d).map(id => h`<span class="dye">${itemSlot(id, 2)}<span>${ITEMS.get(id).name}</span></span>`)}</div>` : ''}
         <p class="muted">${d.is_bot ? 'Bot' : 'Player'}: ${ownerLink(d)}${data.legends.length ? h`. On the Legends board: ${data.legends.map(l => `${SPANS[l.timespan]} rank ${l.rank}`).join(', ')}` : ''}.</p>
       </div>
     </div></section>
@@ -907,7 +990,7 @@ async function legends(span) {
       <thead><tr><th>Rank</th><th>Character</th><th>Player</th><th class="n">Fame</th><th>Equipment</th><th>Killed by</th><th>Died</th></tr></thead>
       <tbody>${l.rows.length ? l.rows.map(d => h`<tr class="${d.rank === 1 ? 'top1' : ''}">
         <td class="rank">${d.rank}</td>
-        <td><a class="who" href="/death/${d.account}/${d.char_id}" data-link>${classSprite(d.class, 32)} ${d.level ? `Level ${d.level} ` : ''}${className(d.class)}</a></td>
+        <td><a class="who" href="/death/${d.account}/${d.char_id}" data-link>${classSprite(d.class, 32, d)} ${d.level ? `Level ${d.level} ` : ''}${className(d.class)}</a></td>
         <td>${ownerLink(d)}</td>
         <td class="n main-metric fame">${fmt(d.total_fame)}</td>
         <td>${gear(d.equipment, 2)}</td>
@@ -1904,7 +1987,7 @@ async function footer() {
   } catch { /* server stopped */ }
 }
 
-await Promise.all([loadCatalog(), loadCrown(), loadGraves(), loadAuras(), loadWalk()]);
+await Promise.all([loadCatalog(), loadCrown(), loadGraves(), loadAuras(), loadWalk(), loadDyes()]);
 drawBrand();
 themeFx(document.documentElement.dataset.theme ?? '');
 route();

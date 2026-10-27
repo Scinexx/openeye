@@ -1292,3 +1292,7 @@ html.invisible main, html.invisible .footer { opacity: .28; }
 @media (prefers-reduced-motion: reduce) { #theme-fx.intro::before { display: none; } }
 /* A potion's effects fading away a few seconds after drinking it. */
 #theme-fx.outro { opacity: 0; transition: opacity 1s ease-out; }
+
+/* Death page: the dyes and cloths the character wore. */
+.dyes { display: flex; align-items: center; gap: 10px 18px; flex-wrap: wrap; }
+.dyes .dye { display: inline-flex; align-items: center; gap: 8px; }
