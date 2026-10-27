@@ -177,8 +177,17 @@ export function makeApi(db, catalog, settings) {
     return {counts, top, recentDeaths, recentFinds: await notableFinds(10), fameToday: await fameToday(3), status: await status()};
   }
 
-  /** Living characters of ranked players, for the Best characters board. */
-  async function characters() {
+  /** Living characters of ranked players, for the Best characters board; with dead, every
+   *  recorded player death instead (bots never), with its fame, gear and stats at death. */
+  async function characters({dead = false} = {}) {
+    if (dead) {
+      const rows = await q(`SELECT d.char_id, d.account, p.name, p.stars, d.class, d.level, COALESCE(d.base_fame, d.total_fame) AS fame,
+          d.total_fame, d.equipment, d.died_at,
+          COALESCE(d.base_stats, (SELECT cs.stats FROM char_stats cs WHERE cs.char_id = d.char_id)) AS stats
+        FROM deaths d JOIN players p ON p.account = d.account AND ${rankedWhere(settings.minRankedStat, 'p.')}
+        WHERE d.died_at IS NOT NULL ORDER BY fame DESC, d.char_id LIMIT 5000`);
+      return {dead: true, characters: rows.map(c => ({...c, stats: c.stats ? JSON.parse(c.stats) : null, equipment: JSON.parse(c.equipment).slice(0, 4)}))};
+    }
     const rows = await q(`SELECT c.char_id, c.account, p.name, p.stars, c.class, c.level, c.fame, c.stats, c.equipment, c.tex1, c.tex2
       FROM characters c JOIN players p ON p.account = c.account AND ${rankedWhere(settings.minRankedStat, 'p.')}
       WHERE c.seen_at > ? ORDER BY c.fame DESC, c.char_id`, now() - 3600);
@@ -334,7 +343,7 @@ export async function routeApi(api, url) {
   if (p === '/api/crown') return api.crown();
   if (p === '/api/summary') return api.summary();
   if ((m = p.match(/^\/api\/rankings\/([a-z_]+)$/))) return api.rankings(m[1]);
-  if (p === '/api/characters') return api.characters();
+  if (p === '/api/characters') return api.characters({dead: url.searchParams.get('dead') === '1'});
   if (p === '/api/search') return api.search((url.searchParams.get('q') ?? '').trim().slice(0, 20));
   if ((m = p.match(/^\/api\/player\/([^/]{1,40})$/))) {
     let name;

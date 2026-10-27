@@ -157,3 +157,19 @@ test('stats at death: from the graveyard when sent, else the last seen living st
     assert.deepEqual((await t.api.death(alive.account, alive.id)).death.base_stats, alive.stats);
   } finally { t.close(); }
 });
+
+test('Best characters, dead: every recorded player death, never bots', async () => {
+  const t = await setup({ticking: false, pr624: true, leakBots: true, deathStats: true});
+  try {
+    await t.collector().syncHiscores();
+    await t.collector().syncLegends();
+    await t.db.prepare("INSERT INTO meta(key, value) VALUES('graveyard_enabled', '1')").run();
+    await t.collector().syncGraveyard();
+    const {characters, dead} = await t.api.characters({dead: true});
+    const botAccounts = new Set(t.mock.bots.map(b => b.account));
+    assert.equal(dead, true);
+    assert.equal(characters.length, t.mock.deaths.filter(d => !botAccounts.has(d.account)).length);
+    assert.ok(characters.every(c => !botAccounts.has(c.account) && c.equipment.length === 4 && c.died_at));
+    assert.ok(characters.some(c => Array.isArray(c.stats) && c.stats.length === 8));
+  } finally { t.close(); }
+});

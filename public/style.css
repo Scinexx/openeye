@@ -549,3 +549,19 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 .rows .grave { font-size: 0.9rem; min-width: 3.4em; }
 .death-head-line { display: flex; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
 .death-head-line .grave { font: 700 1.3rem var(--display); }
+
+/* ---------- Page arrows, after the game's minimap zoom buttons ---------- */
+.page-arrows { gap: 6px; }
+.page-arrows[hidden] { display: none; }
+.zoom-btn {
+  width: 26px; height: 26px; padding: 0; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  color: #fff; background: #1c1c1c; border: 2px solid #4d4d4d; box-shadow: inset 0 0 0 1px #000;
+}
+.zoom-btn:hover:not(:disabled) { background: #2c2c2c; border-color: #8a8a8a; }
+.zoom-btn:disabled { color: #555; cursor: default; }
+.page-count { min-width: 64px; text-align: center; font-variant-numeric: tabular-nums; }
+.page-num { font: inherit; color: var(--bone); background: none; border: 0; border-bottom: 1px dashed var(--bone-dim); padding: 0 2px; cursor: text; }
+.page-num:hover { color: var(--accent); border-color: var(--accent); }
+.page-input { width: 3.5em; font: inherit; text-align: center; color: var(--bone); background: var(--stone-deep); border: 2px solid var(--accent-line, var(--accent)); padding: 1px 2px; }
+.page-input { -moz-appearance: textfield; appearance: textfield; }
+.page-input::-webkit-outer-spin-button, .page-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }

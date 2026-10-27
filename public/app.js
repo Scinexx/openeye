@@ -344,6 +344,42 @@ const graveBadge = (d, scale = 2) => {
   return h`<span class="grave${n === 8 ? ' hl' : ''}" title="${n === null ? 'Stats at death unknown' : `${n} of 8 stats maxed`}">${graveSprite(d, scale)}<span>${n === null ? '?' : n}/8</span></span>`;
 };
 
+// ---- Page arrows ----
+// Left and right buttons styled after the game's minimap zoom buttons, with a page counter;
+// clicking the page number lets you type the page to go to.
+const ARROW = dir => raw(`<svg viewBox="0 0 8 8" width="10" height="10" aria-hidden="true"><path d="${dir === 'left' ? 'M6 0 L6 8 L1 4 Z' : 'M2 0 L2 8 L7 4 Z'}" fill="currentColor"/></svg>`);
+function mountPager(el, {pages, page = 1, onPage}) {
+  let current = Math.min(Math.max(1, page), Math.max(1, pages));
+  const draw = () => {
+    el.hidden = pages <= 1;
+    el.innerHTML = String(h`
+      <button type="button" class="zoom-btn" data-step="-1" aria-label="Previous page" ${current <= 1 ? raw('disabled') : ''}>${ARROW('left')}</button>
+      <span class="page-count"><button type="button" class="page-num" aria-label="Go to page">${current}</button><span class="muted"> / ${pages}</span></span>
+      <button type="button" class="zoom-btn" data-step="1" aria-label="Next page" ${current >= pages ? raw('disabled') : ''}>${ARROW('right')}</button>`);
+  };
+  const go = n => {
+    const next = Math.min(Math.max(1, Math.round(n) || 1), pages);
+    if (next !== current) { current = next; onPage(current); }
+    draw();
+  };
+  el.addEventListener('click', e => {
+    const step = e.target.closest('[data-step]');
+    if (step) return go(current + Number(step.dataset.step));
+    const num = e.target.closest('.page-num');
+    if (!num) return;
+    const input = document.createElement('input');
+    Object.assign(input, {type: 'number', min: 1, max: pages, value: current, className: 'page-input'});
+    input.setAttribute('aria-label', `Page, 1 to ${pages}`);
+    num.replaceWith(input);
+    input.focus(); input.select();
+    let done = false;
+    const finish = ok => { if (done) return; done = true; ok ? go(Number(input.value)) : draw(); };
+    input.addEventListener('keydown', k => { if (k.key === 'Enter') finish(true); if (k.key === 'Escape') finish(false); });
+    input.addEventListener('blur', () => finish(true));
+  });
+  draw();
+}
+
 function deathRows(rows, {showPlayer = true} = {}) {
   if (!rows.length) return h`<p class="empty">No deaths recorded yet.</p>`;
   return h`<ul class="rows">${rows.map(d => h`<li>
@@ -426,41 +462,56 @@ const CHAR_SORTS = {
 };
 const gearBonus = equipment => (equipment ?? []).slice(0, 4).reduce((n, id) => n + (ITEMS.get(id)?.fameBonus ?? 0), 0);
 async function bestCharacters() {
-  const sort = CHAR_SORTS[new URLSearchParams(location.search).get('sort')] ? new URLSearchParams(location.search).get('sort') : 'fame';
-  const {characters} = await get('/api/characters');
+  const params = new URLSearchParams(location.search);
+  const sort = CHAR_SORTS[params.get('sort')] ? params.get('sort') : 'fame';
+  const dead = params.get('dead') === '1';
+  const [{characters}] = await Promise.all([get(`/api/characters${dead ? '?dead=1' : ''}`), loadGraves()]);
   const rows = characters.map(c => {
     const max = CLASSES.get(c.class)?.max;
-    return {...c, maxed: max ? STAT_KEYS.filter(([k], i) => c.stats[i] >= max[k]).length : 0, bonus: gearBonus(c.equipment)};
+    const known = max && Array.isArray(c.stats) && c.stats.length === 8;
+    return {...c, maxed: known ? STAT_KEYS.filter(([k], i) => c.stats[i] >= max[k]).length : null, bonus: gearBonus(c.equipment)};
   });
-  const key = {fame: c => [c.fame], maxed: c => [c.maxed, c.fame], gear: c => [c.bonus, c.fame]}[sort];
-  rows.sort((a, b) => { const x = key(a), y = key(b); return (y[0] - x[0]) || ((y[1] ?? 0) - (x[1] ?? 0)) || b.level - a.level || a.char_id - b.char_id; });
+  // Unknown stats (deaths from before stats were recorded) sort after every known count.
+  const key = {fame: c => [c.fame], maxed: c => [c.maxed ?? -1, c.fame], gear: c => [c.bonus, c.fame]}[sort];
+  rows.sort((a, b) => { const x = key(a), y = key(b); return (y[0] - x[0]) || ((y[1] ?? 0) - (x[1] ?? 0)) || (b.level ?? 0) - (a.level ?? 0) || a.char_id - b.char_id; });
   // Ties are broken by fame, then level, so every character gets its own rank.
   rows.forEach((c, i) => { c.rank = i + 1; });
+  const link = changes => {
+    const q = new URLSearchParams({...(sort !== 'fame' ? {sort} : {}), ...(dead ? {dead: '1'} : {})});
+    for (const [k, v] of Object.entries(changes)) { if (v === null) q.delete(k); else q.set(k, v); }
+    const qs = q.toString();
+    return `/rankings/characters${qs ? `?${qs}` : ''}`;
+  };
   const draw = (filter = '') => {
     const f = filter.toLowerCase();
     const shown = rows.filter(c => c.name.toLowerCase().includes(f) || className(c.class).toLowerCase().includes(f));
     document.getElementById('char-body').innerHTML = String(shown.length ? h`${shown.map(c => h`<tr class="${c.rank === 1 ? 'top1' : ''}">
       <td class="rank">${c.rank}</td>
-      <td><span class="who">${classSprite(c.class, 32)} <span>${className(c.class)}</span></span></td>
+      <td>${dead ? h`<a class="who" href="/death/${c.account}/${c.char_id}" data-link>${classSprite(c.class, 32)} <span>${className(c.class)}</span></a>` : h`<span class="who">${classSprite(c.class, 32)} <span>${className(c.class)}</span></span>`}</td>
       <td>${playerLink(c.name, c.stars)}</td>
-      <td class="n">${c.level}</td>
+      <td class="n">${c.level ?? '–'}</td>
       <td class="n fame${sort === 'fame' ? ' main-metric' : ''}">${fmt(c.fame)}</td>
-      <td class="n${sort === 'maxed' ? ' main-metric' : ''}${c.maxed === 8 ? ' hl' : ''}">${c.maxed}/8</td>
+      <td class="n${sort === 'maxed' ? ' main-metric' : ''}${c.maxed === 8 ? ' hl' : ''}">${dead ? graveBadge({...c, base_stats: c.stats}, 1) : `${c.maxed ?? '?'}/8`}</td>
       <td class="n${sort === 'gear' ? ' main-metric' : ''}">${c.bonus ? `+${c.bonus}%` : '0%'}</td>
       <td>${gear(c.equipment, 2)}</td>
-    </tr>`)}` : h`<tr><td colspan="8" class="empty">${rows.length ? `No characters match “${filter}”.` : 'No living characters yet.'}</td></tr>`);
+      ${dead ? h`<td>${c.died_at ? when(c.died_at) : ''}</td>` : ''}
+    </tr>`)}` : h`<tr><td colspan="${dead ? 9 : 8}" class="empty">${rows.length ? `No characters match “${filter}”.` : dead ? 'No player deaths yet.' : 'No living characters yet.'}</td></tr>`);
   };
   document.title = 'Best characters | OpenEye';
   view(h`
     <div class="page-head"><div><h1>Rankings</h1></div></div>
     ${boardTabs('characters')}
     <div class="controls">
-      <nav class="tabs" style="margin:0" aria-label="Sort characters">${Object.entries(CHAR_SORTS).map(([k, o]) => h`<a href="/rankings/characters${k === 'fame' ? '' : `?sort=${k}`}" data-link ${k === sort ? raw('aria-current="page"') : ''}>${o.title}</a>`)}</nav>
+      <nav class="tabs" style="margin:0" aria-label="Sort characters">${Object.entries(CHAR_SORTS).map(([k, o]) => h`<a href="${link({sort: k === 'fame' ? null : k})}" data-link ${k === sort ? raw('aria-current="page"') : ''}>${o.title}</a>`)}</nav>
       <label class="sr" for="char-filter">Filter characters</label><input id="char-filter" type="search" placeholder="Filter by player or class">
-      <span class="muted">${fmt(rows.length)} living characters</span>
+      <span class="muted">${fmt(rows.length)} ${dead ? 'dead' : 'living'} characters</span>
+      <nav class="tabs" style="margin:0 0 0 auto" aria-label="Alive or dead">
+        <a href="${link({dead: null})}" data-link ${!dead ? raw('aria-current="page"') : ''}>Alive</a>
+        <a href="${link({dead: '1'})}" data-link ${dead ? raw('aria-current="page"') : ''}>Dead</a>
+      </nav>
     </div>
     <section class="panel"><div class="table-wrap"><table class="chars-board">
-      <thead><tr><th>Rank</th><th>Character</th><th>Player</th><th class="n">Level</th><th class="n"${sort === 'fame' ? raw(' aria-sort="descending"') : ''}>Fame</th><th class="n"${sort === 'maxed' ? raw(' aria-sort="descending"') : ''}>Maxed</th><th class="n"${sort === 'gear' ? raw(' aria-sort="descending"') : ''}>Gear bonus</th><th>Equipment</th></tr></thead>
+      <thead><tr><th>Rank</th><th>Character</th><th>Player</th><th class="n">Level</th><th class="n"${sort === 'fame' ? raw(' aria-sort="descending"') : ''}>Fame</th><th class="n"${sort === 'maxed' ? raw(' aria-sort="descending"') : ''}>Maxed</th><th class="n"${sort === 'gear' ? raw(' aria-sort="descending"') : ''}>Gear bonus</th><th>Equipment</th>${dead ? h`<th>Died</th>` : ''}</tr></thead>
       <tbody id="char-body"></tbody>
     </table></div></section>`);
   draw();
@@ -542,7 +593,8 @@ async function player(name) {
       </section>
       <section class="panel">
         <header><h2>Graveyard</h2><span class="muted">${fmt(data.deaths.length)} death${data.deaths.length === 1 ? '' : 's'}</span></header>
-        ${deathRows(data.deaths, {showPlayer: false})}
+        <div id="death-page"></div>
+        <div class="pager page-arrows" id="death-pager"></div>
       </section>
     </div>
     <section class="panel" style="margin-top:24px">
@@ -604,6 +656,12 @@ async function player(name) {
   document.getElementById('col-owned').addEventListener('change', drawCollection);
   document.getElementById('col-tier').addEventListener('change', drawCollection);
   drawCollection();
+
+  // Deaths, a page at a time.
+  const PER = 6;
+  const drawDeaths = n => { document.getElementById('death-page').innerHTML = String(deathRows(data.deaths.slice((n - 1) * PER, n * PER), {showPlayer: false})); };
+  drawDeaths(1);
+  mountPager(document.getElementById('death-pager'), {pages: Math.ceil(data.deaths.length / PER), onPage: drawDeaths});
 }
 
 // Living characters (published by the game server since OpenRotMG PR #624).
