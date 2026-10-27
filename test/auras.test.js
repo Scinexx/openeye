@@ -24,5 +24,7 @@ test('auras follow the item colours and skip common UTs', () => {
   const [r2, g2, b2] = rgb(named('Coral Silk Armor').a);
   assert.ok(r2 > g2 && b2 > g2, 'Coral Silk Armor glows pink');
   for (const it of items.filter(i => i.commonUt)) assert.equal(auras[it.id], undefined, it.name);
+  assert.equal(named('Admin Sword'), undefined, 'nothing drops it');
+  assert.ok(Object.keys(auras).every(id => items.find(i => i.id === Number(id)).dropRate > 0), 'only lootable items');
   assert.deepEqual(JSON.parse(readFileSync(join(root, 'public/catalog/auras.json'), 'utf8')), JSON.parse(JSON.stringify(auras)), 'auras.json is up to date');
 });

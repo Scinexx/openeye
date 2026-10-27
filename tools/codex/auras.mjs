@@ -47,11 +47,13 @@ export function spritePalette(sheet, x, y, size = 16) {
   return {a: hex(glow(a)), b: hex(glow(b, 0.6)), s: hex(glow(s, 0.8))};
 }
 
-/** {itemId: {a, b, s}} for every notable, non-common untiered item with a sprite. */
+/** {itemId: {a, b, s}} for every rare untiered item a player can loot: notable, not common,
+ *  and with a drop source in the server's loot tables (dropRate). Shop, event and admin items
+ *  that nothing drops get none. */
 export function buildAuras(items, sheet) {
   const out = {};
   for (const it of items) {
-    if (!it.untiered || !it.notable || it.commonUt || !it.sprite) continue;
+    if (!it.untiered || !it.notable || it.commonUt || !it.sprite || !(it.dropRate > 0)) continue;
     const p = spritePalette(sheet, it.sprite.x, it.sprite.y);
     if (p) out[it.id] = p;
   }
