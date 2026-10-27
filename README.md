@@ -136,4 +136,8 @@ test/              Test suite and fake game server
 
 Item and class sprites and game data come from the [Open RotMG](https://github.com/OpenRotMG) project. Fonts are [Pixelify Sans](https://fonts.google.com/specimen/Pixelify+Sans), [Atkinson Hyperlegible](https://fonts.google.com/specimen/Atkinson+Hyperlegible) and [Source Sans 3](https://fonts.google.com/specimen/Source+Sans+3), all under the SIL Open Font License. See [`THIRD_PARTY.md`](THIRD_PARTY.md) for details.
 
-OpenEye is a fan project by Cramshon. It is not run by or affiliated with the Open RotMG developers.
+OpenEye is a fan project by spankmaster. It is not run by or affiliated with the Open RotMG developers.
+
+## License
+
+OpenEye is open source and free to reuse, copy, change and redistribute, including for your own Open RotMG fan site, under the [MIT License](LICENSE). Game sprites, game data derived from Open RotMG and fonts keep their own licenses (GPL-3.0, AGPL-3.0 and the SIL Open Font License); see [`THIRD_PARTY.md`](THIRD_PARTY.md).

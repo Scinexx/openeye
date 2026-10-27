@@ -743,7 +743,6 @@ async function death(account, charId) {
   try { [data] = await Promise.all([get(`/api/death/${account}/${charId}`), loadGraves()]); }
   catch (e) { if (e.status === 404) return notFound(e.message); throw e; }
   const d = data.death, s = d.stats;
-  const cls = CLASSES.get(d.class);
   document.title = `${d.name}'s ${className(d.class)} | OpenEye`;
   const acc = s && s.shots ? `${Math.round((s.shotsThatDamage / s.shots) * 100)}%` : '–';
   const dungeons = s ? [['Pirate Caves', s.pirateCaves], ['Spider Dens', s.spiderDens], ['Snake Pits', s.snakePits], ['Undead Lairs', s.undeadLairs], ['Abysses of Demons', s.abysses], ['Sprite Worlds', s.spriteWorlds], ['Tombs of the Ancients', s.tombs]] : [];
@@ -779,7 +778,6 @@ async function death(account, charId) {
       <section class="panel"><header><h2>Dungeons cleared</h2></header>
         <dl class="kv">${dungeons.map(([k, v]) => h`<div><dt>${k}</dt><dd>${fmt(v)}</dd></div>`)}</dl>
       </section>
-      ${cls ? h`<section class="panel"><header><h2>About the ${cls.name}</h2></header><div class="panel-body"><p class="muted">${cls.description}</p></div></section>` : ''}
     </div>` : ''}`);
 }
 
@@ -1159,7 +1157,7 @@ async function about() {
   view(h`
     <div class="page-head"><div><h1>About</h1></div></div>
     <section class="panel" style="margin-bottom:24px">
-      <div class="panel-body"><p style="margin:0">OpenEye is made by spankmaster. It is not run by or associated with RedBracket or any other Open RotMG devs. Data comes from the game's public API.</p></div>
+      <div class="panel-body"><p style="margin:0">OpenEye is made by spankmaster. It is <a href="https://github.com/Scinexx/openeye" rel="noopener">open source</a> and free to reuse, copy and change under the MIT License. It is not run by or associated with RedBracket or any other Open RotMG devs. Data comes from the game's public API.</p></div>
     </section>
     <div class="grid-2" style="align-items:start">
       <section class="panel">
