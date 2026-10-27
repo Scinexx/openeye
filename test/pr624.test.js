@@ -102,7 +102,7 @@ test('with the PR and switched on: every player death is backfilled once, bots n
   } finally { t.close(); }
 });
 
-test('with the full graveyard, Legends are ranked from every player death, never bots', async () => {
+test('with the full graveyard, Legends rank the deaths of players on the game board, never bots', async () => {
   const t = await setup({ticking: false, pr624: true, leakBots: true});
   try {
     await t.collector().syncHiscores();
@@ -114,7 +114,10 @@ test('with the full graveyard, Legends are ranked from every player death, never
     for (const [span, window] of [['week', 7 * 86400], ['month', 30 * 86400], ['all', Infinity]]) {
       const l = await t.api.legends(span);
       assert.equal(l.source, 'graveyard');
-      const expected = t.mock.deaths.filter(d => !botAccounts.has(d.account) && d.diedAt > at - window - 5)
+      // Only players who are on the game's own board for the period.
+      const onBoard = new Set((await t.db.prepare('SELECT account FROM legends WHERE timespan = ?').bind(span).all()).results.map(r => r.account));
+      assert.ok(onBoard.size > 0, span);
+      const expected = t.mock.deaths.filter(d => !botAccounts.has(d.account) && onBoard.has(d.account) && d.diedAt > at - window - 5)
         .sort((a, b) => b.total - a.total || a.diedAt - b.diedAt || a.charId - b.charId).slice(0, 20);
       assert.deepEqual(l.rows.map(d => d.char_id), expected.map(d => d.charId), span);
       assert.ok(l.rows.every((d, i) => d.rank === i + 1 && !d.is_bot));

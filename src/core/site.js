@@ -132,11 +132,15 @@ export function makeApi(db, catalog, settings) {
   const SPANS = {week: 7 * 86400, month: 30 * 86400, all: null};
   const LEGENDS_SIZE = 20;
   const fullGraveyard = async () => (await getMeta(db, 'graveyard_ok')) !== null;
+  // The players-only board: the game's rules (deaths in the period, total fame, earlier death
+  // first on ties, top 20), but only for players who are on the game's own board for that
+  // period. Everyone else's deaths are on the Rankings page.
   async function legendBoard(span) {
     const since = SPANS[span] ? now() - SPANS[span] : null;
     const rows = await q(`SELECT ${DEATH_COLS}, p.name AS player FROM deaths d JOIN players p ON p.account = d.account
       WHERE d.died_at IS NOT NULL${since ? ' AND d.died_at > ?' : ''}
-      ORDER BY d.total_fame DESC, d.died_at ASC, d.char_id ASC LIMIT ${LEGENDS_SIZE}`, ...(since ? [since] : []));
+        AND d.account IN (SELECT account FROM legends WHERE timespan = ?)
+      ORDER BY d.total_fame DESC, d.died_at ASC, d.char_id ASC LIMIT ${LEGENDS_SIZE}`, ...(since ? [since] : []), span);
     return rows.map((d, i) => ({...parseDeath(d), rank: i + 1}));
   }
   /** Every death on a players-only board: "account:char" -> [{timespan, rank}]. */

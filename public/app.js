@@ -975,14 +975,12 @@ async function legends(span) {
   view(h`
     <div class="page-head legends-head"><div><h1>Legends</h1><p>${board === 'vanilla'
       ? 'The game’s own Legends board, exactly as on Open RotMG, bots included.'
-      : l.source === 'graveyard'
-      ? `The ${l.size} highest-fame player deaths, ranked from every death on the server. Bots are never included.`
-      : 'The highest-fame player deaths recorded so far, bots never included. Until the game shares every death, only deaths that reached its Legends board count.'} Updated ${l.updated ? ago(l.updated) : 'soon'}.</p></div></div>
+      : `The players on the game’s own board, without the bots: their ${l.size} highest-fame deaths in this period. Every player’s deaths are on the Rankings page.`} Updated ${l.updated ? ago(l.updated) : 'soon'}.</p></div></div>
     <div class="controls legends-controls">
       <nav class="tabs" style="margin:0" aria-label="Period">${Object.entries(SPANS).map(([k, t]) => h`<a href="${at(k, board)}" data-link ${k === span ? raw('aria-current="page"') : ''}>${t}</a>`)}</nav>
       <nav class="tabs" style="margin:0 0 0 auto" aria-label="Board">
         <a href="${at(span, 'vanilla')}" data-link ${board === 'vanilla' ? raw('aria-current="page"') : ''} title="The game’s own board, bots included">Vanilla</a>
-        <a href="${at(span, 'players')}" data-link ${board === 'players' ? raw('aria-current="page"') : ''} title="Only players, never bots">Players only</a>
+        <a href="${at(span, 'players')}" data-link ${board === 'players' ? raw('aria-current="page"') : ''} title="Players on the game’s board, without the bots">Players only</a>
       </nav>
     </div>
     <section class="panel"><div class="table-wrap"><table class="legends-table">
