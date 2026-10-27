@@ -1099,7 +1099,7 @@ async function item(id) {
   document.title = `${it.name} | OpenEye`;
   view(h`
     <div class="item-hero">
-      <span class="slot ${bag(it)}">${itemSprite(id, 4)}</span>
+      ${auraOf(id) ? h`<span class="aura-big" style="${auraStyle(auraOf(id))}">${firstFind(id, AURA_FX[auraFx(id)]?.label ?? '')}</span>` : h`<span class="slot ${bag(it)}">${itemSprite(id, 4)}</span>`}
       <div>
         <h1>${it.name}</h1>
         <p class="muted" style="margin-top:6px">${t.label ? h`<span class="tier ${t.cls}">${t.label === 'UT' ? 'Untiered' : `Tier ${it.tier}`}</span> ` : ''}${it.slotName}${it.soulbound ? ', soulbound' : ''}${it.fameBonus ? `, +${it.fameBonus}% fame bonus` : ''}</p>

@@ -777,3 +777,6 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 .fx-revive .p:nth-of-type(2) { --x0: -3px; --y0: 10px; --x1: -2px; --y1: -24px; --t: 3.2s; --d: .2s; }
 .fx-revive .p:nth-of-type(3) { --x0: 3px; --y0: 12px; --x1: 4px; --y1: -22px; --t: 3.2s; --d: 1.8s; background: var(--aura-b); }
 .fx-revive .p:nth-of-type(n + 4) { display: none; }
+
+/* Item pages: the same first-find aura, twice the size (zoom keeps the pixels sharp). */
+.aura-big { zoom: 2; display: inline-flex; flex: none; margin: 4px; }
