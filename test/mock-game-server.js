@@ -112,6 +112,8 @@ const form = req => new Promise(res => { let b = ''; req.on('data', c => (b += c
  *   leakBots also lists a bot's character and death, to check OpenEye drops them itself.
  */
 export function createMock({ticking = true, pr624 = false, leakBots = false, deathStats = false} = {}) {
+  // Changeable while running (tests switch stats at death on, as a server upgrade would).
+  const options = {deathStats};
   const stats = {requests: {}};
   return createServer(async (req, res) => {
     const url = new URL(req.url, 'http://x');
@@ -139,7 +141,7 @@ export function createMock({ticking = true, pr624 = false, leakBots = false, dea
         .sort((a, b) => a.diedAt - b.diedAt || a.charId - b.charId).slice(0, 500);
       return sendJson({deaths: rows.map(d => ({account: d.account, id: d.charId, name: d.name, class: d.class, level: d.level,
         base_fame: d.base, total_fame: d.total, died_at: d.diedAt, killed_by: d.killedBy, equipment: d.equipment.slice(0, 4), tex1: 0, tex2: 0,
-        ...(deathStats && d.baseStats ? {stats: d.baseStats} : {})}))});
+        ...(options.deathStats && d.baseStats ? {stats: d.baseStats} : {})}))});
     }
     const col = url.pathname.match(/^\/api\/collection\/(\d+)$/);
     if (col) {
@@ -166,7 +168,7 @@ export function createMock({ticking = true, pr624 = false, leakBots = false, dea
       return sendXml(`<Fame><Char id="${d.charId}"><Account><Name>${esc(d.name)}</Name></Account><ObjectType>${d.class}</ObjectType><Level>${d.level}</Level><Tex1>0</Tex1><Tex2>0</Tex2></Char><CreatedOn>${d.diedAt}</CreatedOn><KilledBy>${esc(d.killedBy)}</KilledBy><TotalFame>${d.total}</TotalFame><Shots>${s.shots}</Shots><ShotsThatDamage>${s.hits}</ShotsThatDamage><TilesUncovered>${s.tiles}</TilesUncovered><MonsterKills>${s.kills}</MonsterKills><GodKills>${s.gods}</GodKills><OryxKills>${s.oryx}</OryxKills><QuestsCompleted>${s.quests}</QuestsCompleted><PirateCavesCompleted>${s.caves}</PirateCavesCompleted><UndeadLairsCompleted>${s.lairs}</UndeadLairsCompleted><AbyssOfDemonsCompleted>${s.abysses}</AbyssOfDemonsCompleted><SnakePitsCompleted>${s.pits}</SnakePitsCompleted><SpiderDensCompleted>${s.dens}</SpiderDensCompleted><SpriteWorldsCompleted>${s.sprites}</SpriteWorldsCompleted><TombsCompleted>${s.tombs}</TombsCompleted><LevelUpAssists>${s.assists}</LevelUpAssists><BaseFame>${d.base}</BaseFame>${d.bonuses.map(b => `<Bonus id="${b.id}" desc="${b.desc}">${b.amount}</Bonus>`).join('')}</Fame>`);
     }
     sendJson({error: 'not found'}, 404);
-  }).on('listening', function () { this.stats = stats; this.players = players; this.living = living; this.deaths = deaths; this.bots = bots; });
+  }).on('listening', function () { this.stats = stats; this.players = players; this.living = living; this.deaths = deaths; this.bots = bots; this.options = options; });
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

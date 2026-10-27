@@ -241,6 +241,15 @@ export class Collector {
         if (e.status === 404) await setMetaStmt(db, 'graveyard_missing_at', now()).run();
         throw e;
       }
+      // The first time the server includes stats at death (OpenRotMG PR #712), read every
+      // death again from the start once, so older deaths get their stats (and graves) too.
+      if (since > 0 && deaths.some(d => Array.isArray(d.stats)) && (await getMeta(db, 'graveyard_stats_at')) === null) {
+        await setMetaStmt(db, 'graveyard_stats_at', now()).run();
+        since = 0;
+        page = -1;
+        this.log.info('graveyard: stats at death now available, re-reading every death');
+        continue;
+      }
       const at = now();
       if (!deaths.length) { await setMetaStmt(db, 'graveyard_caught_up', at).run(); break; }
       const listed = new Set((await this.all('SELECT account FROM players')).map(r => r.account));

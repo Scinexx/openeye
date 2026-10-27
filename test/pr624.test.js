@@ -173,3 +173,28 @@ test('Best characters, dead: every recorded player death, never bots', async () 
     assert.ok(characters.some(c => Array.isArray(c.stats) && c.stats.length === 8));
   } finally { t.close(); }
 });
+
+test('when the server starts sending stats at death, every death is read again once', async () => {
+  const t = await setup({ticking: false, pr624: true});
+  try {
+    await t.collector().syncHiscores();
+    await t.db.prepare("INSERT INTO meta(key, value) VALUES('graveyard_enabled', '1')").run();
+    await t.collector().syncGraveyard();
+    const without = await one(t.db, 'SELECT COUNT(*) AS n FROM deaths WHERE base_stats IS NOT NULL');
+    assert.equal(without.n, 0, 'old server: no stats');
+    t.mock.options.deathStats = true;
+    const p = t.mock.players[2];
+    t.mock.deaths.push({account: p.account, charId: 88888, name: p.name, class: 782, level: 9, base: 20, total: 25,
+      diedAt: Math.floor(Date.now() / 1000) + 1, killedBy: 'Pirate', equipment: [-1, -1, -1, -1], stats: {}, bonuses: [],
+      baseStats: [100, 100, 10, 0, 10, 10, 10, 10]});
+    await t.collector().syncGraveyard();
+    const withStats = await one(t.db, 'SELECT COUNT(*) AS n, (SELECT COUNT(*) FROM deaths d JOIN players p ON p.account = d.account) AS total FROM deaths WHERE base_stats IS NOT NULL');
+    const statless = t.mock.deaths.filter(d => !d.baseStats).length;
+    assert.equal(withStats.n, withStats.total - statless, 'every player death the server has stats for now has them');
+    assert.ok(withStats.n > 40);
+    assert.ok(await one(t.db, "SELECT value FROM meta WHERE key = 'graveyard_stats_at'"));
+    const requests = t.mock.stats.requests['/api/graveyard'];
+    await t.collector().syncGraveyard();
+    assert.equal(t.mock.stats.requests['/api/graveyard'], requests + 1, 'only once');
+  } finally { t.close(); }
+});
