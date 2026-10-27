@@ -1157,7 +1157,7 @@ async function about() {
   view(h`
     <div class="page-head"><div><h1>About</h1></div></div>
     <section class="panel" style="margin-bottom:24px">
-      <div class="panel-body"><p style="margin:0">OpenEye is made by spankmaster. It is <a href="https://github.com/Scinexx/openeye" rel="noopener">open source</a> and free to reuse, copy and change under the MIT License. It is not run by or associated with RedBracket or any other Open RotMG devs. Data comes from the game's public API.</p></div>
+      <div class="panel-body"><p style="margin:0">OpenEye is made by spankmaster. It is <a href="https://github.com/Scinexx/openeye" rel="noopener">open source</a> and free to reuse, copy and change. It is not run by or associated with RedBracket or any other Open RotMG devs. Data comes from the game's public API.</p></div>
     </section>
     <div class="grid-2" style="align-items:start">
       <section class="panel">

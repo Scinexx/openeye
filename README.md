@@ -138,6 +138,6 @@ Item and class sprites and game data come from the [Open RotMG](https://github.c
 
 OpenEye is a fan project by spankmaster. It is not run by or affiliated with the Open RotMG developers.
 
-## License
+## Reuse
 
-OpenEye is open source and free to reuse, copy, change and redistribute, including for your own Open RotMG fan site, under the [MIT License](LICENSE). Game sprites, game data derived from Open RotMG and fonts keep their own licenses (GPL-3.0, AGPL-3.0 and the SIL Open Font License); see [`THIRD_PARTY.md`](THIRD_PARTY.md).
+OpenEye is open source. Feel free to reuse, copy or build on it, for example for your own Open RotMG fan site.
