@@ -63,7 +63,7 @@ const SLOT_NAMES = {
 // these names are added on top of that (dungeon UTs with lower per-kill rates
 // that are still farmed constantly).
 const COMMON_UT_RATE = 0.1;
-const COMMON_UT_EXTRA = ['Wand of the Bulwark', 'Ring of Divine Faith', "St. Abraham's Wand"];
+const COMMON_UT_EXTRA = ['Ring of Divine Faith', "St. Abraham's Wand", 'Bone Dagger'];
 // Slots whose top tier is too common to count as notable loot (T5 rings).
 const TOP_TIER_NOT_NOTABLE = [9];
 

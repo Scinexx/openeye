@@ -335,11 +335,11 @@ const AURA_FX = {
   glint: {label: 'Crystal glints', items: ['Crystal Sword', 'Crystal Wand']},
   stars: {label: 'Orbiting stars', items: ['Cloak of the Planewalker', 'Staff of Extreme Prejudice']},
   dust: {label: 'Falling stone dust', items: ['Ancient Stone Sword']},
-  drip: {label: 'Dripping blood', items: ['Bone Dagger']},
   pentagon: {label: 'Five turning points', items: ['Seal of Blasphemous Prayer']},
   cubes: {label: 'Tumbling cubes', items: ['Dirk of Cronus']},
   conflict: {label: 'Opposing motes', items: ['Orb of Conflict']},
   ward: {label: 'Protective ward', items: ['Shield of Ogmur']},
+  bulwark: {label: 'Warding runes', items: ['Wand of the Bulwark']},
   stomp: {label: 'Heavy stomp', items: ['Helm of the Juggernaut']},
   revive: {label: 'Rising soul light', items: ['Amulet of Resurrection']}
 };

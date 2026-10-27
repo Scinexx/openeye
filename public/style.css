@@ -741,12 +741,6 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 .fx-dust .p:nth-of-type(3) { --x0: 0px; --y0: -20px; --x1: -2px; --y1: 18px; --d: 2.6s; width: 1.5px; height: 1.5px; }
 .fx-dust .p:nth-of-type(n + 4) { display: none; }
 
-/* Bone Dagger: a slow drop of blood now and then. */
-.fx-drip .p { width: 3px; height: 4px; border-radius: 50% 50% 50% 50% / 35% 35% 65% 65%; background: #b3122e; --t: 3.2s; --o: .8; }
-.fx-drip .p:nth-of-type(1) { --x0: 5px; --y0: 14px; --x1: 5px; --y1: 26px; --d: 0s; }
-.fx-drip .p:nth-of-type(2) { --x0: -7px; --y0: 14px; --x1: -7px; --y1: 26px; --d: 1.6s; }
-.fx-drip .p:nth-of-type(n + 3) { display: none; }
-
 /* Seal of Blasphemous Prayer: the Pentaract's five points, turning slowly. */
 .fx-pentagon .p { width: 3px; height: 3px; background: var(--aura-a); box-shadow: 0 0 4px var(--aura-a); animation-name: fx-orbit; animation-timing-function: linear; --t: 14s; --o: .6; --rad: 24px; }
 .fx-pentagon .p:nth-of-type(1) { --a0: 0deg; }
@@ -773,6 +767,20 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
   animation-name: fx-ripple; --t: 3s; --o: .5; --s0: 1; --s1: 1.45; }
 .fx-ward .p:nth-of-type(2) { --d: 1.5s; }
 .fx-ward .p:nth-of-type(n + 3) { display: none; }
+
+/* Wand of the Bulwark: the battle mages' wand that kept invaders out. Four rune-stones
+   circle the slot as a barrier, and now and then a spark is flung back off it. */
+.fx-bulwark .p { width: 5px; height: 5px; border-radius: 1px; background: color-mix(in srgb, var(--aura-a) 35%, transparent);
+  border: 1px solid var(--aura-s); box-shadow: 0 0 5px var(--aura-a); animation-name: fx-orbit; animation-timing-function: linear;
+  --t: 10s; --o: .8; --rad: 25px; --spin0: 45deg; --spin1: 45deg; }
+.fx-bulwark .p:nth-of-type(1) { --a0: 0deg; }
+.fx-bulwark .p:nth-of-type(2) { --a0: 90deg; }
+.fx-bulwark .p:nth-of-type(3) { --a0: 180deg; }
+.fx-bulwark .p:nth-of-type(4) { --a0: 270deg; }
+.fx-bulwark .p:nth-of-type(n + 5) { width: 2px; height: 2px; border: 0; border-radius: 50%; background: var(--aura-s); box-shadow: 0 0 4px var(--aura-s);
+  animation-name: fx-drift; animation-timing-function: ease-out; --t: 2.8s; --o: .9; }
+.fx-bulwark .p:nth-of-type(5) { --x0: 16px; --y0: -16px; --x1: 30px; --y1: -30px; --d: .4s; }
+.fx-bulwark .p:nth-of-type(6) { --x0: -16px; --y0: 16px; --x1: -30px; --y1: 30px; --d: 1.8s; }
 
 /* Helm of the Juggernaut: a heavy footfall sending a shockwave along the ground. */
 .fx-stomp .p:nth-of-type(1) { width: 30px; height: 6px; top: calc(50% + 18px); border-radius: 50%; background: none;
