@@ -89,7 +89,7 @@ The game server keeps bot accounts off the hiscores and out of item collections,
 
 ### Notable loot
 
-The home page's Latest loot lists untiered items and the best tier that can drop in each slot (T12 weapons, T13 armour, T6 abilities). Common untiered drops are excluded automatically using the server's own loot tables: anything with a drop chance of 10% or more, plus Wand of the Bulwark. Untiered items already owned by half the ranked players and T5 rings are excluded too. These rules live in `tools/update-catalog.mjs`.
+The home page's Latest loot lists untiered items and the best tier that can drop in each slot (T12 weapons, T13 armour, T6 abilities). Common untiered drops are excluded automatically using the server's own loot tables: anything with a drop chance of 10% or more, plus Wand of the Bulwark, Ring of Divine Faith and St. Abraham's Wand. Untiered items already owned by half the ranked players and T5 rings are excluded too. These rules live in `tools/update-catalog.mjs`.
 
 ## Development
 

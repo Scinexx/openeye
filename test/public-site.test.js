@@ -65,7 +65,7 @@ test('latest loot lists only rare untiered and top-tier drops, never T5 rings', 
     assert.ok(!(it.slot === 9 && it.tier === 5), `${it.name}: T5 rings are too common`);
   }
   const hidden = [...catalog.values()].filter(i => i.commonUt).map(i => i.name);
-  for (const name of ['Sprite Wand', 'Snake Skin Armor', 'Snake Skin Shield', 'Snake Eye Ring', 'Wand of the Bulwark', "Spider's Eye Ring", 'Poison Fang Dagger']) {
+  for (const name of ['Sprite Wand', 'Snake Skin Armor', 'Snake Skin Shield', 'Snake Eye Ring', 'Wand of the Bulwark', 'Ring of Divine Faith', "St. Abraham's Wand", "Spider's Eye Ring", 'Poison Fang Dagger']) {
     assert.ok(hidden.includes(name), `${name} is treated as common`);
   }
   assert.ok(!hidden.includes('Doom Bow') && !hidden.includes('Demon Blade'));
