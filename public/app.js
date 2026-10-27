@@ -622,7 +622,8 @@ async function player(name) {
         <div class="panel-body">
           <div class="tabs compact" role="group" aria-label="Chart metric">${Object.entries(BOARDS).map(([k, b], i) => h`<button type="button" data-metric="${k}" aria-pressed="${i === 0}">${b.short}</button>`)}</div>
           <div id="chart"></div>
-          <p class="chart-readout">${data.history.length} update${data.history.length === 1 ? '' : 's'} since ${day(p.first_seen)}.</p>
+          <p class="chart-readout">${data.history.filter(r => r.at >= p.first_seen).length} update${data.history.filter(r => r.at >= p.first_seen).length === 1 ? '' : 's'} since ${day(p.first_seen)}.</p>
+          ${data.history.some(r => r.at < p.first_seen) ? h`<p class="estimate-note">Stats before ${new Date(p.first_seen * 1000).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})} are estimated from deaths, characters and loot dates.</p>` : ''}
         </div>
       </section>
       <section class="panel">

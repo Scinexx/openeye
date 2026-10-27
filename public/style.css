@@ -780,3 +780,5 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 
 /* Item pages: the same first-find aura, twice the size (zoom keeps the pixels sharp). */
 .aura-big { zoom: 2; display: inline-flex; flex: none; margin: 4px; }
+
+.estimate-note { margin: 2px 0 0; color: var(--muted); font-size: 0.85rem; font-style: italic; }
