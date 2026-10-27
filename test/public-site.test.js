@@ -173,3 +173,12 @@ test('visitors are rate limited', async () => {
   for (let i = 0; i < 260 && !limited; i++) limited = (await fetch(base + '/api/status')).status === 429;
   assert.ok(limited);
 });
+
+test('Latest loot marks an untiered item nobody had looted before', async () => {
+  const s = await t.api.summary();
+  for (const f of s.recentFinds) {
+    const earlier = await one(t.db, 'SELECT COUNT(*) AS n FROM collection_items WHERE item = ? AND found_at < ?', f.item, f.found_at);
+    if (f.first) assert.equal(earlier.n, 0, `${f.item} is marked first but was found before`);
+  }
+  assert.ok(s.recentFinds.every(f => typeof f.first === 'boolean'));
+});

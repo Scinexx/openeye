@@ -114,9 +114,13 @@ export function makeApi(db, catalog, settings) {
       ? (await q(`SELECT item FROM collection_items c JOIN players p ON p.account = c.account AND ${rankedWhere(settings.minRankedStat, 'p.')}
           GROUP BY item HAVING COUNT(*) >= ?`, Math.ceil(players * settings.popularUtShare))).map(r => r.item)
       : []);
-    const rows = await q(`SELECT c.account, p.name, p.stars, c.item, c.found_at FROM collection_items c JOIN players p ON p.account = c.account
+    // first: nobody had looted this item before (the earliest find of it on record).
+    const rows = await q(`SELECT c.account, p.name, p.stars, c.item, c.found_at,
+        NOT EXISTS (SELECT 1 FROM collection_items x WHERE x.item = c.item AND x.found_at < c.found_at) AS first
+      FROM collection_items c JOIN players p ON p.account = c.account
       WHERE c.item IN (SELECT value FROM json_each(?)) ORDER BY c.found_at DESC LIMIT 200`, notableJson);
-    return rows.filter(f => !(popular.has(f.item) && untiered.has(f.item))).slice(0, limit);
+    return rows.filter(f => !(popular.has(f.item) && untiered.has(f.item))).slice(0, limit)
+      .map(f => ({...f, first: !!f.first && untiered.has(f.item)}));
   }
 
   // ---- Legends: players only, never bots ----
