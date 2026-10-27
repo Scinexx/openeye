@@ -608,3 +608,8 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
   .first-find > .slot, .first-find::before, .first-tag { animation: none; }
   .first-find .spark { display: none; }
 }
+
+/* ---------- Auras gallery (unlisted, /auras) ---------- */
+.aura-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; align-items: start; }
+.aura-card .rows > li { padding: 14px 16px; }
+.aura-swatch { width: 44px; height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--aura-a), var(--aura-b)); box-shadow: 0 0 8px color-mix(in srgb, var(--aura-a) 50%, transparent); }

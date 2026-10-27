@@ -328,7 +328,7 @@ const AURA_THEMES = {
   stone:     {name: 'Stone Guardian', a: '#b9b2a6', b: '#e8d38a', s: '#fff4cc'},
   pentaract: {name: 'The Pentaract', a: '#c4153a', b: '#ff6b8a', s: '#ffc2cf'},
   juggernaut:{name: 'Grand Sphinx and Hermit God', a: '#c87f3c', b: '#f0c27a', s: '#ffe2b0'},
-  holy:      {name: 'Manor of the Immortals, the vampire hunter’s arsenal', a: '#fff1c2', b: '#ffd86b', s: '#ffffff'},
+  holy:      {name: 'Manor of the Immortals, holy arsenal', a: '#fff1c2', b: '#ffd86b', s: '#ffffff'},
   blood:     {name: 'Manor of the Immortals', a: '#b3122e', b: '#ff5a6e', s: '#ffc0c8'},
   cube:      {name: 'Cube God', a: '#3fa9ff', b: '#b6e3ff', s: '#e6f6ff'},
   skulls:    {name: 'Skull Shrine', a: '#e0362a', b: '#f3e6c8', s: '#ffd9a8'},
@@ -1284,6 +1284,25 @@ async function about() {
     </div>`);
 }
 
+// Unlisted gallery of every first-find aura (not linked anywhere): /auras
+function auras() {
+  document.title = 'Auras | OpenEye';
+  view(h`
+    <div class="page-head"><div><h1>Auras</h1><p>The glow a UT gets in Latest loot when it is the first ever found, in the colours of where it drops.</p></div></div>
+    <div class="aura-gallery">${Object.entries(AURA_ITEMS).map(([key, names]) => {
+      const t = AURA_THEMES[key];
+      const ids = names.map(n => [...ITEMS.values()].find(i => i.name === n)?.id).filter(id => id !== undefined);
+      return h`<section class="panel aura-card">
+        <header><h2>${t.name}</h2><span class="aura-swatch" style="${auraStyle(t)}"></span></header>
+        <ul class="rows">${ids.map(id => h`<li>
+          <span class="first-find" style="${auraStyle(t)}">${itemSlot(id, 2)}${raw('<i class="spark"></i>'.repeat(3))}</span>
+          <span class="grow"><span class="title">${ITEMS.get(id).name}</span><span class="sub">${ITEMS.get(id).slotName}</span></span>
+          <span class="first-tag">First!</span>
+        </li>`)}</ul>
+      </section>`;
+    })}</div>`);
+}
+
 function notFound(message = 'There is nothing at this address.') {
   document.title = 'Not found | OpenEye';
   view(h`<div class="page-head"><div><h1>Not found</h1><p>${message}</p><p><a href="/" data-link>Go to the home page</a> or search for a player above.</p></div></div>`);
@@ -1304,7 +1323,8 @@ const routes = [
   [/^\/item\/(\d+)$/, m => item(Number(m[1])), 'items'],
   [/^\/enemies$/, () => enemies(), 'enemies'],
   [/^\/enemy\/(\d+)$/, m => enemy(Number(m[1])), 'enemies'],
-  [/^\/about$/, () => about(), 'about']
+  [/^\/about$/, () => about(), 'about'],
+  [/^\/auras\/?$/, () => auras(), '']
 ];
 
 const TITLES = {rankings: 'Rankings', graveyard: 'Graveyard', legends: 'Legends', loot: 'Loot', items: 'Items', enemies: 'Enemies', about: 'About'};
