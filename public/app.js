@@ -292,9 +292,10 @@ function historyChart(history, key) {
   pts.push({t: Math.max(nowTs, pts.at(-1).t + 1), v: pts.at(-1).v});
   const t0 = pts[0].t, t1 = pts.at(-1).t;
   // The scale runs from the lowest value instead of 0 when that is 50 or more, so players
-  // who were already high when tracking began still see their changes. Stars always start at 0.
+  // who were already high when tracking began still see their changes. Stars and living
+  // fame always start at 0.
   const low = Math.min(...pts.map(p => p.v));
-  const vmin = key === 'stars' || low < 50 ? 0 : low;
+  const vmin = key === 'stars' || key === 'base_fame' || low < 50 ? 0 : low;
   const vmax = Math.max(vmin + 1, ...pts.map(p => p.v));
   const x = t => L + ((t - t0) / (t1 - t0 || 1)) * (W - L - R);
   const y = v => T + (1 - (v - vmin) / (vmax - vmin)) * (H - T - B);
