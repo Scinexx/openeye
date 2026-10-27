@@ -424,7 +424,7 @@ async function bestCharacters() {
   };
   document.title = 'Best characters | OpenEye';
   view(h`
-    <div class="page-head"><div><h1>Rankings</h1><p>${CHAR_SORTS[sort].help}</p></div></div>
+    <div class="page-head"><div><h1>Rankings</h1></div></div>
     ${boardTabs('characters')}
     <div class="controls">
       <nav class="tabs" style="margin:0" aria-label="Sort characters">${Object.entries(CHAR_SORTS).map(([k, o]) => h`<a href="/rankings/characters${k === 'fame' ? '' : `?sort=${k}`}" data-link ${k === sort ? raw('aria-current="page"') : ''}>${o.title}</a>`)}</nav>
@@ -455,7 +455,7 @@ async function rankings(board) {
     </tr>`)}` : h`<tr><td colspan="${cols.length + 2}" class="empty">No players match “${filter}”.</td></tr>`);
   };
   view(h`
-    <div class="page-head"><div><h1>Rankings</h1><p>${BOARDS[board].help}</p></div></div>
+    <div class="page-head"><div><h1>Rankings</h1></div></div>
     ${boardTabs(board)}
     <div class="controls"><label class="sr" for="rank-filter">Filter players</label><input id="rank-filter" type="search" placeholder="Filter by name"><span class="muted">${fmt(players.length)} ranked players</span></div>
     <section class="panel"><div class="table-wrap"><table>
