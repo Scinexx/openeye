@@ -1456,12 +1456,19 @@ function drink(key) {
   drunk.add(key);
   saveDrunk();
   playSound('/sfx/use_potion.mp3');
+  // The potion is gone at once; only the page fades into the new theme.
+  drawThemeMenu();
   const apply = () => setTheme(key);
   if (document.startViewTransition && !reducedMotion()) document.startViewTransition(apply); else apply();
 }
-// Nexus: the client's map loading screen (MapLoadingView in client.swf: black, the character
-// centred at (399.5, 246) and the map name in bold white 30px below it at y 290.5, shown for
-// at least 1 second, then a 0.4 second fade). The character is a random class each time.
+// Nexus: the client's map loading screen, as read from client.swf (MapLoadingView and the code
+// that opens it): a black screen; the character walking right, its frames
+// AnimatedChar.imageFromDir(RIGHT, WALK, 0) and (…, 0.5) resized to 5x with no outline and
+// swapped every 200 ms, placed at charContainer (399.5, 245.85) minus half its bitmap, plus 5;
+// the map name in Myriad Pro bold 30px white, centred at mapNameContainer (399.5, 290.5); shown
+// for at least 1000 ms, then faded out over 0.4 s. The character is a random class each time.
+let WALK = null;
+async function loadWalk() { WALK = await staticJson('/catalog/walk.json').catch(() => null); }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function nexus() {
   closeThemes();
@@ -1470,7 +1477,8 @@ async function nexus() {
   const screen = document.createElement('div');
   screen.className = 'map-loading';
   screen.setAttribute('role', 'status');
-  screen.innerHTML = String(h`<span class="ml-char">${c ? classSprite(c.id, 40) : ''}</span><span class="ml-name">Nexus</span>`);
+  const row = c && WALK?.rows?.[c.id];
+  screen.innerHTML = String(h`${row !== undefined ? h`<span class="ml-char" role="img" aria-label="${c.name}" style="--walk-y:-${row * 40}px;background-size:${WALK.sheet.width * 5}px ${WALK.sheet.height * 5}px"></span>` : ''}<span class="ml-name">Nexus</span>`);
   document.body.append(screen);
   drunk.clear();
   saveDrunk();
@@ -1557,7 +1565,7 @@ async function footer() {
   } catch { /* server stopped */ }
 }
 
-await Promise.all([loadCatalog(), loadCrown(), loadGraves(), loadAuras()]);
+await Promise.all([loadCatalog(), loadCrown(), loadGraves(), loadAuras(), loadWalk()]);
 drawBrand();
 route();
 footer();

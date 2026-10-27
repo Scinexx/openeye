@@ -786,6 +786,10 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 /* ---------- Drinking potions and the Nexus loading screen ---------- */
 /* Drinking cross-fades the whole page into the new theme. */
 ::view-transition-old(root), ::view-transition-new(root) { animation-duration: .7s; animation-timing-function: ease-in-out; }
+/* The inventory is left out of the fade, so the drunk potion is simply gone. */
+#theme-menu { view-transition-name: theme-menu; }
+::view-transition-group(theme-menu), ::view-transition-new(theme-menu) { animation: none; }
+::view-transition-old(theme-menu) { display: none; }
 /* A drunk potion leaves an empty slot (and no selection ring) until the next Nexus. */
 .inv-slot.drunk { cursor: default; }
 .inv-slot.drunk[aria-checked="true"]::before { background: #545454; }
@@ -794,8 +798,13 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
    character centred at y 246, the map name's top at y 290.5. */
 .map-loading { position: fixed; inset: 0; z-index: 1000; background: #000; transition: opacity .4s linear; }
 .map-loading.out { opacity: 0; }
-.map-loading .ml-char { position: absolute; left: 50%; top: calc(50% - 54px); transform: translate(-50%, -50%); line-height: 0; }
-.map-loading .ml-char .cls { width: 40px; height: 40px; image-rendering: pixelated; }
-.map-loading .ml-name { position: absolute; left: 50%; top: calc(50% - 9.5px); transform: translateX(-50%);
+/* 8px frames at 5x (40px), no outline. Centre: x +5 from charContainer (399.5) = 4.5 right of
+   the stage centre; y from charContainer (245.85) with the resized bitmap's 12px padding
+   (TextureRedrawer.resize) = 48.65 above the stage centre. Two frames, 200 ms each. */
+.map-loading .ml-char { position: absolute; left: calc(50% + 4.5px); top: calc(50% - 48.65px); width: 40px; height: 40px;
+  transform: translate(-50%, -50%); background: url(/catalog/walk.png) no-repeat 0 var(--walk-y, 0);
+  image-rendering: pixelated; image-rendering: crisp-edges; animation: ml-walk .4s steps(1, end) infinite; }
+@keyframes ml-walk { 0% { background-position: 0 var(--walk-y, 0); } 50% { background-position: -40px var(--walk-y, 0); } }
+.map-loading .ml-name { position: absolute; left: calc(50% - 0.5px); top: calc(50% - 9.5px); transform: translateX(-50%);
   font: 700 30px "Tooltip Sans", sans-serif; color: #fff; white-space: nowrap; }
-@media (prefers-reduced-motion: reduce) { ::view-transition-old(root), ::view-transition-new(root) { animation: none; } .map-loading { transition: none; } }
+@media (prefers-reduced-motion: reduce) { ::view-transition-old(root), ::view-transition-new(root) { animation: none; } .map-loading { transition: none; } .map-loading .ml-char { animation: none; } }

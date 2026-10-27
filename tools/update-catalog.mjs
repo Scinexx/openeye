@@ -12,6 +12,7 @@ import {fileURLToPath} from 'node:url';
 import {parseElement, equipmentTooltip} from './tooltip.mjs';
 import {swfBitmaps} from './codex/swf.mjs';
 import {buildGraves} from './codex/graves.mjs';
+import {buildWalk} from './codex/walk.mjs';
 import {buildAuras} from './codex/auras.mjs';
 import {decodePng} from './codex/png.mjs';
 import {buildEnemies, literalDrops} from './codex/enemies.mjs';
@@ -192,9 +193,13 @@ if (lootFile) {
 } else {
   console.log('Enemies not rebuilt: pass --loot <file> from tools/codex/loot_export.rs.');
 }
-// ---- gravestones ----
+// ---- gravestones and walking frames ----
 {
-  const {graves, sheet} = buildGraves({objects, sheets: swfBitmaps(await get(SOURCES.client, true))});
+  const clientSheets = swfBitmaps(await get(SOURCES.client, true));
+  const walk = buildWalk({classes, objects, sheets: clientSheets});
+  await writeFile(join(out, 'walk.json'), JSON.stringify({sheet: {width: walk.sheet.width, height: walk.sheet.height}, rows: walk.rows}));
+  await writeFile(join(out, 'walk.png'), walk.sheet.png);
+  const {graves, sheet} = buildGraves({objects, sheets: clientSheets});
   await writeFile(join(out, 'graves.json'), JSON.stringify({sheet: {width: sheet.width, height: sheet.height}, graves}));
   await writeFile(join(out, 'graves.png'), sheet.png);
 }
