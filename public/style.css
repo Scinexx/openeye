@@ -1282,3 +1282,9 @@ html.invisible main, html.invisible .footer { opacity: .28; }
 #theme-fx .fx-leaf { top: -30px; width: 16px; height: 9px; border-radius: 0 100% 0 100%; background: linear-gradient(135deg, #b6ff3b, #3f8f1a); opacity: 0;
   will-change: transform, opacity; animation: fx-leaf-fall var(--t) linear var(--d) infinite; }
 @keyframes fx-leaf-fall { 0% { transform: translate(0, 0) rotate(0); opacity: 0; } 10% { opacity: .7; } 50% { transform: translate(var(--dx), 55vh) rotate(260deg); } 90% { opacity: .6; } 100% { transform: translate(0, 112vh) rotate(520deg); opacity: 0; } }
+/* Arriving in a theme (drinking, using a key): a flash of its colour spreading from the middle. */
+#theme-fx.intro::before { content: ""; position: absolute; inset: 0; pointer-events: none; will-change: transform, opacity;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 30%, transparent), transparent 65%);
+  animation: fx-arrive 1.4s ease-out forwards; }
+@keyframes fx-arrive { from { transform: scale(.4); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { #theme-fx.intro::before { display: none; } }
