@@ -909,16 +909,16 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
   radial-gradient(60% 70% at 88% 92%, rgb(160 10 20 / .22), transparent 70%),
   radial-gradient(120% 95% at 50% 45%, rgb(8 5 12 / .45) 30%, rgb(4 2 6 / .92) 100%),
   rgb(12 8 16 / .35); }
-.fx-oryx { right: max(2vw, 12px); bottom: 0; width: 256px; height: 256px; will-change: transform; animation: fx-loom 6s ease-in-out infinite alternate; }
+.fx-oryx { right: max(2vw, 12px); bottom: 0; width: min(256px, 42vw); aspect-ratio: 1; will-change: transform; animation: fx-loom 6s ease-in-out infinite alternate; }
 .fx-oryx::before { content: ""; position: absolute; inset: 0; opacity: .92;
   background: url(/catalog/oryx.png) 0 0 / 100% 100% no-repeat; image-rendering: pixelated; image-rendering: crisp-edges;
   filter: drop-shadow(0 0 24px rgb(0 0 0 / .9)) drop-shadow(0 0 2px rgb(255 60 60 / .3)); }
 @keyframes fx-loom { from { transform: translateY(6px); } to { transform: translateY(-6px); } }
-/* The eyes are the sprite's red pixels (6,4) and (9,4), 16px each at this size. */
-.fx-oryx > b { position: absolute; top: 64px; width: 16px; height: 16px; background: #ff5050; border-radius: 2px;
+/* The eyes are the sprite's red pixels (6,4) and (9,4) of 16. */
+.fx-oryx > b { position: absolute; top: 25%; width: 6.25%; height: 6.25%; background: #ff5050; border-radius: 2px;
   box-shadow: 0 0 10px 3px rgb(255 40 40 / .85), 0 0 34px 10px rgb(255 0 0 / .35); will-change: opacity; animation: fx-glare 3.2s ease-in-out infinite; }
-.fx-oryx > b:first-child { left: 96px; }
-.fx-oryx > b:last-child { left: 144px; }
+.fx-oryx > b:first-child { left: 37.5%; }
+.fx-oryx > b:last-child { left: 56.25%; }
 @keyframes fx-glare { 0%, 100% { opacity: .55; } 45% { opacity: 1; } 55% { opacity: .9; } }
 .fx-drip { top: -14px; width: 5px; height: 9px; border-radius: 50% 50% 50% 50% / 35% 35% 65% 65%; background: linear-gradient(#b0182c, #5a0612);
   box-shadow: 0 0 4px rgb(200 20 40 / .5); will-change: transform, opacity; animation: fx-drip var(--t) cubic-bezier(.55, 0, 1, .45) var(--d) infinite; }
@@ -1249,3 +1249,31 @@ html.invisible main, html.invisible .footer { opacity: .28; }
 :root:is([data-theme="life"], [data-theme="mana"], [data-theme="attack"], [data-theme="defense"], [data-theme="speed"], [data-theme="dexterity"], [data-theme="vitality"], [data-theme="wisdom"],
   [data-theme="tomb"], [data-theme="trench"], [data-theme="manor"], [data-theme="locker"], [data-theme="madlab"], [data-theme="abyss"], [data-theme="undead"], [data-theme="sprite"]) .panel:not(.fame-box) {
   background: color-mix(in srgb, var(--panel) 90%, transparent); }
+
+/* ---------- Extra touches for the rare finds ---------- */
+/* Snake Oil: oily soap bubbles drifting up the white page. */
+.fx-mote.fx-soap { background: radial-gradient(circle at 30% 28%, rgb(255 255 255 / .95) 0 8%, transparent 14%), radial-gradient(circle, transparent 58%, rgb(255 255 255 / .2) 64%, transparent 72%);
+  border: 1.5px solid transparent; border-radius: 50%; box-shadow: inset 0 0 6px rgb(127 214 255 / .5), inset -4px -3px 8px rgb(255 159 208 / .45), inset 4px 3px 8px rgb(168 255 154 / .35), 0 1px 3px rgb(0 0 0 / .08); }
+/* Magic Mushroom: ripples spreading from the middle, like a drop in a pool of colour. */
+.fx-ripple { left: 50%; top: 50%; width: 30vmin; aspect-ratio: 1; margin: -15vmin 0 0 -15vmin; border-radius: 50%; opacity: 0; will-change: transform, opacity;
+  border: 3px solid var(--c); animation: fx-ripple 9s ease-out var(--d) infinite; }
+@keyframes fx-ripple { 0% { transform: scale(.2); opacity: .5; } 100% { transform: scale(5); opacity: 0; } }
+/* Bahama Sunrise: gulls gliding over the sea. */
+.fx-gull { left: -60px; width: 34px; height: 12px; will-change: transform; animation: fx-glide var(--t) linear var(--d) infinite; }
+.fx-gull > b { position: absolute; inset: 0; background: #1c0d26; will-change: transform; animation: fx-flap 0.9s ease-in-out infinite alternate;
+  clip-path: polygon(0 20%, 25% 45%, 50% 70%, 75% 45%, 100% 20%, 100% 40%, 75% 65%, 50% 100%, 25% 65%, 0 40%); }
+@keyframes fx-glide { 0% { transform: translate(0, 0) scale(var(--k)); } 50% { transform: translate(55vw, var(--dy)) scale(var(--k)); } 100% { transform: translate(112vw, 0) scale(var(--k)); } }
+/* Blue Paradise: a school of fish passing through. */
+.fx-fish { right: -60px; width: 30px; height: 12px; opacity: .55; will-change: transform; animation: fx-swim var(--t) linear var(--d) infinite; }
+.fx-fish > b { position: absolute; inset: 0; background: linear-gradient(90deg, #f2e235, #ffb347 70%, #ff7a3d); will-change: transform; animation: fx-wiggle .5s ease-in-out infinite alternate;
+  clip-path: polygon(0 50%, 25% 10%, 62% 0, 78% 30%, 100% 0, 92% 50%, 100% 100%, 78% 70%, 62% 100%, 25% 90%); }
+@keyframes fx-swim { 0% { transform: translate(0, 0); } 50% { transform: translate(-58vw, var(--dy)); } 100% { transform: translate(-118vw, 0); } }
+@keyframes fx-wiggle { from { transform: skewY(-6deg); } to { transform: skewY(6deg); } }
+/* Pink Passion Breeze: soft bokeh lights drifting. */
+.fx-bokeh { width: var(--s); aspect-ratio: 1; border-radius: 50%; will-change: transform, opacity; background: radial-gradient(circle, rgb(255 170 235 / .22), rgb(255 120 220 / .1) 60%, transparent 70%);
+  animation: fx-bokeh var(--t) ease-in-out var(--d) infinite alternate; }
+@keyframes fx-bokeh { from { transform: translate(0, 0) scale(.9); opacity: .4; } to { transform: translate(var(--dx), var(--dy)) scale(1.15); opacity: 1; } }
+/* Lime Jungle Bay: leaves spinning down. */
+.fx-leaf { top: -30px; width: 16px; height: 9px; border-radius: 0 100% 0 100%; background: linear-gradient(135deg, #b6ff3b, #3f8f1a); opacity: 0;
+  will-change: transform, opacity; animation: fx-leaf-fall var(--t) linear var(--d) infinite; }
+@keyframes fx-leaf-fall { 0% { transform: translate(0, 0) rotate(0); opacity: 0; } 10% { opacity: .7; } 50% { transform: translate(var(--dx), 55vh) rotate(260deg); } 90% { opacity: .6; } 100% { transform: translate(0, 112vh) rotate(520deg); opacity: 0; } }

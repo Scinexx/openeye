@@ -1309,12 +1309,12 @@ const THEME_NOTES = {
   sprite: 'Twinkling stars, drifting nebulae and the odd shooting star.',
   cellar: 'Oryx’s Wine Cellar from the game’s own map, with the Mad God himself watching.',
   rum: 'Inside the ghostly bottle: rum sloshing, bubbles and spirits rising.',
-  snakeoil: 'The tonic show’s spotless white, with an oily rainbow sheen.',
-  mushroom: 'Amanita red, a turning rainbow and pulsing spores. Eat it to hallucinate.',
-  sunrise: 'The sun climbs out of the sea between the palms.',
-  paradise: 'Under the lagoon: caustic light, sun shafts and rising bubbles.',
-  passion: 'A warm magenta breeze carrying petals.',
-  jungle: 'A jungle bay at night, with fireflies and moonlight.'
+  snakeoil: 'The tonic show’s spotless white: oily soap bubbles and a rainbow sheen.',
+  mushroom: 'Amanita red, a turning rainbow, ripples and pulsing spores. Eat it to hallucinate.',
+  sunrise: 'The sun climbs out of the sea between the palms while gulls glide by.',
+  paradise: 'Under the lagoon: caustic light, sun shafts, bubbles and a passing school of fish.',
+  passion: 'A warm magenta breeze carrying petals past soft lights.',
+  jungle: 'A jungle bay at night: fireflies, moonlight and leaves spinning down.'
 };
 function vault() {
   document.title = 'Vault | OpenEye';
@@ -1764,12 +1764,12 @@ const FX = {
   sprite: () => `<i class="fx-haze fx-nebula"></i>${many(16, () => `<i class="fx-glint fx-star" style="left:${pct(1, 99)};top:${pct(2, 98)};--c:${['#7cf7ff', '#ff7ad9', '#fff', '#b48cff'][Math.floor(Math.random() * 4)]};--t:${rand(3, 7).toFixed(1)}s;--d:-${rand(0, 7).toFixed(1)}s"></i>`)}${many(2, () => `<i class="fx-shoot" style="left:${pct(0, 50)};top:${pct(0, 35)};--t:${rand(9, 15).toFixed(1)}s;--d:-${rand(0, 15).toFixed(1)}s"></i>`)}`,
   cellar: () => `<i class="fx-cellar"></i><i class="fx-gloom"></i>${many(6, () => `<i class="fx-drip" style="left:${pct(3, 97)};--t:${rand(7, 14).toFixed(1)}s;--d:-${rand(0, 14).toFixed(1)}s"></i>`)}<i class="fx-oryx"><b></b><b></b></i><i class="fx-sigil"></i>`,
   rum: () => `<i class="fx-wave"></i><i class="fx-wave b"></i>${many(9, () => `<i class="fx-bubble" style="left:${pct(2, 98)};--s:${rand(4, 11).toFixed(0)}px;--t:${rand(6, 13).toFixed(1)}s;--d:-${rand(0, 13).toFixed(1)}s"></i>`)}${many(3, i => `<i class="fx-wisp" style="left:${10 + i * 32}%;--t:${rand(16, 24).toFixed(1)}s;--d:-${rand(0, 20).toFixed(1)}s"></i>`)}`,
-  snakeoil: () => '<i class="fx-slick"></i>',
-  mushroom: () => `<i class="fx-trip"></i>${many(7, () => `<i class="fx-spore" style="left:${pct(0, 100)};top:${pct(10, 95)};--s:${rand(14, 40).toFixed(0)}px;--t:${rand(7, 12).toFixed(1)}s;--d:-${rand(0, 12).toFixed(1)}s"></i>`)}`,
-  sunrise: () => '<i class="fx-sun"></i><i class="fx-glare"></i><i class="fx-palm"></i><i class="fx-palm b"></i>',
-  paradise: () => `<i class="fx-caustics"></i><i class="fx-caustics b"></i><i class="fx-surface"></i>${many(5, i => `<i class="fx-ray" style="left:${8 + i * 21 + rand(-5, 5)}%;--a:${rand(-14, 14).toFixed(1)}deg;--t:${rand(7, 12).toFixed(1)}s;--d:-${rand(0, 12).toFixed(1)}s"></i>`)}<i class="fx-deep"></i>${many(12, () => `<i class="fx-mote" style="left:${pct(2, 98)};--s:${rand(3, 9).toFixed(0)}px;--dx:${rand(-40, 40).toFixed(0)}px;--t:${rand(12, 24).toFixed(1)}s;--d:-${rand(0, 24).toFixed(1)}s"></i>`)}${many(5, () => `<i class="fx-glint" style="left:${pct(3, 97)};top:${pct(4, 30)};--t:${rand(3, 6).toFixed(1)}s;--d:-${rand(0, 6).toFixed(1)}s"></i>`)}`,
-  passion: () => `<i class="fx-haze"></i>${many(11, () => `<i class="fx-petal" style="top:${pct(-10, 70)};--s:${rand(10, 20).toFixed(0)}px;--t:${rand(11, 19).toFixed(1)}s;--d:-${rand(0, 19).toFixed(1)}s;--r:${rand(-200, 200).toFixed(0)}deg"></i>`)}`,
-  jungle: () => `<i class="fx-leaves"></i><i class="fx-leaves b"></i>${many(16, () => `<i class="fx-fly" style="left:${pct(2, 98)};top:${pct(25, 98)};--t:${rand(5, 10).toFixed(1)}s;--d:-${rand(0, 10).toFixed(1)}s;--dx:${rand(-60, 60).toFixed(0)}px;--dy:${rand(-50, 20).toFixed(0)}px"></i>`)}`
+  snakeoil: () => '<i class="fx-slick"></i>' + many(10, () => `<i class="fx-mote fx-soap" style="left:${pct(2, 98)};--s:${rand(16, 42).toFixed(0)}px;--dx:${rand(-50, 50).toFixed(0)}px;--t:${rand(16, 28).toFixed(1)}s;--d:-${rand(0, 28).toFixed(1)}s"></i>`),
+  mushroom: () => `<i class="fx-trip"></i>${many(7, () => `<i class="fx-spore" style="left:${pct(0, 100)};top:${pct(10, 95)};--s:${rand(14, 40).toFixed(0)}px;--t:${rand(7, 12).toFixed(1)}s;--d:-${rand(0, 12).toFixed(1)}s"></i>`)}` + many(3, i => `<i class="fx-ripple" style="--c:${['#ff4d6d', '#fff35c', '#5cd6ff'][i]};--d:-${i * 3}s"></i>`),
+  sunrise: () => '<i class="fx-sun"></i><i class="fx-glare"></i><i class="fx-palm"></i><i class="fx-palm b"></i>' + many(4, () => `<i class="fx-gull" style="top:${pct(8, 40)};--k:${rand(.5, 1).toFixed(2)};--dy:${rand(-40, 30).toFixed(0)}px;--t:${rand(26, 40).toFixed(1)}s;--d:-${rand(0, 40).toFixed(1)}s"><b></b></i>`),
+  paradise: () => `<i class="fx-caustics"></i><i class="fx-caustics b"></i><i class="fx-surface"></i>${many(5, i => `<i class="fx-ray" style="left:${8 + i * 21 + rand(-5, 5)}%;--a:${rand(-14, 14).toFixed(1)}deg;--t:${rand(7, 12).toFixed(1)}s;--d:-${rand(0, 12).toFixed(1)}s"></i>`)}<i class="fx-deep"></i>${many(12, () => `<i class="fx-mote" style="left:${pct(2, 98)};--s:${rand(3, 9).toFixed(0)}px;--dx:${rand(-40, 40).toFixed(0)}px;--t:${rand(12, 24).toFixed(1)}s;--d:-${rand(0, 24).toFixed(1)}s"></i>`)}${many(5, () => `<i class="fx-glint" style="left:${pct(3, 97)};top:${pct(4, 30)};--t:${rand(3, 6).toFixed(1)}s;--d:-${rand(0, 6).toFixed(1)}s"></i>`)}` + many(7, () => `<i class="fx-fish" style="top:${pct(35, 60)};--dy:${rand(-50, 50).toFixed(0)}px;--t:28s;--d:-${rand(0, 3).toFixed(1)}s"><b></b></i>`),
+  passion: () => `<i class="fx-haze"></i>${many(11, () => `<i class="fx-petal" style="top:${pct(-10, 70)};--s:${rand(10, 20).toFixed(0)}px;--t:${rand(11, 19).toFixed(1)}s;--d:-${rand(0, 19).toFixed(1)}s;--r:${rand(-200, 200).toFixed(0)}deg"></i>`)}` + many(7, () => `<i class="fx-bokeh" style="left:${pct(0, 95)};top:${pct(0, 90)};--s:${rand(60, 160).toFixed(0)}px;--dx:${rand(-80, 80).toFixed(0)}px;--dy:${rand(-60, 60).toFixed(0)}px;--t:${rand(8, 14).toFixed(1)}s;--d:-${rand(0, 14).toFixed(1)}s"></i>`),
+  jungle: () => `<i class="fx-leaves"></i><i class="fx-leaves b"></i>${many(16, () => `<i class="fx-fly" style="left:${pct(2, 98)};top:${pct(25, 98)};--t:${rand(5, 10).toFixed(1)}s;--d:-${rand(0, 10).toFixed(1)}s;--dx:${rand(-60, 60).toFixed(0)}px;--dy:${rand(-50, 20).toFixed(0)}px"></i>`)}` + many(6, () => `<i class="fx-leaf" style="left:${pct(2, 98)};--dx:${rand(-120, 120).toFixed(0)}px;--t:${rand(14, 22).toFixed(1)}s;--d:-${rand(0, 22).toFixed(1)}s"></i>`)
 };
 function themeFx(key, intro = false) {
   fxLayer.className = intro ? 'intro' : '';
