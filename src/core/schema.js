@@ -55,7 +55,23 @@ export const SCHEMA = [
   // is known even though the death records do not include stats.
   `CREATE TABLE IF NOT EXISTS char_stats (
     char_id INTEGER PRIMARY KEY, account INTEGER NOT NULL, class INTEGER NOT NULL, level INTEGER NOT NULL,
-    stats TEXT NOT NULL, seen_at INTEGER NOT NULL)`
+    stats TEXT NOT NULL, seen_at INTEGER NOT NULL)`,
+  // Guilds, once the hiscores share them. As in the game, a member's death pays its total
+  // fame (with bonuses) to the guild: fame is what the guild can spend on its hall, earned
+  // everything it has ever been paid. level is the Guild Hall (1 to 4).
+  `CREATE TABLE IF NOT EXISTS guilds (
+    id INTEGER PRIMARY KEY, name TEXT NOT NULL, level INTEGER NOT NULL DEFAULT 1, fame INTEGER NOT NULL DEFAULT 0,
+    earned INTEGER NOT NULL DEFAULT 0, members INTEGER NOT NULL DEFAULT 0, first_seen INTEGER NOT NULL,
+    last_seen INTEGER NOT NULL, listed INTEGER NOT NULL DEFAULT 1)`,
+  `CREATE INDEX IF NOT EXISTS guilds_name ON guilds(name COLLATE NOCASE)`,
+  // One row each time a guild's numbers change, for its fame graph.
+  `CREATE TABLE IF NOT EXISTS guild_history (
+    guild INTEGER NOT NULL, at INTEGER NOT NULL, level INTEGER NOT NULL, fame INTEGER NOT NULL,
+    earned INTEGER NOT NULL, members INTEGER NOT NULL, PRIMARY KEY (guild, at))`,
+  // What happened in a guild: joined, left, rank (detail = new rank), upgrade (detail = hall level).
+  `CREATE TABLE IF NOT EXISTS guild_events (
+    guild INTEGER NOT NULL, at INTEGER NOT NULL, account INTEGER NOT NULL, kind TEXT NOT NULL, detail INTEGER,
+    PRIMARY KEY (guild, at, account, kind))`
 ];
 // Columns added after the first release. SQLite has no ADD COLUMN IF NOT EXISTS, so
 // "duplicate column" errors are expected and ignored.
@@ -64,7 +80,13 @@ const COLUMNS = [
   // Base stats at death [hp, mp, att, def, spd, dex, vit, wis], when the graveyard sends them.
   'ALTER TABLE deaths ADD COLUMN base_stats TEXT',
   // 1 once the player's history before tracking has been filled in (src/core/backfill.js).
-  'ALTER TABLE players ADD COLUMN backfilled INTEGER NOT NULL DEFAULT 0'
+  'ALTER TABLE players ADD COLUMN backfilled INTEGER NOT NULL DEFAULT 0',
+  // The player's guild, their rank in it (0 Initiate ... 40 Founder) and the fame they have paid it.
+  'ALTER TABLE players ADD COLUMN guild_id INTEGER',
+  'ALTER TABLE players ADD COLUMN guild_rank INTEGER',
+  'ALTER TABLE players ADD COLUMN guild_fame INTEGER NOT NULL DEFAULT 0',
+  // The guild the character's death paid its fame to (deaths after guild tracking began).
+  'ALTER TABLE deaths ADD COLUMN guild_id INTEGER'
 ];
 
 /** Create every table and index if missing. `db` is a D1 database or the local adapter. */

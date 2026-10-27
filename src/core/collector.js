@@ -11,6 +11,12 @@ const MAX_DETAIL_TRIES = 5;
 const COLLECTIONS_PER_RUN = 60;
 const LOCK_SECONDS = 600;
 
+// A death found in this run, of a character that died after guild tracking began, paid its
+// fame to the guild its player is in (as the game does on death).
+const creditGuilds = (db, at) => db.prepare(`UPDATE deaths SET guild_id = (SELECT guild_id FROM players p WHERE p.account = deaths.account)
+  WHERE guild_id IS NULL AND (discovered_at >= ? OR died_at >= ?) AND died_at IS NOT NULL
+    AND died_at >= COALESCE((SELECT CAST(value AS INTEGER) FROM meta WHERE key = 'guilds_since'), 9e18)`).bind(at - 600, at - 3600);
+
 export class Collector {
   /**
    * @param db  Cloudflare D1 database, or the local adapter with the same API
@@ -59,12 +65,60 @@ export class Collector {
       WHERE true ON CONFLICT(name) DO UPDATE SET last_seen = excluded.last_seen`).bind(at, at, JSON.stringify(names)).run();
   }
 
+  /**
+   * Guilds from the hiscores (once the server shares them): each guild's standing, each
+   * player's guild and rank, a history point when a guild's numbers change, and events for
+   * joins, departures, rank changes and hall upgrades. Deaths found from now on are credited
+   * to the guild the player was in, as the game pays a member's death fame to their guild.
+   */
+  async guildStatements(data, known, at) {
+    const db = this.db;
+    const ok = n => Number.isSafeInteger(n) && n >= 0;
+    const guilds = data.guilds.filter(g => ok(g.id) && typeof g.name === 'string' && ok(g.fame) && ok(g.earned))
+      .map(g => ({id: g.id, name: g.name.slice(0, 40), level: ok(g.level) ? g.level : 1, fame: g.fame, earned: g.earned, members: ok(g.members) ? g.members : 0}));
+    const ids = new Set(guilds.map(g => g.id));
+    const old = new Map((await this.all('SELECT id, level, fame, earned, members FROM guilds')).map(r => [r.id, r]));
+    const stmts = [db.prepare('UPDATE guilds SET listed = 0')];
+    // Joins and departures are only news once guilds were already being followed: the first
+    // time they appear, everyone is simply where they already were.
+    const following = (await getMeta(db, 'guilds_since')) !== null;
+    if (!following) stmts.push(setMetaStmt(db, 'guilds_since', at));
+    stmts.push(setMetaStmt(db, 'guilds_at', at));
+    for (const g of guilds) {
+      const before = old.get(g.id);
+      stmts.push(db.prepare(`INSERT INTO guilds(id, name, level, fame, earned, members, first_seen, last_seen, listed) VALUES(?,?,?,?,?,?,?,?,1)
+        ON CONFLICT(id) DO UPDATE SET name = excluded.name, level = excluded.level, fame = excluded.fame, earned = excluded.earned,
+          members = excluded.members, last_seen = excluded.last_seen, listed = 1`).bind(g.id, g.name, g.level, g.fame, g.earned, g.members, at, at));
+      if (!before || ['level', 'fame', 'earned', 'members'].some(k => before[k] !== g[k])) {
+        stmts.push(db.prepare('INSERT OR REPLACE INTO guild_history(guild, at, level, fame, earned, members) VALUES(?,?,?,?,?,?)')
+          .bind(g.id, at, g.level, g.fame, g.earned, g.members));
+      }
+      if (following && before && g.level > before.level) {
+        stmts.push(db.prepare("INSERT OR IGNORE INTO guild_events(guild, at, account, kind, detail) VALUES(?,?,0,'upgrade',?)").bind(g.id, at, g.level));
+      }
+    }
+    for (const p of data.players) {
+      const m = p.guild && ok(p.guild.id) && ids.has(p.guild.id) ? p.guild : null;
+      const id = m ? m.id : null, rank = m && ok(m.rank) ? m.rank : null, fame = m && ok(m.fame) ? m.fame : 0;
+      stmts.push(db.prepare('UPDATE players SET guild_id = ?, guild_rank = ?, guild_fame = ? WHERE account = ?').bind(id, rank, fame, p.account));
+      const was = known.get(p.account);
+      if (!following || !was) continue;
+      if (was.guild_id !== id) {
+        if (was.guild_id !== null) stmts.push(db.prepare("INSERT OR IGNORE INTO guild_events(guild, at, account, kind) VALUES(?,?,?,'left')").bind(was.guild_id, at, p.account));
+        if (id !== null) stmts.push(db.prepare("INSERT OR IGNORE INTO guild_events(guild, at, account, kind, detail) VALUES(?,?,?,'joined',?)").bind(id, at, p.account, rank));
+      } else if (id !== null && was.guild_rank !== null && was.guild_rank !== rank) {
+        stmts.push(db.prepare("INSERT OR IGNORE INTO guild_events(guild, at, account, kind, detail) VALUES(?,?,?,'rank',?)").bind(id, at, p.account, rank));
+      }
+    }
+    return stmts;
+  }
+
   async syncHiscores() {
     if (this.left() < 1) return false;
     const data = await this.api.hiscores();
     const at = now();
     const db = this.db;
-    const known = new Map((await this.all('SELECT account, base_fame, total_fame, stars, quests, collection FROM players'))
+    const known = new Map((await this.all('SELECT account, base_fame, total_fame, stars, quests, collection, guild_id, guild_rank FROM players'))
       .map(r => [r.account, r]));
     // Fame earned. On the first poll (or a player's first appearance) their current living
     // fame is credited as earned the day before; after that, every rise counts.
@@ -125,6 +179,7 @@ export class Collector {
         setMetaStmt(db, 'characters_at', at)
       );
     }
+    if (Array.isArray(data.guilds)) stmts.push(...await this.guildStatements(data, known, at));
     await db.batch(stmts);
     if (added || changed) this.log.info(`hiscores: ${data.players.length} players, ${added} new, ${changed} changed`);
 
@@ -189,6 +244,7 @@ export class Collector {
           VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(account, char_id) DO NOTHING`)
           .bind(e.account, e.charId, e.name ?? '', e.class ?? 0, e.tex1, e.tex2, JSON.stringify(e.equipment), e.totalFame ?? 0, at));
       });
+      stmts.push(creditGuilds(db, at));
       const results = await db.batch(stmts);
       for (const idx of deathIdx) discovered += Number(results[idx]?.meta?.changes ?? 0);
     }
@@ -275,6 +331,7 @@ export class Collector {
           ON CONFLICT(account, char_id) DO UPDATE SET level = COALESCE(deaths.level, excluded.level),
             died_at = COALESCE(deaths.died_at, excluded.died_at), killed_by = COALESCE(deaths.killed_by, excluded.killed_by),
             base_fame = COALESCE(deaths.base_fame, excluded.base_fame), base_stats = COALESCE(excluded.base_stats, deaths.base_stats)`).bind(at, JSON.stringify(keep)),
+        creditGuilds(db, at),
         setMetaStmt(db, 'graveyard_since', next),
         setMetaStmt(db, 'graveyard_ok', at)
       ]);

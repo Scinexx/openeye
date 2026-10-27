@@ -25,6 +25,7 @@ const IS_BOT = 'NOT EXISTS (SELECT 1 FROM players bp WHERE bp.account = d.accoun
 const BOT_CONFIRMED = 'EXISTS (SELECT 1 FROM bots b WHERE b.name = d.name)';
 
 const DEATH_COLS = `d.account, d.char_id, d.name, d.class, d.tex1, d.tex2, d.equipment, d.total_fame, d.base_fame,
+  d.guild_id, (SELECT g.name FROM guilds g WHERE g.id = d.guild_id) AS guild_name,
   d.level, d.died_at, d.killed_by, d.discovered_at, d.detail_status,
   COALESCE(d.base_stats, (SELECT cs.stats FROM char_stats cs WHERE cs.char_id = d.char_id)) AS base_stats,
   ${IS_BOT} AS is_bot, ${BOT_CONFIRMED} AS bot_confirmed,
@@ -94,7 +95,8 @@ export function makeApi(db, catalog, settings) {
     // (OpenRotMG server PR #624): living characters and the full graveyard.
     const features = {
       characters: Number(await getMeta(db, 'characters_at') ?? 0) > now() - 86400,
-      graveyard: (await getMeta(db, 'graveyard_ok')) !== null
+      graveyard: (await getMeta(db, 'graveyard_ok')) !== null,
+      guilds: Number(await getMeta(db, 'guilds_at') ?? 0) > now() - 86400
     };
     const jobs = {};
     for (const job of ['health', 'hiscores', 'legends', 'deaths', ...(features.graveyard ? ['graveyard'] : [])]) {
@@ -214,7 +216,9 @@ export function makeApi(db, catalog, settings) {
       ORDER BY (name = ? COLLATE NOCASE) DESC, listed DESC, stars DESC LIMIT 10`, like, text);
     const former = await q(`SELECT h.name AS former, p.account, p.name, p.stars FROM name_history h JOIN players p ON p.account = h.account
       WHERE h.name LIKE ? ESCAPE '\\' AND h.name != p.name LIMIT 5`, like);
-    return {players, former};
+    const guilds = await q(`SELECT name FROM guilds WHERE listed = 1 AND name LIKE ? ESCAPE '\\'
+      ORDER BY (name = ? COLLATE NOCASE) DESC, earned DESC LIMIT 5`, like, text);
+    return {players, former, guilds};
   }
 
   async function player(name) {
@@ -243,7 +247,10 @@ export function makeApi(db, catalog, settings) {
         WHERE account = ? AND seen_at > ? ORDER BY fame DESC, level DESC, char_id`, p.account, now() - 3600) : []
     ]);
     const features = {characters: Number(await getMeta(db, 'characters_at') ?? 0) > now() - 86400, graveyard: (await getMeta(db, 'graveyard_ok')) !== null};
+    const guild = p.guild_id === null || p.guild_id === undefined ? null
+      : await one('SELECT id, name, level FROM guilds WHERE id = ? AND listed = 1', p.guild_id);
     return {player: p, ranks, rankedPlayers, names, history, collection, deaths: deaths.map(parseDeath), legends, fameGains, features,
+      guild: guild && {...guild, rank: p.guild_rank, fame: p.guild_fame},
       characters: characters.map(c => ({...c, stats: JSON.parse(c.stats), equipment: JSON.parse(c.equipment)}))};
   }
 
@@ -338,7 +345,34 @@ export function makeApi(db, catalog, settings) {
       deaths: deaths.map(parseDeath).filter(d => d.equipment.includes(id)).slice(0, 20), players};
   }
 
-  return {status, summary, crown, fameToday, rankings, characters, search, player, graveyard, death, legends, loot, lootTiers, items, item};
+  // ---- Guilds (once the hiscores share them) ----
+  // Guild Hall upgrades cost guild fame: Hall 2 10,000, Hall 3 100,000, Hall 4 250,000
+  // (the server's guilds::HALL_PRICES, the same as in the game).
+  const HALL_PRICES = [10000, 100000, 250000];
+  /** Every guild the server lists, by total fame earned (ties: the older guild first). */
+  async function guilds() {
+    const rows = await q(`SELECT id, name, level, fame, earned, members, first_seen FROM guilds WHERE listed = 1 ORDER BY earned DESC, id`);
+    return {guilds: rows.map((g, i) => ({...g, rank: i + 1})), since: Number(await getMeta(db, 'guilds_since') ?? 0) || null};
+  }
+  async function guild(name) {
+    const g = await one('SELECT * FROM guilds WHERE name = ? COLLATE NOCASE ORDER BY listed DESC, last_seen DESC LIMIT 1', name);
+    if (!g) throw new HttpError(404, `No guild named ${name} has been seen yet`);
+    const [rank, members, deaths, history, events] = await Promise.all([
+      g.listed ? one('SELECT COUNT(*) + 1 AS rank FROM guilds WHERE listed = 1 AND (earned > ? OR (earned = ? AND id < ?))', g.earned, g.earned, g.id) : null,
+      q(`SELECT name, stars, guild_rank AS rank, guild_fame AS fame FROM players WHERE guild_id = ? AND listed = 1
+        ORDER BY guild_rank DESC, guild_fame DESC, name COLLATE NOCASE`, g.id),
+      q(`SELECT ${DEATH_COLS}, p.name AS player FROM deaths d JOIN players p ON p.account = d.account
+        WHERE d.guild_id = ? ORDER BY d.died_at DESC LIMIT 25`, g.id),
+      q('SELECT at, level, fame, earned, members FROM guild_history WHERE guild = ? ORDER BY at', g.id),
+      q(`SELECT e.at, e.kind, e.detail, p.name, p.stars FROM guild_events e LEFT JOIN players p ON p.account = e.account
+        WHERE e.guild = ? ORDER BY e.at DESC LIMIT 30`, g.id)
+    ]);
+    const next = HALL_PRICES[g.level - 1] ?? null;
+    return {guild: {...g, rank: rank?.rank ?? null, next}, members, deaths: deaths.map(parseDeath), history, events,
+      since: Number(await getMeta(db, 'guilds_since') ?? 0) || null};
+  }
+
+  return {status, summary, crown, fameToday, rankings, characters, search, player, graveyard, death, legends, loot, lootTiers, items, item, guilds, guild};
 }
 
 const int = (v, max) => Math.min(max, Math.max(1, Math.floor(Number(v)) || 1));
@@ -352,6 +386,12 @@ export async function routeApi(api, url) {
   if (p === '/api/summary') return api.summary();
   if ((m = p.match(/^\/api\/rankings\/([a-z_]+)$/))) return api.rankings(m[1]);
   if (p === '/api/characters') return api.characters({dead: url.searchParams.get('dead') === '1'});
+  if (p === '/api/guilds') return api.guilds();
+  if ((m = p.match(/^\/api\/guild\/([^/]{1,80})$/))) {
+    let name;
+    try { name = decodeURIComponent(m[1]); } catch { throw new HttpError(400, 'Bad guild name'); }
+    return api.guild(name.slice(0, 40));
+  }
   if (p === '/api/search') return api.search((url.searchParams.get('q') ?? '').trim().slice(0, 20));
   if ((m = p.match(/^\/api\/player\/([^/]{1,40})$/))) {
     let name;

@@ -21,7 +21,7 @@ test('without the PR: no characters, the graveyard is never requested, graveyard
     assert.ok(await meta(t.db, 'graveyard_missing_at'));
     assert.equal(await meta(t.db, 'graveyard_ok'), null);
     const s = await t.api.status();
-    assert.deepEqual(s.features, {characters: false, graveyard: false});
+    assert.deepEqual(s.features, {characters: false, graveyard: false, guilds: false});
     assert.ok(!('graveyard' in s.jobs));
     const p = await t.api.player(t.mock.players[0].name);
     assert.deepEqual(p.characters, []);

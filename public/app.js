@@ -363,11 +363,11 @@ function sparkline(points, {width = 220, height = 36} = {}) {
   return h`<svg class="spark" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" aria-hidden="true"><polyline points="${xy.map(p => p.join(',')).join(' ')}" fill="none" stroke="currentColor" stroke-width="2" shape-rendering="crispEdges"/></svg>`;
 }
 
-function historyChart(history, key) {
+function historyChart(history, key, title = BOARDS[key]?.title ?? key) {
   const W = 760, H = 240, L = 64, R = 12, T = 14, B = 34;
   if (history.length < 2) {
     const v = history[0]?.[key] ?? 0;
-    return h`<p class="empty" style="padding-left:0">${BOARDS[key].title} has stayed at ${fmt(v)}${history[0] ? h` since ${day(history[0].at)}` : ''}. The graph appears once it changes.</p>`;
+    return h`<p class="empty" style="padding-left:0">${title} has stayed at ${fmt(v)}${history[0] ? h` since ${day(history[0].at)}` : ''}. The graph appears once it changes.</p>`;
   }
   const nowTs = Math.floor(Date.now() / 1000);
   const pts = history.map(r => ({t: r.at, v: r[key]}));
@@ -381,7 +381,7 @@ function historyChart(history, key) {
   let d = `M${x(pts[0].t)},${y(pts[0].v)}`;
   for (let i = 1; i < pts.length; i++) d += ` H${x(pts[i].t)} V${y(pts[i].v)}`;
   const ticks = [...new Set([0, 0.5, 1].map(f => Math.round(vmin + (vmax - vmin) * f)))];
-  return h`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${BOARDS[key].title} over time, from ${fmt(pts[0].v)} to ${fmt(pts.at(-1).v)}">
+  return h`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${title} over time, from ${fmt(pts[0].v)} to ${fmt(pts.at(-1).v)}">
     ${ticks.map(v => h`<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text class="axis" x="${L - 10}" y="${y(v) + 6}" text-anchor="end">${fmt(v)}</text>`)}
     <path class="line" d="${d}"/>
     ${history.map(r => h`<circle class="dot" cx="${x(r.at)}" cy="${y(r[key])}" r="3"><title>${fmt(r[key])} on ${date(r.at)}</title></circle>`)}
@@ -692,6 +692,7 @@ async function player(name) {
       <span>Tracked since ${day(p.first_seen)}</span>
       <span>Last updated ${when(p.last_seen)}</span>
       ${formerNames.length ? h`<span>Formerly ${formerNames.map(n => n.name).join(', ')}</span>` : ''}
+      ${data.guild ? h`<span>${GUILD_RANKS[data.guild.rank] ?? 'Member'} of <a href="/guild/${encodeURIComponent(data.guild.name)}" data-link>${data.guild.name}</a></span>` : ''}
     </div>
     <dl class="panel scoreboard">${Object.entries(BOARDS).map(([k, b]) => h`<div class="score">
       <dt>${b.title}</dt>
@@ -933,6 +934,7 @@ async function death(account, charId) {
         <div class="death-head-line"><span><span class="fame-total">${fmt(d.total_fame)}</span> <span class="muted">total fame</span></span>${graveBadge(d, 3)}</div>
         <div>${gear(d.equipment, 3, 4)}</div>
         ${d.equipment.slice(4).some(i => i !== -1) ? h`<div><span class="muted">Inventory</span><div style="margin-top:6px">${gear(d.equipment.slice(4), 2, 8)}</div></div>` : ''}
+        ${d.guild_name ? h`<p class="muted">Its ${fmt(d.total_fame)} fame went to the guild <a href="/guild/${encodeURIComponent(d.guild_name)}" data-link>${d.guild_name}</a>.</p>` : ''}
         ${dyeItems(d).length ? h`<div class="dyes"><span class="muted">Dyes</span>${dyeItems(d).map(id => h`<span class="dye">${itemSlot(id, 2)}<span>${ITEMS.get(id).name}</span></span>`)}</div>` : ''}
         <p class="muted">${d.is_bot ? 'Bot' : 'Player'}: ${ownerLink(d)}${data.legends.length ? h`. On the Legends board: ${data.legends.map(l => `${SPANS[l.timespan]} rank ${l.rank}`).join(', ')}` : ''}.</p>
       </div>
@@ -1448,6 +1450,66 @@ function vault() {
   });
 }
 
+// ---------- Guilds ----------
+// As in the game: a member's death pays its total fame (with bonuses) to the guild as well as
+// to the player. Guild fame is spent on the Guild Hall (10,000, 100,000 and 250,000 for halls
+// 2, 3 and 4); total fame is everything the guild has ever been paid, and ranks guilds here.
+const GUILD_RANKS = {0: 'Initiate', 10: 'Member', 20: 'Officer', 30: 'Leader', 40: 'Founder'};
+const GUILD_EVENTS = {joined: 'joined', left: 'left', rank: 'became', upgrade: 'upgraded to'};
+async function guildsPage() {
+  document.title = 'Guilds | OpenEye';
+  const {guilds} = await get('/api/guilds');
+  view(h`
+    <div class="page-head"><div><h1>Guilds</h1><p>Ranked by total fame: when a member’s character dies, its fame is paid to the guild as well as the player.</p></div></div>
+    <section class="panel"><div class="table-wrap"><table>
+      <thead><tr><th>Rank</th><th>Guild</th><th>Hall</th><th class="n">Members</th><th class="n" aria-sort="descending">Total fame</th><th class="n">Guild fame</th></tr></thead>
+      <tbody>${guilds.length ? guilds.map(g => h`<tr class="${g.rank === 1 ? 'top1' : ''}">
+        <td class="rank">${g.rank}</td>
+        <td><a class="title" href="/guild/${encodeURIComponent(g.name)}" data-link>${g.name}</a></td>
+        <td>Guild Hall ${g.level}</td>
+        <td class="n">${fmt(g.members)}</td>
+        <td class="n fame main-metric">${fmt(g.earned)}</td>
+        <td class="n fame">${fmt(g.fame)}</td>
+      </tr>`) : h`<tr><td colspan="6" class="empty">No guilds yet.</td></tr>`}</tbody>
+    </table></div></section>`);
+}
+async function guildPage(name) {
+  const data = await get(`/api/guild/${encodeURIComponent(name)}`);
+  const g = data.guild;
+  document.title = `${g.name} | OpenEye`;
+  const toNext = g.next ? Math.min(1, g.fame / g.next) : 1;
+  view(h`
+    <div class="page-head"><div><h1>${g.name}</h1><p>Guild Hall ${g.level}${g.rank ? h` · <a href="/guilds" data-link>Rank ${g.rank}</a>` : ' · No longer listed'} · Seen since ${day(g.first_seen)}</p></div></div>
+    <dl class="panel scoreboard">
+      <div class="score"><dt>Total fame</dt><dd class="fame">${fmt(g.earned)}</dd><span class="rank-line">Ever paid to the guild</span></div>
+      <div class="score"><dt>Guild fame</dt><dd class="fame">${fmt(g.fame)}</dd><span class="rank-line">To spend on the hall</span></div>
+      <div class="score"><dt>Members</dt><dd>${fmt(g.members)}</dd><span class="rank-line">Of 50</span></div>
+      <div class="score"><dt>Guild Hall</dt><dd class="hl">${g.level}</dd><span class="rank-line">${g.next ? `Hall ${g.level + 1}: ${fmt(g.next)} guild fame` : 'Fully upgraded'}</span></div>
+    </dl>
+    ${g.next ? h`<div class="guild-progress" role="progressbar" aria-valuemin="0" aria-valuemax="${g.next}" aria-valuenow="${Math.min(g.fame, g.next)}" aria-label="Guild fame toward Guild Hall ${g.level + 1}"><span style="width:${(toNext * 100).toFixed(1)}%"></span><em>${fmt(Math.min(g.fame, g.next))} / ${fmt(g.next)} toward Guild Hall ${g.level + 1}</em></div>` : ''}
+    <div class="grid-2" style="margin-top:24px">
+      <section class="panel"><header><h2>Members</h2><span class="muted">${fmt(data.members.length)}</span></header>
+        ${data.members.length ? h`<ul class="rows">${data.members.map(m => h`<li>
+          <span class="grow"><span class="title">${playerLink(m.name, m.stars)}</span><span class="sub">${GUILD_RANKS[m.rank] ?? 'Member'}</span></span>
+          <span class="num fame" title="Fame paid to the guild">${fmt(m.fame)}</span>
+        </li>`)}</ul>` : h`<p class="empty">No members on the hiscores.</p>`}
+      </section>
+      <section class="panel"><header><h2>Fame from deaths</h2></header>
+        ${data.deaths.length ? h`<ul class="rows">${data.deaths.map(d => h`<li>
+          ${classSprite(d.class, 32, d)}
+          <span class="grow"><a class="title" href="/death/${d.account}/${d.char_id}" data-link>${d.player}’s ${className(d.class)}</a><span class="sub">${d.died_at ? when(d.died_at) : ''}</span></span>
+          <span class="num fame">+${fmt(d.total_fame)}</span>
+        </li>`)}</ul>` : h`<p class="empty">No member deaths since ${data.since ? day(data.since) : 'tracking began'}.</p>`}
+      </section>
+    </div>
+    <section class="panel" style="margin-top:24px"><header><h2>Total fame over time</h2></header>
+      <div class="panel-body">${historyChart(data.history, 'earned', 'Total fame')}</div></section>
+    ${data.events.length ? h`<section class="panel" style="margin-top:24px"><header><h2>Guild news</h2></header><ul class="rows">${data.events.map(e => h`<li>
+      <span class="grow">${e.kind === 'upgrade' ? h`The guild upgraded to Guild Hall ${e.detail}` : h`${e.name ? playerLink(e.name, e.stars) : 'A player'} ${GUILD_EVENTS[e.kind]}${e.kind === 'rank' ? ` ${GUILD_RANKS[e.detail] ?? 'Member'}` : ''}`}</span>
+      <span class="muted">${when(e.at)}</span>
+    </li>`)}</ul></section>` : ''}`);
+}
+
 function notFound(message = 'There is nothing at this address.') {
   document.title = 'Not found | OpenEye';
   view(h`<div class="page-head"><div><h1>Not found</h1><p>${message}</p><p><a href="/" data-link>Go to the home page</a> or search for a player above.</p></div></div>`);
@@ -1470,10 +1532,12 @@ const routes = [
   [/^\/enemy\/(\d+)$/, m => enemy(Number(m[1])), 'enemies'],
   [/^\/about$/, () => about(), 'about'],
   [/^\/auras\/?$/, () => auras(), ''],
-  [/^\/vault\/?$/, () => vault(), '']
+  [/^\/vault\/?$/, () => vault(), ''],
+  [/^\/guilds\/?$/, () => guildsPage(), 'guilds'],
+  [/^\/guild\/([^/]+)$/, m => guildPage(decodeURIComponent(m[1])), 'guilds']
 ];
 
-const TITLES = {rankings: 'Rankings', graveyard: 'Graveyard', legends: 'Legends', loot: 'Loot', items: 'Items', enemies: 'Enemies', about: 'About'};
+const TITLES = {guilds: 'Guilds', rankings: 'Rankings', graveyard: 'Graveyard', legends: 'Legends', loot: 'Loot', items: 'Items', enemies: 'Enemies', about: 'About'};
 async function route() {
   hideTip();
   const path = location.pathname;
@@ -1545,7 +1609,8 @@ async function playerResults(q) {
   const r = await get(`/api/search?q=${encodeURIComponent(q)}`).catch(() => ({players: [], former: []}));
   return [
     ...r.players.map(p => h`<li><a href="/player/${encodeURIComponent(p.name)}" data-link><span class="player">${rankIcon(p.name, p.stars)}${p.name}</span><span class="muted">${fmt(p.stars)}</span></a></li>`),
-    ...r.former.map(f => h`<li><a href="/player/${encodeURIComponent(f.name)}" data-link><span class="player">${rankIcon(f.name, f.stars)}${f.name}</span><span class="muted">was ${f.former}</span></a></li>`)
+    ...r.former.map(f => h`<li><a href="/player/${encodeURIComponent(f.name)}" data-link><span class="player">${rankIcon(f.name, f.stars)}${f.name}</span><span class="muted">was ${f.former}</span></a></li>`),
+    ...(r.guilds ?? []).map(g => h`<li><a href="/guild/${encodeURIComponent(g.name)}" data-link><span class="player">${g.name}</span><span class="muted">Guild</span></a></li>`)
   ];
 }
 function runSearch() {
@@ -1981,6 +2046,8 @@ async function footer() {
   try {
     const s = await get('/api/status');
     const last = s.jobs.hiscores.lastOk;
+    // The Guilds page shows up once the game shares guilds.
+    document.querySelector('[data-nav="guilds"]').hidden = !s.features?.guilds;
     document.getElementById('footer-status').textContent = last ? `Data updated ${ago(last)}.` : 'Waiting for the first update.';
   } catch { /* server stopped */ }
 }

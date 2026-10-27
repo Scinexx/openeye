@@ -103,6 +103,30 @@ function admit(ip) {
   e.count++;
   return e.count <= 20;
 }
+// Guilds, as servers with guilds in /api/hiscores share them: each member's death pays its
+// total fame to the guild (earned) and to the member's contribution; halls bought from fame.
+const GUILDS = [{id: 1, name: 'Mad Gods', baseline: 120000}, {id: 2, name: 'Realm Rats', baseline: 15000}, {id: 3, name: 'Pure Dex', baseline: 500}];
+const guildOf = p => { const i = players.indexOf(p); return i % 4 === 3 ? null : GUILDS[i % 4]; };
+const HALL_SPENT = [0, 10000, 110000, 360000];
+function guildData() {
+  const paid = new Map();
+  for (const d of deaths) paid.set(d.account, (paid.get(d.account) ?? 0) + d.total);
+  const seen = new Map();
+  const roster = players.map(p => {
+    const g = guildOf(p);
+    if (!g) return null;
+    const n = seen.get(g.id) ?? 0;
+    seen.set(g.id, n + 1);
+    return {account: p.account, id: g.id, name: g.name, rank: n === 0 ? 40 : n === 1 ? 30 : n === 2 ? 20 : 10, fame: paid.get(p.account) ?? 0};
+  });
+  const guilds = GUILDS.map(g => {
+    const members = roster.filter(m => m && m.id === g.id);
+    const earned = g.baseline + members.reduce((t, m) => t + m.fame, 0);
+    const level = earned >= 360000 ? 4 : earned >= 110000 ? 3 : earned >= 10000 ? 2 : 1;
+    return {id: g.id, name: g.name, level, fame: earned - HALL_SPENT[level - 1], earned, members: members.length};
+  });
+  return {roster, guilds};
+}
 const form = req => new Promise(res => { let b = ''; req.on('data', c => (b += c)); req.on('end', () => res(new URLSearchParams(b))); });
 
 /**
@@ -111,9 +135,9 @@ const form = req => new Promise(res => { let b = ''; req.on('data', c => (b += c
  *   OpenRotMG PR #624 do. Without it both are missing, as on servers before that PR.
  *   leakBots also lists a bot's character and death, to check OpenEye drops them itself.
  */
-export function createMock({ticking = true, pr624 = false, leakBots = false, deathStats = false} = {}) {
+export function createMock({ticking = true, pr624 = false, leakBots = false, deathStats = false, guilds = false} = {}) {
   // Changeable while running (tests switch stats at death on, as a server upgrade would).
-  const options = {deathStats};
+  const options = {deathStats, guilds};
   const stats = {requests: {}};
   return createServer(async (req, res) => {
     const url = new URL(req.url, 'http://x');
@@ -129,8 +153,10 @@ export function createMock({ticking = true, pr624 = false, leakBots = false, dea
     if (url.pathname === '/api/hiscores') {
       if (ticking) tick();
       for (const p of players) p.collection = p.items.size;
+      const g = options.guilds ? guildData() : null;
       return sendJson({updated_at: Math.floor(Date.now() / 1000), collectible_items: collectible,
-        players: players.map(({items, ...p}) => p),
+        players: players.map(({items, ...p}, i) => (g?.roster[i] ? {...p, guild: {id: g.roster[i].id, name: g.roster[i].name, rank: g.roster[i].rank, fame: g.roster[i].fame}} : p)),
+        ...(g ? {guilds: g.guilds} : {}),
         ...(pr624 ? {characters: [...living, ...(leakBots ? [{...living[0], account: bots[0].account, id: 99999}] : [])]} : {})});
     }
     if (url.pathname === '/api/graveyard' && pr624) {
@@ -173,5 +199,5 @@ export function createMock({ticking = true, pr624 = false, leakBots = false, dea
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const port = Number(process.argv[2] ?? 18900);
-  createMock({pr624: process.argv.includes('--pr624'), deathStats: process.argv.includes('--death-stats')}).listen(port, '127.0.0.1', () => console.log(`Mock OpenRotMG API on http://127.0.0.1:${port}`));
+  createMock({pr624: process.argv.includes('--pr624'), deathStats: process.argv.includes('--death-stats'), guilds: process.argv.includes('--guilds')}).listen(port, '127.0.0.1', () => console.log(`Mock OpenRotMG API on http://127.0.0.1:${port}`));
 }
