@@ -385,8 +385,63 @@ async function home() {
   if (!hasData) setTimeout(() => location.pathname === '/' && route(), 15000);
 }
 
+// Ranking tabs: the player boards, then Best characters.
+const boardTabs = current => h`<nav class="tabs" aria-label="Ranking boards">${Object.entries(BOARDS).map(([k, b]) => h`<a href="/rankings/${k}" data-link ${k === current ? raw('aria-current="page"') : ''}>${b.title}</a>`)}<a href="/rankings/characters" data-link ${current === 'characters' ? raw('aria-current="page"') : ''}>Best characters</a></nav>`;
+
+// Best characters: living characters of ranked players, by fame, by stats maxed (x/8, then
+// fame) or by gear: the summed fame bonus % of the 4 equipped items, the same total the
+// server pays out as "Well Equipped" on death.
+const CHAR_SORTS = {
+  fame: {title: 'Fame', help: 'Living characters by their current fame.'},
+  maxed: {title: 'Maxed stats', help: 'Living characters by how many of their 8 stats are maxed, then by fame.'},
+  gear: {title: 'Best gear', help: 'Living characters by the fame bonus of their equipment (the "Well Equipped" bonus paid on death), then by fame. Rarer gear carries a bigger bonus.'}
+};
+const gearBonus = equipment => (equipment ?? []).slice(0, 4).reduce((n, id) => n + (ITEMS.get(id)?.fameBonus ?? 0), 0);
+async function bestCharacters() {
+  const sort = CHAR_SORTS[new URLSearchParams(location.search).get('sort')] ? new URLSearchParams(location.search).get('sort') : 'fame';
+  const {characters} = await get('/api/characters');
+  const rows = characters.map(c => {
+    const max = CLASSES.get(c.class)?.max;
+    return {...c, maxed: max ? STAT_KEYS.filter(([k], i) => c.stats[i] >= max[k]).length : 0, bonus: gearBonus(c.equipment)};
+  });
+  const key = {fame: c => [c.fame], maxed: c => [c.maxed, c.fame], gear: c => [c.bonus, c.fame]}[sort];
+  rows.sort((a, b) => { const x = key(a), y = key(b); return (y[0] - x[0]) || ((y[1] ?? 0) - (x[1] ?? 0)) || b.level - a.level || a.char_id - b.char_id; });
+  // Ties are broken by fame, then level, so every character gets its own rank.
+  rows.forEach((c, i) => { c.rank = i + 1; });
+  const draw = (filter = '') => {
+    const f = filter.toLowerCase();
+    const shown = rows.filter(c => c.name.toLowerCase().includes(f) || className(c.class).toLowerCase().includes(f));
+    document.getElementById('char-body').innerHTML = String(shown.length ? h`${shown.map(c => h`<tr class="${c.rank === 1 ? 'top1' : ''}">
+      <td class="rank">${c.rank}</td>
+      <td><span class="who">${classSprite(c.class, 32)} <span>${className(c.class)}</span></span></td>
+      <td>${playerLink(c.name, c.stars)}</td>
+      <td class="n">${c.level}</td>
+      <td class="n fame${sort === 'fame' ? ' main-metric' : ''}">${fmt(c.fame)}</td>
+      <td class="n${sort === 'maxed' ? ' main-metric' : ''}${c.maxed === 8 ? ' hl' : ''}">${c.maxed}/8</td>
+      <td class="n${sort === 'gear' ? ' main-metric' : ''}">${c.bonus ? `+${c.bonus}%` : '0%'}</td>
+      <td>${gear(c.equipment, 2)}</td>
+    </tr>`)}` : h`<tr><td colspan="8" class="empty">${rows.length ? `No characters match “${filter}”.` : 'No living characters yet.'}</td></tr>`);
+  };
+  document.title = 'Best characters | OpenEye';
+  view(h`
+    <div class="page-head"><div><h1>Rankings</h1><p>${CHAR_SORTS[sort].help}</p></div></div>
+    ${boardTabs('characters')}
+    <div class="controls">
+      <nav class="tabs" style="margin:0" aria-label="Sort characters">${Object.entries(CHAR_SORTS).map(([k, o]) => h`<a href="/rankings/characters${k === 'fame' ? '' : `?sort=${k}`}" data-link ${k === sort ? raw('aria-current="page"') : ''}>${o.title}</a>`)}</nav>
+      <label class="sr" for="char-filter">Filter characters</label><input id="char-filter" type="search" placeholder="Filter by player or class">
+      <span class="muted">${fmt(rows.length)} living characters</span>
+    </div>
+    <section class="panel"><div class="table-wrap"><table class="chars-board">
+      <thead><tr><th>Rank</th><th>Character</th><th>Player</th><th class="n">Level</th><th class="n"${sort === 'fame' ? raw(' aria-sort="descending"') : ''}>Fame</th><th class="n"${sort === 'maxed' ? raw(' aria-sort="descending"') : ''}>Maxed</th><th class="n"${sort === 'gear' ? raw(' aria-sort="descending"') : ''}>Gear bonus</th><th>Equipment</th></tr></thead>
+      <tbody id="char-body"></tbody>
+    </table></div></section>`);
+  draw();
+  document.getElementById('char-filter').addEventListener('input', e => draw(e.target.value));
+}
+
 async function rankings(board) {
   if (board === 'total_fame') return navigate('/rankings/fame_earned', true); // retired board
+  if (board === 'characters') return bestCharacters();
   if (!BOARDS[board]) return notFound();
   const {players} = await get(`/api/rankings/${board}`);
   // Columns stay in the same order on every board; the selected one is highlighted.
@@ -401,7 +456,7 @@ async function rankings(board) {
   };
   view(h`
     <div class="page-head"><div><h1>Rankings</h1><p>${BOARDS[board].help}</p></div></div>
-    <nav class="tabs" aria-label="Ranking boards">${Object.entries(BOARDS).map(([k, b]) => h`<a href="/rankings/${k}" data-link ${k === board ? raw('aria-current="page"') : ''}>${b.title}</a>`)}</nav>
+    ${boardTabs(board)}
     <div class="controls"><label class="sr" for="rank-filter">Filter players</label><input id="rank-filter" type="search" placeholder="Filter by name"><span class="muted">${fmt(players.length)} ranked players</span></div>
     <section class="panel"><div class="table-wrap"><table>
       <thead><tr><th>Rank</th><th>Player</th>${cols.map(c => h`<th class="n"${c === board ? raw(' aria-sort="descending"') : ''}><a href="/rankings/${c}" data-link>${BOARDS[c].short}</a></th>`)}</tr></thead>

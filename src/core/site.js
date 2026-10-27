@@ -175,6 +175,14 @@ export function makeApi(db, catalog, settings) {
     return {counts, top, recentDeaths, recentFinds: await notableFinds(10), fameToday: await fameToday(3), status: await status()};
   }
 
+  /** Living characters of ranked players, for the Best characters board. */
+  async function characters() {
+    const rows = await q(`SELECT c.char_id, c.account, p.name, p.stars, c.class, c.level, c.fame, c.stats, c.equipment, c.tex1, c.tex2
+      FROM characters c JOIN players p ON p.account = c.account AND ${rankedWhere(settings.minRankedStat, 'p.')}
+      WHERE c.seen_at > ? ORDER BY c.fame DESC, c.char_id`, now() - 3600);
+    return {characters: rows.map(c => ({...c, stats: JSON.parse(c.stats), equipment: JSON.parse(c.equipment)}))};
+  }
+
   async function rankings(board) {
     if (!BOARDS.includes(board)) throw new HttpError(404, 'Unknown ranking');
     return {board, players: await q(`${rankedSql(board)} ORDER BY ${board} DESC, account`)};
@@ -311,7 +319,7 @@ export function makeApi(db, catalog, settings) {
       deaths: deaths.map(parseDeath).filter(d => d.equipment.includes(id)).slice(0, 20), players};
   }
 
-  return {status, summary, crown, fameToday, rankings, search, player, graveyard, death, legends, loot, lootTiers, items, item};
+  return {status, summary, crown, fameToday, rankings, characters, search, player, graveyard, death, legends, loot, lootTiers, items, item};
 }
 
 const int = (v, max) => Math.min(max, Math.max(1, Math.floor(Number(v)) || 1));
@@ -324,6 +332,7 @@ export async function routeApi(api, url) {
   if (p === '/api/crown') return api.crown();
   if (p === '/api/summary') return api.summary();
   if ((m = p.match(/^\/api\/rankings\/([a-z_]+)$/))) return api.rankings(m[1]);
+  if (p === '/api/characters') return api.characters();
   if (p === '/api/search') return api.search((url.searchParams.get('q') ?? '').trim().slice(0, 20));
   if ((m = p.match(/^\/api\/player\/([^/]{1,40})$/))) {
     let name;

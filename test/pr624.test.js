@@ -128,3 +128,14 @@ test('with the full graveyard, Legends are ranked from every player death, never
     assert.ok(g.rows.find(d => d.char_id === top.char_id).in_legends);
   } finally { t.close(); }
 });
+
+test('Best characters lists every living character of ranked players, never bots', async () => {
+  const t = await setup({ticking: false, pr624: true, leakBots: true});
+  try {
+    await t.collector().syncHiscores();
+    const {characters} = await t.api.characters();
+    assert.equal(characters.length, t.mock.living.length);
+    assert.ok(characters.every(c => c.name && Array.isArray(c.stats) && c.stats.length === 8 && c.equipment.length === 4));
+    assert.ok(!characters.some(c => t.mock.bots.some(b => b.account === c.account)));
+  } finally { t.close(); }
+});
