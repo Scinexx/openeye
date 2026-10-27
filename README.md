@@ -130,7 +130,7 @@ test/              Test suite and fake game server
 
 ## Limitations
 
-- **History begins** when OpenEye started collecting; earlier changes appear as a single step in the graphs.
+- **History before tracking is estimated.** Once every death is on record, each player's graphs are filled in back to their first character, one point per day: collection exactly (from loot dates), stars by the server's own rule, fame earned spread over the days it was most likely earned (the total is unchanged), living fame from each character's fame assumed to grow evenly, and quests as a steady rise. See `src/core/backfill.js`.
 
 ## Credits
 

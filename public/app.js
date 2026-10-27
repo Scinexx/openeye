@@ -291,11 +291,7 @@ function historyChart(history, key) {
   const pts = history.map(r => ({t: r.at, v: r[key]}));
   pts.push({t: Math.max(nowTs, pts.at(-1).t + 1), v: pts.at(-1).v});
   const t0 = pts[0].t, t1 = pts.at(-1).t;
-  // The scale runs from the lowest value instead of 0 when that is 50 or more, so players
-  // who were already high when tracking began still see their changes. Stars and living
-  // fame always start at 0.
-  const low = Math.min(...pts.map(p => p.v));
-  const vmin = key === 'stars' || key === 'base_fame' || low < 50 ? 0 : low;
+  const vmin = 0;
   const vmax = Math.max(vmin + 1, ...pts.map(p => p.v));
   const x = t => L + ((t - t0) / (t1 - t0 || 1)) * (W - L - R);
   const y = v => T + (1 - (v - vmin) / (vmax - vmin)) * (H - T - B);
@@ -574,6 +570,8 @@ async function player(name) {
   // Fame earned is charted from its own record of gains rather than the hiscores history.
   let earned = 0;
   const earnedHistory = data.fameGains.map(g => ({at: g.at, fame_earned: (earned += g.amount)}));
+  // The graph starts from 0, where the player's history begins.
+  if (earnedHistory.length) earnedHistory.unshift({at: Math.min(data.history[0]?.at ?? Infinity, earnedHistory[0].at - 60), fame_earned: 0});
   const drawChart = key => { document.getElementById('chart').innerHTML = String(historyChart(key === 'fame_earned' ? earnedHistory : data.history, key)); };
   drawChart('stars');
   main.querySelectorAll('[data-metric]').forEach(b => b.addEventListener('click', () => {

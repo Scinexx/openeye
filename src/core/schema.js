@@ -62,7 +62,9 @@ export const SCHEMA = [
 const COLUMNS = [
   'ALTER TABLE players ADD COLUMN fame_earned INTEGER NOT NULL DEFAULT 0',
   // Base stats at death [hp, mp, att, def, spd, dex, vit, wis], when the graveyard sends them.
-  'ALTER TABLE deaths ADD COLUMN base_stats TEXT'
+  'ALTER TABLE deaths ADD COLUMN base_stats TEXT',
+  // 1 once the player's history before tracking has been filled in (src/core/backfill.js).
+  'ALTER TABLE players ADD COLUMN backfilled INTEGER NOT NULL DEFAULT 0'
 ];
 
 /** Create every table and index if missing. `db` is a D1 database or the local adapter. */

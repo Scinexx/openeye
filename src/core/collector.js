@@ -3,6 +3,7 @@
 // time with a pause between requests, so the game server never sees bursts.
 import {createGameApi} from './gameapi.js';
 import {getMeta, setMetaStmt, now} from './schema.js';
+import {backfillHistory} from './backfill.js';
 
 const sleep = ms => (ms > 0 ? new Promise(r => setTimeout(r, ms)) : Promise.resolve());
 const TIMESPANS = ['week', 'month', 'all'];
@@ -241,7 +242,7 @@ export class Collector {
         throw e;
       }
       const at = now();
-      if (!deaths.length) break;
+      if (!deaths.length) { await setMetaStmt(db, 'graveyard_caught_up', at).run(); break; }
       const listed = new Set((await this.all('SELECT account FROM players')).map(r => r.account));
       // A death of a player registered since the last hiscores poll waits for that poll,
       // unless it is over an hour old (then it is not coming and is skipped).
@@ -271,10 +272,20 @@ export class Collector {
       added += Number(res?.meta?.changes ?? 0);
       // A full page means more are waiting. If every row shares one second the cursor
       // cannot move, so stop rather than loop.
-      if (deaths.length < 500 || next <= since) break;
+      if (deaths.length < 500 || next <= since) {
+        if (deaths.length < 500) await setMetaStmt(db, 'graveyard_caught_up', at).run();
+        break;
+      }
       since = next;
     }
     if (added) this.log.info(`graveyard: ${added} death(s) recorded`);
+  }
+
+  /** History before tracking, filled in once every player death is on record. No requests. */
+  async syncBackfill() {
+    if ((await getMeta(this.db, 'graveyard_caught_up')) === null) return;
+    const n = await backfillHistory(this.db);
+    if (n) this.log.info(`backfill: history filled in for ${n} player(s)`);
   }
 
   // ---------- scheduling ----------
@@ -285,6 +296,7 @@ export class Collector {
       {name: 'legends', every: this.s.legendsMinutes * 60, run: () => this.syncLegends()},
       {name: 'hiscores', every: this.s.hiscoresMinutes * 60, run: () => this.syncHiscores()},
       {name: 'graveyard', every: this.s.graveyardMinutes * 60, run: () => this.syncGraveyard()},
+      {name: 'backfill', every: this.s.graveyardMinutes * 60, run: () => this.syncBackfill()},
       {name: 'deaths', every: this.s.deathsMinutes * 60, run: () => this.syncDeathDetails()}
     ];
   }
