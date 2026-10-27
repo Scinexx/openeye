@@ -1148,3 +1148,104 @@ html.invisible main, html.invisible .footer { opacity: .28; }
 .vault-grid .vault-slot:nth-child(8) { clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%); }
 .vault-slot .sprite { pointer-events: none; transition: transform .12s; }
 .vault-slot:hover .sprite { transform: scale(1.08); }
+
+/* ---------- Potion themes: a light touch of motion each, in the potion's colour ---------- */
+:root[data-theme] body { isolation: isolate; }
+/* Life: healing crosses rising like the game's heal effect. */
+.fx-mote.fx-plus { background: linear-gradient(currentColor, currentColor) center / 30% 100% no-repeat, linear-gradient(currentColor, currentColor) center / 100% 30% no-repeat;
+  border-radius: 0; color: rgb(143 247 250 / .75); filter: drop-shadow(0 0 4px rgb(79 227 232 / .8)); }
+.fx-halo { inset: 0; background: radial-gradient(120% 70% at 50% 110%, rgb(79 227 232 / .16), transparent 70%); will-change: opacity; animation: fx-breathe 6s ease-in-out infinite alternate; }
+@keyframes fx-breathe { from { opacity: .5; } to { opacity: 1; } }
+/* Mana: golden motes wandering and twinkling. */
+.fx-fly.fx-gold { background: #fff3b0; box-shadow: 0 0 6px 2px rgb(245 215 90 / .7), 0 0 18px 6px rgb(245 215 90 / .2); }
+.fx-swirl { left: 50%; top: 50%; width: 140vmax; aspect-ratio: 1; margin: -70vmax 0 0 -70vmax; border-radius: 50%; opacity: .5; will-change: transform;
+  background: conic-gradient(from 0deg, transparent, rgb(245 215 90 / .07), transparent 30%, rgb(245 215 90 / .05), transparent 65%, rgb(245 215 90 / .07), transparent);
+  -webkit-mask: radial-gradient(closest-side, transparent 15%, #000 40%, transparent); mask: radial-gradient(closest-side, transparent 15%, #000 40%, transparent);
+  animation: fx-spin 120s linear infinite; }
+/* Attack: sword swipes flashing across. */
+.fx-slash { width: 46vmin; height: 3px; border-radius: 50%; transform-origin: 0 50%; will-change: transform, opacity; opacity: 0;
+  background: linear-gradient(90deg, transparent, rgb(255 210 255 / .9) 60%, #fff 85%, transparent); box-shadow: 0 0 12px 2px rgb(229 122 245 / .55);
+  animation: fx-slash var(--t) ease-out var(--d) infinite; }
+@keyframes fx-slash { 0%, 86% { transform: rotate(var(--r)) scaleX(0); opacity: 0; } 88% { opacity: 1; } 93% { transform: rotate(var(--r)) scaleX(1); opacity: .9; } 100% { transform: rotate(var(--r)) scaleX(1) translateX(8vmin); opacity: 0; } }
+/* Defense: armour plates, and a sheen sweeping across like light on steel. */
+.fx-plates { inset: 0; opacity: .5; background:
+  radial-gradient(circle, rgb(255 255 255 / .12) 0 1.5px, transparent 2px) 6px 6px / 96px 96px,
+  linear-gradient(rgb(0 0 0 / .25) 2px, transparent 2px) 0 0 / 96px 96px,
+  linear-gradient(90deg, rgb(0 0 0 / .25) 2px, transparent 2px) 0 0 / 96px 96px,
+  linear-gradient(rgb(255 255 255 / .05) 1px, transparent 1px) 0 2px / 96px 96px; }
+.fx-sheen { top: -50vh; left: 0; width: 34vw; height: 200vh; will-change: transform;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / .07) 40%, rgb(255 255 255 / .12) 50%, rgb(255 255 255 / .07) 60%, transparent);
+  animation: fx-sheen-x 11s ease-in-out infinite; }
+@keyframes fx-sheen-x { 0% { transform: translateX(-40vw) rotate(18deg); } 45%, 100% { transform: translateX(140vw) rotate(18deg); } }
+/* Speed: wind streaks rushing past. */
+.fx-streak { right: -30vw; height: 2px; width: var(--w); border-radius: 2px; will-change: transform, opacity; opacity: 0;
+  background: linear-gradient(90deg, transparent, rgb(150 255 190 / .5) 40%, rgb(220 255 230 / .7)); animation: fx-streak var(--t) linear var(--d) infinite; }
+@keyframes fx-streak { 0% { transform: translateX(0); opacity: 0; } 10% { opacity: 1; } 80% { opacity: .8; } 100% { transform: translateX(-170vw); opacity: 0; } }
+/* Dexterity: arrows flying across. */
+.fx-arrow { left: -60px; width: 44px; height: 9px; will-change: transform, opacity; opacity: 0;
+  background: linear-gradient(90deg, #ffd0a8 0 8px, transparent 8px) 0 50% / 100% 100% no-repeat, linear-gradient(#e8b98f, #e8b98f) 6px 50% / 30px 2px no-repeat, linear-gradient(90deg, transparent 34px, #fff2e6 34px) 0 0 / 100% 100% no-repeat;
+  clip-path: polygon(0 0, 8px 50%, 0 100%, 6px 100%, 6px 60%, 34px 60%, 34px 100%, 100% 50%, 34px 0, 34px 40%, 6px 40%, 6px 0);
+  filter: drop-shadow(0 0 4px rgb(255 140 58 / .8)); animation: fx-arrow var(--t) linear var(--d) infinite; }
+@keyframes fx-arrow { 0%, 70% { transform: translate(0, 0) rotate(var(--r)); opacity: 0; } 71% { opacity: 1; } 100% { transform: translate(115vw, var(--dy)) rotate(var(--r)); opacity: .9; } }
+/* Vitality: a heartbeat at the edges of the screen. */
+.fx-pulse { inset: 0; will-change: opacity; background: radial-gradient(130% 100% at 50% 50%, transparent 55%, rgb(255 40 70 / .32) 100%);
+  animation: fx-heartbeat 1.5s ease-out infinite; }
+@keyframes fx-heartbeat { 0% { opacity: .35; } 10% { opacity: 1; } 20% { opacity: .5; } 30% { opacity: .9; } 55%, 100% { opacity: .35; } }
+.fx-mote.fx-cell { background: radial-gradient(circle at 40% 35%, rgb(255 140 150 / .8), rgb(200 30 50 / .5) 60%, transparent 72%); }
+/* Wisdom: arcane rings turning behind twinkling runes. */
+.fx-ring { left: 50%; top: 50%; aspect-ratio: 1; border-radius: 50%; will-change: transform; opacity: .22;
+  border: 2px dashed rgb(111 166 255 / .9); box-shadow: 0 0 22px rgb(111 166 255 / .25), inset 0 0 22px rgb(111 166 255 / .2); animation: fx-spin var(--t) linear infinite; }
+.fx-ring.b { border-style: dotted; border-width: 6px; animation-direction: reverse; opacity: .16; }
+.fx-glint.fx-rune { width: 18px; height: 18px; filter: drop-shadow(0 0 6px #6fa6ff); }
+:root:is([data-theme="life"], [data-theme="mana"], [data-theme="attack"], [data-theme="defense"], [data-theme="speed"], [data-theme="dexterity"], [data-theme="vitality"], [data-theme="wisdom"]) h1 {
+  text-shadow: 0 3px 0 var(--bevel-dark), 0 0 18px color-mix(in srgb, var(--accent) 45%, transparent); }
+/* A freshly drunk theme's effects fade in rather than pop. */
+#theme-fx.intro { animation: fx-fade-in .8s ease-out; }
+@keyframes fx-fade-in { from { opacity: 0; } }
+
+/* ---------- Dungeon themes: moving layers over their static backdrops ---------- */
+/* Tomb: sand blowing across, the sun's warmth breathing up from below. */
+.fx-sand { right: -10px; width: 3px; height: 2px; border-radius: 1px; background: #f2d48a; opacity: 0; will-change: transform, opacity;
+  animation: fx-sand var(--t) linear var(--d) infinite; }
+@keyframes fx-sand { 0% { transform: translate(0, 0); opacity: 0; } 10% { opacity: .8; } 50% { transform: translate(-55vw, var(--dy)); } 90% { opacity: .6; } 100% { transform: translate(-110vw, 0); opacity: 0; } }
+.fx-halo.fx-sunwarm { background: radial-gradient(120% 60% at 50% 115%, rgb(242 193 78 / .22), transparent 70%); }
+/* Ocean Trench: bubbles, shafts from far above, sea life glowing in the dark. */
+.fx-bubble.fx-sea { border-color: rgb(150 255 240 / .45); }
+.fx-ray.fx-deepray { background: linear-gradient(180deg, rgb(150 255 240 / .12), rgb(150 255 240 / .03) 55%, transparent); }
+.fx-glow { width: var(--s); height: var(--s); border-radius: 50%; will-change: opacity; background: radial-gradient(circle, var(--c), transparent 70%);
+  animation: fx-glow var(--t) ease-in-out var(--d) infinite alternate; }
+@keyframes fx-glow { from { opacity: .1; } to { opacity: .9; } }
+/* Manor: bats flitting past the moon. */
+.fx-bat { left: -40px; width: 38px; height: 19px; will-change: transform; animation: fx-bat var(--t) linear var(--d) infinite; }
+.fx-bat > b { position: absolute; inset: 0; background: linear-gradient(#7a1e30, #4a0f1c); will-change: transform; animation: fx-flap .18s ease-in-out infinite alternate;
+  clip-path: polygon(50% 30%, 58% 10%, 62% 35%, 80% 5%, 100% 30%, 86% 40%, 78% 70%, 62% 55%, 50% 85%, 38% 55%, 22% 70%, 14% 40%, 0 30%, 20% 5%, 38% 35%, 42% 10%); }
+@keyframes fx-flap { from { transform: scaleY(1); } to { transform: scaleY(-.5); } }
+@keyframes fx-bat { 0% { transform: translate(0, 0) scale(var(--k)); } 25% { transform: translate(28vw, -6vh) scale(var(--k)); } 50% { transform: translate(55vw, 3vh) scale(var(--k)); } 75% { transform: translate(82vw, -4vh) scale(var(--k)); } 100% { transform: translate(112vw, 2vh) scale(var(--k)); } }
+.fx-moon { right: 6%; top: 3%; width: 220px; height: 220px; border-radius: 50%; will-change: opacity;
+  background: radial-gradient(circle, rgb(255 236 240 / .2), rgb(255 200 210 / .06) 45%, transparent 70%); animation: fx-breathe 7s ease-in-out infinite alternate; }
+/* Davy Jones' Locker: fog banks rolling over the deck, ghost lights. */
+.fx-fog { left: -60vw; width: 90vw; height: 34vh; border-radius: 50%; will-change: transform;
+  background: radial-gradient(closest-side, rgb(170 255 225 / .09), transparent); animation: fx-fog var(--t) linear var(--d) infinite; }
+@keyframes fx-fog { from { transform: translateX(0); } to { transform: translateX(170vw); } }
+.fx-fly.fx-ghost { background: #d6fff0; box-shadow: 0 0 8px 3px rgb(111 255 210 / .6), 0 0 24px 8px rgb(111 255 210 / .2); }
+/* Mad Lab: a scan bar sweeping down the monitor, bubbles rising in the beakers. */
+.fx-scan { left: 0; right: 0; top: -12vh; height: 12vh; will-change: transform;
+  background: linear-gradient(180deg, transparent, rgb(166 255 61 / .06) 70%, rgb(200 255 140 / .16) 96%, transparent); animation: fx-scan 6s linear infinite; }
+@keyframes fx-scan { to { transform: translateY(124vh); } }
+.fx-bubble.fx-toxic { border-color: rgb(166 255 61 / .55); background: radial-gradient(circle at 35% 30%, rgb(220 255 180 / .6) 0 18%, rgb(166 255 61 / .12) 40%, transparent 70%); }
+/* Abyss of Demons: embers rising off the magma. */
+.fx-mote.fx-ember { background: radial-gradient(circle, #fff1c0, #ff9a3a 40%, rgb(255 80 20 / .4) 65%, transparent 72%); }
+.fx-halo.fx-magma { background: radial-gradient(130% 55% at 50% 118%, rgb(255 90 20 / .3), transparent 72%); animation-duration: 3.5s; }
+/* Undead Lair: mist pooling and lost souls drifting up. */
+.fx-fog.fx-mist { top: auto; bottom: -12vh; background: radial-gradient(closest-side, rgb(210 200 255 / .1), transparent); }
+.fx-wisp.fx-soul { background: radial-gradient(closest-side, rgb(220 210 255 / .16), transparent); width: 12vw; height: 22vh; }
+/* Sprite World: stars twinkling, a shooting star now and then. */
+.fx-glint.fx-star { width: 10px; height: 10px; filter: drop-shadow(0 0 4px var(--c)); }
+.fx-shoot { width: 160px; height: 2px; will-change: transform, opacity; opacity: 0;
+  background: linear-gradient(90deg, transparent, rgb(124 247 255 / .7), #fff); border-radius: 2px; animation: fx-shoot var(--t) ease-in var(--d) infinite; }
+@keyframes fx-shoot { 0%, 90% { transform: translate(0, 0) rotate(28deg); opacity: 0; } 91% { opacity: 1; } 100% { transform: translate(42vw, 22vw) rotate(28deg); opacity: 0; } }
+.fx-haze.fx-nebula { background: radial-gradient(closest-side, rgb(180 120 255 / .12), transparent); animation-duration: 40s; }
+/* Effects show faintly through the panels in the potion and dungeon themes too. */
+:root:is([data-theme="life"], [data-theme="mana"], [data-theme="attack"], [data-theme="defense"], [data-theme="speed"], [data-theme="dexterity"], [data-theme="vitality"], [data-theme="wisdom"],
+  [data-theme="tomb"], [data-theme="trench"], [data-theme="manor"], [data-theme="locker"], [data-theme="madlab"], [data-theme="abyss"], [data-theme="undead"], [data-theme="sprite"]) .panel:not(.fame-box) {
+  background: color-mix(in srgb, var(--panel) 90%, transparent); }
