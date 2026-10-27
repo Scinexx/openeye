@@ -77,7 +77,7 @@ Requests are sent one at a time with a pause between them, capped at 45 per run.
 - **Characters** are stored on every hiscores poll and shown on profiles. No extra requests are made.
 - **The graveyard** reads `/api/graveyard` from a cursor every 5 minutes, and each new death then gets its full record from `/legacy-api/char/fame`. It only runs while the meta key `graveyard_enabled` is `1` (set in the D1 SQL console; `0` stops it).
 
-Characters and graveyard deaths are only kept for accounts on the hiscores, so bots are left out even if the server ever sent them. Bot deaths seen on the Legends boards are hidden in the graveyard unless "Show bots" is ticked.
+Characters and graveyard deaths are only kept for accounts on the hiscores, so bots are left out even if the server ever sent them.
 
 ### Game data
 
@@ -85,7 +85,7 @@ Items, tooltips, enemies and their drops are rebuilt every day by a GitHub Actio
 
 ### Bots
 
-The game server keeps bot accounts off the hiscores and out of item collections, so bot loot never reaches OpenEye. Bot deaths do appear on the Legends lists; any death from an account that has never been on the hiscores is treated as a bot's and hidden in the graveyard unless "Show bots" is ticked.
+The game server keeps bot accounts off the hiscores and out of item collections, so bot loot never reaches OpenEye. Bot deaths do appear on the Legends lists; any death from an account that has never been on the hiscores is treated as a bot's and left out of the graveyard.
 
 ### Notable loot
 

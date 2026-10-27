@@ -630,12 +630,10 @@ function characterPanel(chars, p) {
 
 async function graveyard() {
   const params = new URLSearchParams(location.search);
-  // Bot deaths (seen on the Legends boards) stay hidden unless the checkbox is ticked.
   const st = {
     page: Number(params.get('page')) || 1,
     sort: params.get('sort') === 'fame' ? 'fame' : 'recent',
     cls: Number(params.get('class')) || 0,
-    bots: params.get('bots') === '1' || params.get('who') === 'bots',
     q: (params.get('q') ?? '').trim().slice(0, 20)
   };
   const qs = (changes = {}) => {
@@ -644,7 +642,6 @@ async function graveyard() {
     if (s.q) p.set('q', s.q);
     if (s.sort !== 'recent') p.set('sort', s.sort);
     if (s.cls) p.set('class', s.cls);
-    if (s.bots) p.set('bots', '1');
     if (s.page > 1) p.set('page', s.page);
     return p.toString();
   };
@@ -683,7 +680,6 @@ async function graveyard() {
     <div class="controls">
       <label class="sr" for="gy-search">Search by name</label>
       <input id="gy-search" type="search" placeholder="Search by name" maxlength="20" autocomplete="off" value="${st.q}">
-      <label class="check push-right"><input type="checkbox" id="gy-bots" ${st.bots ? raw('checked') : ''}> Show bots</label>
     </div>
     <div class="controls" id="gy-filters"></div>
     <section class="panel">
@@ -695,7 +691,7 @@ async function graveyard() {
     </section>`);
   draw(first);
 
-  // Typing and the bots checkbox refresh the list in place, keeping the URL shareable.
+  // Typing refreshes the list in place, keeping the URL shareable.
   let seq = 0, timer = null;
   const refresh = async () => {
     const mine = ++seq;
@@ -707,7 +703,6 @@ async function graveyard() {
     clearTimeout(timer);
     timer = setTimeout(() => { st.q = e.target.value.trim().slice(0, 20); st.page = 1; refresh(); }, 250);
   });
-  document.getElementById('gy-bots').addEventListener('change', e => { st.bots = e.target.checked; st.page = 1; refresh(); });
 }
 
 async function death(account, charId) {
