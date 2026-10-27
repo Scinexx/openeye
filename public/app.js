@@ -1263,6 +1263,10 @@ async function about() {
         <header><h2>Source code</h2></header>
         <div class="panel-body"><a href="https://github.com/Scinexx/openeye" rel="noopener">github.com/Scinexx/openeye</a></div>
       </section>
+      <section class="panel">
+        <header><h2>Auras</h2></header>
+        <div class="panel-body"><a href="/auras" data-link>See every first-find aura</a></div>
+      </section>
     </div>`);
 }
 
