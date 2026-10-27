@@ -784,12 +784,21 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 .estimate-note { margin: 2px 0 0; color: var(--muted); font-size: 0.85rem; font-style: italic; }
 
 /* ---------- Drinking potions and the Nexus loading screen ---------- */
-/* Drinking cross-fades the whole page into the new theme. */
-::view-transition-old(root), ::view-transition-new(root) { animation-duration: .7s; animation-timing-function: ease-in-out; }
-/* The inventory is left out of the fade, so the drunk potion is simply gone. */
-#theme-menu { view-transition-name: theme-menu; }
-::view-transition-group(theme-menu), ::view-transition-new(theme-menu) { animation: none; }
-::view-transition-old(theme-menu) { display: none; }
+/* Drinking fades the page into the new theme: the theme colours are registered so they can
+   animate, and only while .theme-fade is on (the page stays clickable throughout). */
+@property --stone { syntax: '<color>'; inherits: true; initial-value: #373f4c; }
+@property --stone-deep { syntax: '<color>'; inherits: true; initial-value: #2f3641; }
+@property --panel { syntax: '<color>'; inherits: true; initial-value: #464f60; }
+@property --panel-raised { syntax: '<color>'; inherits: true; initial-value: #4e596c; }
+@property --bevel-light { syntax: '<color>'; inherits: true; initial-value: #66758d; }
+@property --bevel-dark { syntax: '<color>'; inherits: true; initial-value: #282e38; }
+@property --bone { syntax: '<color>'; inherits: true; initial-value: #e0e4eb; }
+@property --bone-dim { syntax: '<color>'; inherits: true; initial-value: #b2bac7; }
+@property --muted { syntax: '<color>'; inherits: true; initial-value: #a0a6b1; }
+@property --accent { syntax: '<color>'; inherits: true; initial-value: #7cb4ff; }
+@property --accent-line { syntax: '<color>'; inherits: true; initial-value: #264d82; }
+@property --accent-wash { syntax: '<color>'; inherits: true; initial-value: #26384f; }
+:root.theme-fade { transition: --stone .7s ease-in-out, --stone-deep .7s ease-in-out, --panel .7s ease-in-out, --panel-raised .7s ease-in-out, --bevel-light .7s ease-in-out, --bevel-dark .7s ease-in-out, --bone .7s ease-in-out, --bone-dim .7s ease-in-out, --muted .7s ease-in-out, --accent .7s ease-in-out, --accent-line .7s ease-in-out, --accent-wash .7s ease-in-out; }
 /* A drunk potion leaves an empty slot (and no selection ring) until the next Nexus. */
 .inv-slot.drunk { cursor: default; }
 .inv-slot.drunk[aria-checked="true"]::before { background: #545454; }
@@ -807,4 +816,4 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 @keyframes ml-walk { 0% { background-position: 0 var(--walk-y, 0); } 50% { background-position: -40px var(--walk-y, 0); } }
 .map-loading .ml-name { position: absolute; left: calc(50% - 0.5px); top: calc(50% - 9.5px); transform: translateX(-50%);
   font: 700 30px "Tooltip Sans", sans-serif; color: #fff; white-space: nowrap; }
-@media (prefers-reduced-motion: reduce) { ::view-transition-old(root), ::view-transition-new(root) { animation: none; } .map-loading { transition: none; } .map-loading .ml-char { animation: none; } }
+@media (prefers-reduced-motion: reduce) { :root.theme-fade { transition: none; } .map-loading { transition: none; } .map-loading .ml-char { animation: none; } }

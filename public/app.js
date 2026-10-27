@@ -1457,9 +1457,12 @@ function drink(key) {
   saveDrunk();
   playSound('/sfx/use_potion.mp3');
   // The potion is gone at once; only the page fades into the new theme.
-  drawThemeMenu();
-  const apply = () => setTheme(key);
-  if (document.startViewTransition && !reducedMotion()) document.startViewTransition(apply); else apply();
+  syncThemeMenu();
+  const root = document.documentElement;
+  root.classList.add('theme-fade');
+  setTheme(key);
+  clearTimeout(drink.fadeTimer);
+  drink.fadeTimer = setTimeout(() => root.classList.remove('theme-fade'), 800);
 }
 // Nexus: the client's map loading screen, as read from client.swf (MapLoadingView and the code
 // that opens it): a black screen; the character walking right, its frames
@@ -1483,11 +1486,27 @@ async function nexus() {
   drunk.clear();
   saveDrunk();
   setTheme('');
+  drawThemeMenu();
   if (location.pathname !== '/') navigate('/');
   await sleep(1000);
   screen.classList.add('out');
   await sleep(reducedMotion() ? 0 : 400);
   screen.remove();
+}
+
+// Updates the open inventory in place (selection and drunk slots) without rebuilding it, so a
+// click that is already under way still lands on the same button.
+function syncThemeMenu() {
+  const current = document.documentElement.dataset.theme ?? '';
+  themeMenu.querySelectorAll('[data-theme-key]').forEach(b => {
+    b.setAttribute('aria-checked', String(b.dataset.themeKey === current));
+    if (b.classList.contains('inv-slot') && drunk.has(b.dataset.themeKey) && !b.classList.contains('drunk')) {
+      b.classList.add('drunk');
+      b.querySelector('canvas')?.remove();
+      b.removeAttribute('data-tip');
+      b.setAttribute('aria-label', `${b.getAttribute('aria-label').replace(/^Drink the | \(double-click\)$/g, '')}, drunk`);
+    }
+  });
 }
 
 function drawThemeMenu() {
@@ -1527,7 +1546,7 @@ function drawBrand() {
 function setTheme(key) {
   if (key) document.documentElement.dataset.theme = key; else delete document.documentElement.dataset.theme;
   try { if (key) localStorage.setItem('theme', key); else localStorage.removeItem('theme'); } catch { /* storage unavailable */ }
-  drawThemeMenu();
+  syncThemeMenu();
   drawBrand();
 }
 const closeThemes = () => { themeMenu.hidden = true; themeButton.setAttribute('aria-expanded', 'false'); };
@@ -1553,7 +1572,9 @@ themeMenu.addEventListener('keydown', e => {
   const b = e.target.closest('.inv-slot');
   if (b && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); drink(b.dataset.themeKey); }
 });
-document.addEventListener('click', e => { if (!themeMenu.hidden && !e.target.closest('.settings')) closeThemes(); });
+// A click that reaches only the page root is not a click outside the menu (it happens when a
+// press and release land on different elements).
+document.addEventListener('click', e => { if (!themeMenu.hidden && e.target !== document.documentElement && !e.target.closest('.settings')) closeThemes(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !themeMenu.hidden) { closeThemes(); themeButton.focus(); } });
 
 // ---------- footer status ----------
