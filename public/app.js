@@ -429,7 +429,7 @@ async function home() {
       <section class="panel">
         <header><h2>Latest loot</h2><a href="/items" data-link>All items</a></header>
         ${s.recentFinds.length ? h`<ul class="rows">${s.recentFinds.slice(0, 10).map(f => h`<li>
-          ${f.first ? h`<span class="first-find" title="First ever found on the server">${itemSlot(f.item, 2)}${raw('<i class="spark"></i>'.repeat(7))}</span>` : itemSlot(f.item, 2)}
+          ${f.first ? h`<span class="first-find" title="First ever found on the server">${itemSlot(f.item, 2)}${raw('<i class="spark"></i>'.repeat(3))}</span>` : itemSlot(f.item, 2)}
           <span class="grow"><span class="title">${ITEMS.get(f.item)?.name ?? `Item ${f.item}`}</span>
           <span class="sub">${playerLink(f.name, f.stars)} ${when(f.found_at)}${f.first ? h` <span class="first-tag">First!</span>` : ''}</span></span>
           <span class="tier ${tierInfo(ITEMS.get(f.item)).cls}">${tierInfo(ITEMS.get(f.item)).label}</span>
