@@ -568,11 +568,12 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 
 /* ---------- First find: an untiered item nobody had looted before ----------
    Kept subtle: a faint turning gold halo, a soft glow on the slot and a few sparks. */
-.first-find { display: inline-flex; position: relative; flex: none; isolation: isolate; }
-.first-find > .slot { position: relative; z-index: 2; border-color: rgb(242 196 67 / .8); animation: first-glow 3s ease-in-out infinite; }
+.first-find { --aura-a: #ffd65c; --aura-b: #ffe68c; --aura-s: #fff3c4; display: inline-flex; position: relative; flex: none; isolation: isolate; }
+.first-find > .slot { position: relative; z-index: 2; border-color: color-mix(in srgb, var(--aura-a) 80%, transparent); animation: first-glow 3s ease-in-out infinite; }
 .first-find::before {
-  content: ""; position: absolute; inset: -7px; z-index: 0; border-radius: 50%; pointer-events: none; opacity: .45;
-  background: conic-gradient(from 0deg, rgb(255 214 92 / 0), rgb(255 214 92 / .7) 60deg, rgb(255 214 92 / 0) 140deg, rgb(255 214 92 / 0) 200deg, rgb(255 230 140 / .55) 270deg, rgb(255 214 92 / 0));
+  content: ""; position: absolute; inset: -7px; z-index: 0; border-radius: 50%; pointer-events: none; opacity: .5;
+  background: conic-gradient(from 0deg, transparent, color-mix(in srgb, var(--aura-a) 75%, transparent) 60deg, transparent 140deg,
+    transparent 200deg, color-mix(in srgb, var(--aura-b) 65%, transparent) 270deg, transparent);
   -webkit-mask: radial-gradient(circle, transparent 50%, #000 60%, #000 66%, transparent 72%);
   mask: radial-gradient(circle, transparent 50%, #000 60%, #000 66%, transparent 72%);
   filter: blur(2px);
@@ -580,20 +581,20 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 }
 .first-find .spark {
   position: absolute; z-index: 3; left: 50%; bottom: 6px; width: 2px; height: 2px; border-radius: 50%; pointer-events: none;
-  background: #fff3c4; box-shadow: 0 0 3px 1px rgb(255 214 92 / .6);
+  background: var(--aura-s); box-shadow: 0 0 3px 1px color-mix(in srgb, var(--aura-a) 60%, transparent);
   opacity: 0; animation: first-spark 3.6s ease-out infinite;
 }
 .first-find .spark:nth-of-type(1) { --x: -14px; --dx: -2px; animation-delay: 0s; }
-.first-find .spark:nth-of-type(2) { --x: 12px; --dx: 3px; animation-delay: 1.2s; }
+.first-find .spark:nth-of-type(2) { --x: 12px; --dx: 3px; animation-delay: 1.2s; background: var(--aura-b); }
 .first-find .spark:nth-of-type(3) { --x: -2px; --dx: -2px; animation-delay: 2.4s; }
 @keyframes first-spark {
   0% { opacity: 0; transform: translate(var(--x), 0); }
-  20% { opacity: .7; }
+  20% { opacity: .75; }
   100% { opacity: 0; transform: translate(calc(var(--x) + var(--dx)), -30px); }
 }
 @keyframes first-glow {
-  0%, 100% { box-shadow: 0 0 3px rgb(242 196 67 / .25); }
-  50% { box-shadow: 0 0 8px 1px rgb(242 196 67 / .45); }
+  0%, 100% { box-shadow: 0 0 3px color-mix(in srgb, var(--aura-a) 25%, transparent); }
+  50% { box-shadow: 0 0 8px 1px color-mix(in srgb, var(--aura-a) 50%, transparent); }
 }
 @keyframes first-halo { to { transform: rotate(360deg); } }
 .first-tag {
