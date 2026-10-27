@@ -291,13 +291,16 @@ function historyChart(history, key) {
   const pts = history.map(r => ({t: r.at, v: r[key]}));
   pts.push({t: Math.max(nowTs, pts.at(-1).t + 1), v: pts.at(-1).v});
   const t0 = pts[0].t, t1 = pts.at(-1).t;
-  const vmax = Math.max(1, ...pts.map(p => p.v));
+  // The scale runs from the lowest to the highest value, not from 0, so players who were
+  // already high when tracking began still see their changes.
+  const vmin = Math.min(...pts.map(p => p.v));
+  const vmax = Math.max(vmin + 1, ...pts.map(p => p.v));
   const x = t => L + ((t - t0) / (t1 - t0 || 1)) * (W - L - R);
-  const y = v => T + (1 - v / vmax) * (H - T - B);
+  const y = v => T + (1 - (v - vmin) / (vmax - vmin)) * (H - T - B);
   // Step line: values hold until the next observed change.
   let d = `M${x(pts[0].t)},${y(pts[0].v)}`;
   for (let i = 1; i < pts.length; i++) d += ` H${x(pts[i].t)} V${y(pts[i].v)}`;
-  const ticks = [0, 0.5, 1].map(f => Math.round(vmax * f));
+  const ticks = [...new Set([0, 0.5, 1].map(f => Math.round(vmin + (vmax - vmin) * f)))];
   return h`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${BOARDS[key].title} over time, from ${fmt(pts[0].v)} to ${fmt(pts.at(-1).v)}">
     ${ticks.map(v => h`<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text class="axis" x="${L - 10}" y="${y(v) + 6}" text-anchor="end">${fmt(v)}</text>`)}
     <path class="line" d="${d}"/>
