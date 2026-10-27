@@ -1294,7 +1294,7 @@ const THEME_NOTES = {
   life: 'Healing light: soft green crosses rise like the game’s heal effect.',
   mana: 'Magic in the air: golden motes drift and sparkle.',
   attack: 'Sword swipes flash across the page.',
-  defense: 'Plated steel with a sheen that sweeps across like light on armor.',
+  defense: 'Plain steel grey; drinking it sends a sheen across like light on armor.',
   speed: 'Wind streaks rush past.',
   dexterity: 'Arrows fly across the page.',
   vitality: 'A heartbeat pulses at the edges of the screen.',
@@ -1749,7 +1749,7 @@ const FX = {
   life: () => `<i class="fx-halo"></i>${many(12, () => `<i class="fx-mote fx-plus" style="left:${pct(2, 98)};--s:${rand(7, 13).toFixed(0)}px;--dx:${rand(-30, 30).toFixed(0)}px;--t:${rand(11, 20).toFixed(1)}s;--d:-${rand(0, 20).toFixed(1)}s"></i>`)}`,
   mana: () => `<i class="fx-swirl"></i>${many(20, () => `<i class="fx-fly fx-gold" style="left:${pct(2, 98)};top:${pct(5, 98)};--t:${rand(6, 12).toFixed(1)}s;--d:-${rand(0, 12).toFixed(1)}s;--dx:${rand(-70, 70).toFixed(0)}px;--dy:${rand(-70, 40).toFixed(0)}px"></i>`)}`,
   attack: () => many(6, () => `<i class="fx-slash" style="left:${pct(0, 75)};top:${pct(8, 92)};--r:${rand(-40, 40).toFixed(0)}deg;--t:${rand(5, 9).toFixed(1)}s;--d:-${rand(0, 9).toFixed(1)}s"></i>`),
-  defense: () => '<i class="fx-plates"></i><i class="fx-sheen"></i>',
+  defense: () => '<i class="fx-sheen"></i>',
   speed: () => many(12, () => `<i class="fx-streak" style="top:${pct(3, 97)};--w:${rand(80, 260).toFixed(0)}px;--t:${rand(1.4, 3).toFixed(2)}s;--d:-${rand(0, 6).toFixed(1)}s"></i>`),
   dexterity: () => many(5, () => `<i class="fx-arrow" style="top:${pct(8, 92)};--r:${rand(-6, 6).toFixed(1)}deg;--dy:${rand(-60, 60).toFixed(0)}px;--t:${rand(6, 11).toFixed(1)}s;--d:-${rand(0, 11).toFixed(1)}s"></i>`),
   vitality: () => `<i class="fx-pulse"></i>${many(8, () => `<i class="fx-mote fx-cell" style="left:${pct(2, 98)};--s:${rand(6, 12).toFixed(0)}px;--dx:${rand(-30, 30).toFixed(0)}px;--t:${rand(14, 24).toFixed(1)}s;--d:-${rand(0, 24).toFixed(1)}s"></i>`)}`,
@@ -1771,9 +1771,21 @@ const FX = {
   passion: () => `<i class="fx-haze"></i>${many(11, () => `<i class="fx-petal" style="top:${pct(-10, 70)};--s:${rand(10, 20).toFixed(0)}px;--t:${rand(11, 19).toFixed(1)}s;--d:-${rand(0, 19).toFixed(1)}s;--r:${rand(-200, 200).toFixed(0)}deg"></i>`)}` + many(7, () => `<i class="fx-bokeh" style="left:${pct(0, 95)};top:${pct(0, 90)};--s:${rand(60, 160).toFixed(0)}px;--dx:${rand(-80, 80).toFixed(0)}px;--dy:${rand(-60, 60).toFixed(0)}px;--t:${rand(8, 14).toFixed(1)}s;--d:-${rand(0, 14).toFixed(1)}s"></i>`),
   jungle: () => `<i class="fx-leaves"></i><i class="fx-leaves b"></i>${many(16, () => `<i class="fx-fly" style="left:${pct(2, 98)};top:${pct(25, 98)};--t:${rand(5, 10).toFixed(1)}s;--d:-${rand(0, 10).toFixed(1)}s;--dx:${rand(-60, 60).toFixed(0)}px;--dy:${rand(-50, 20).toFixed(0)}px"></i>`)}` + many(6, () => `<i class="fx-leaf" style="left:${pct(2, 98)};--dx:${rand(-120, 120).toFixed(0)}px;--t:${rand(14, 22).toFixed(1)}s;--d:-${rand(0, 22).toFixed(1)}s"></i>`)
 };
+// The stat potions are the plain everyday themes: their effects only play for a few seconds
+// after drinking one, then fade away and leave the clean theme.
+const POTION_FX_MS = 4000;
+let fxTimer = null;
 function themeFx(key, intro = false) {
+  clearTimeout(fxTimer);
+  const brief = POTIONS.some(t => t[0] === key);
   fxLayer.className = intro ? 'intro' : '';
-  fxLayer.innerHTML = FX[key]?.() ?? '';
+  fxLayer.innerHTML = brief && !intro ? '' : FX[key]?.() ?? '';
+  if (brief && intro) {
+    fxTimer = setTimeout(() => {
+      fxLayer.classList.add('outro');
+      fxTimer = setTimeout(() => { fxLayer.innerHTML = ''; fxLayer.className = ''; }, 1000);
+    }, POTION_FX_MS);
+  }
 }
 // One-shot effects as the server sends them (src/world/consumables.rs): a nova ring around the
 // player (the item's range, or 1 tile for a condition), and the healed amount in green.

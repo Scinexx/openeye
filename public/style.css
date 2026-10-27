@@ -1172,16 +1172,11 @@ html.invisible main, html.invisible .footer { opacity: .28; }
   background: linear-gradient(90deg, transparent, rgb(255 210 255 / .9) 60%, #fff 85%, transparent); box-shadow: 0 0 12px 2px rgb(229 122 245 / .55);
   animation: fx-slash var(--t) ease-out var(--d) infinite; }
 @keyframes fx-slash { 0%, 86% { transform: rotate(var(--r)) scaleX(0); opacity: 0; } 88% { opacity: 1; } 93% { transform: rotate(var(--r)) scaleX(1); opacity: .9; } 100% { transform: rotate(var(--r)) scaleX(1) translateX(8vmin); opacity: 0; } }
-/* Defense: armour plates, and a sheen sweeping across like light on steel. */
-#theme-fx .fx-plates { inset: 0; opacity: .5; background:
-  radial-gradient(circle, rgb(255 255 255 / .12) 0 1.5px, transparent 2px) 6px 6px / 96px 96px,
-  linear-gradient(rgb(0 0 0 / .25) 2px, transparent 2px) 0 0 / 96px 96px,
-  linear-gradient(90deg, rgb(0 0 0 / .25) 2px, transparent 2px) 0 0 / 96px 96px,
-  linear-gradient(rgb(255 255 255 / .05) 1px, transparent 1px) 0 2px / 96px 96px; }
+/* Defense: a sheen sweeping across like light on steel. */
 #theme-fx .fx-sheen { top: -50vh; left: 0; width: 34vw; height: 200vh; will-change: transform;
   background: linear-gradient(90deg, transparent, rgb(255 255 255 / .07) 40%, rgb(255 255 255 / .12) 50%, rgb(255 255 255 / .07) 60%, transparent);
-  animation: fx-sheen-x 11s ease-in-out infinite; }
-@keyframes fx-sheen-x { 0% { transform: translateX(-40vw) rotate(18deg); } 45%, 100% { transform: translateX(140vw) rotate(18deg); } }
+  animation: fx-sheen-x 3s ease-in-out .2s both; }
+@keyframes fx-sheen-x { from { transform: translateX(-40vw) rotate(18deg); } to { transform: translateX(140vw) rotate(18deg); } }
 /* Speed: wind streaks rushing past. */
 #theme-fx .fx-streak { right: -30vw; height: 2px; width: var(--w); border-radius: 2px; will-change: transform, opacity; opacity: 0;
   background: linear-gradient(90deg, transparent, rgb(150 255 190 / .5) 40%, rgb(220 255 230 / .7)); animation: fx-streak var(--t) linear var(--d) infinite; }
@@ -1250,9 +1245,8 @@ html.invisible main, html.invisible .footer { opacity: .28; }
   background: linear-gradient(90deg, transparent, rgb(124 247 255 / .7), #fff); border-radius: 2px; animation: fx-shoot var(--t) ease-in var(--d) infinite; }
 @keyframes fx-shoot { 0%, 90% { transform: translate(0, 0) rotate(28deg); opacity: 0; } 91% { opacity: 1; } 100% { transform: translate(42vw, 22vw) rotate(28deg); opacity: 0; } }
 #theme-fx .fx-haze.fx-nebula { background: radial-gradient(closest-side, rgb(180 120 255 / .12), transparent); animation-duration: 40s; }
-/* Effects show faintly through the panels in the potion and dungeon themes too. */
-:root:is([data-theme="life"], [data-theme="mana"], [data-theme="attack"], [data-theme="defense"], [data-theme="speed"], [data-theme="dexterity"], [data-theme="vitality"], [data-theme="wisdom"],
-  [data-theme="tomb"], [data-theme="trench"], [data-theme="manor"], [data-theme="locker"], [data-theme="madlab"], [data-theme="abyss"], [data-theme="undead"], [data-theme="sprite"]) .panel:not(.fame-box) {
+/* Effects show faintly through the panels in the dungeon themes too. */
+:root:is([data-theme="tomb"], [data-theme="trench"], [data-theme="manor"], [data-theme="locker"], [data-theme="madlab"], [data-theme="abyss"], [data-theme="undead"], [data-theme="sprite"]) .panel:not(.fame-box) {
   background: color-mix(in srgb, var(--panel) 90%, transparent); }
 
 /* ---------- Extra touches for the rare finds ---------- */
@@ -1288,3 +1282,5 @@ html.invisible main, html.invisible .footer { opacity: .28; }
   animation: fx-arrive 1.4s ease-out forwards; }
 @keyframes fx-arrive { from { transform: scale(.4); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { #theme-fx.intro::before { display: none; } }
+/* A potion's effects fading away a few seconds after drinking it. */
+#theme-fx.outro { opacity: 0; transition: opacity 1s ease-out; }
