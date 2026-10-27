@@ -1130,6 +1130,9 @@ async function about() {
   const names = {health: 'Server', hiscores: 'Players', legends: 'Legends', deaths: 'Deaths', graveyard: 'Graveyard'};
   view(h`
     <div class="page-head"><div><h1>About</h1></div></div>
+    <section class="panel" style="margin-bottom:24px">
+      <div class="panel-body"><p style="margin:0">OpenEye is made by spankmaster. It is not run by or associated with RedBracket or any other Open RotMG devs. Data comes from the game's public API.</p></div>
+    </section>
     <div class="grid-2" style="align-items:start">
       <section class="panel">
         <header><h2>Last updated</h2></header>
