@@ -568,12 +568,12 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 
 /* ---------- First find: an untiered item nobody had looted before ----------
    Kept subtle: a faint turning gold halo, a soft glow on the slot and a few sparks. */
-.first-find { --aura-a: #ffd65c; --aura-b: #ffe68c; --aura-s: #fff3c4; display: inline-flex; position: relative; flex: none; isolation: isolate; }
-.first-find > .slot { position: relative; z-index: 2; border-color: color-mix(in srgb, var(--aura-a) 80%, transparent); animation: first-glow 3s ease-in-out infinite; }
+.first-find { display: inline-flex; position: relative; flex: none; isolation: isolate; }
+.first-find > .slot { position: relative; z-index: 2; border-color: color-mix(in srgb, var(--aura-a, #ffd65c) 80%, transparent); animation: first-glow 3s ease-in-out infinite; }
 .first-find::before {
   content: ""; position: absolute; inset: -7px; z-index: 0; border-radius: 50%; pointer-events: none; opacity: .5;
-  background: conic-gradient(from 0deg, transparent, color-mix(in srgb, var(--aura-a) 75%, transparent) 60deg, transparent 140deg,
-    transparent 200deg, color-mix(in srgb, var(--aura-b) 65%, transparent) 270deg, transparent);
+  background: conic-gradient(from 0deg, transparent, color-mix(in srgb, var(--aura-a, #ffd65c) 75%, transparent) 60deg, transparent 140deg,
+    transparent 200deg, color-mix(in srgb, var(--aura-b, #ffe68c) 65%, transparent) 270deg, transparent);
   -webkit-mask: radial-gradient(circle, transparent 50%, #000 60%, #000 66%, transparent 72%);
   mask: radial-gradient(circle, transparent 50%, #000 60%, #000 66%, transparent 72%);
   filter: blur(2px);
@@ -581,11 +581,11 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 }
 .first-find .spark {
   position: absolute; z-index: 3; left: 50%; bottom: 6px; width: 2px; height: 2px; border-radius: 50%; pointer-events: none;
-  background: var(--aura-s); box-shadow: 0 0 3px 1px color-mix(in srgb, var(--aura-a) 60%, transparent);
+  background: var(--aura-s, #fff3c4); box-shadow: 0 0 3px 1px color-mix(in srgb, var(--aura-a, #ffd65c) 60%, transparent);
   opacity: 0; animation: first-spark 3.6s ease-out infinite;
 }
 .first-find .spark:nth-of-type(1) { --x: -14px; --dx: -2px; animation-delay: 0s; }
-.first-find .spark:nth-of-type(2) { --x: 12px; --dx: 3px; animation-delay: 1.2s; background: var(--aura-b); }
+.first-find .spark:nth-of-type(2) { --x: 12px; --dx: 3px; animation-delay: 1.2s; background: var(--aura-b, #ffe68c); }
 .first-find .spark:nth-of-type(3) { --x: -2px; --dx: -2px; animation-delay: 2.4s; }
 @keyframes first-spark {
   0% { opacity: 0; transform: translate(var(--x), 0); }
@@ -593,13 +593,13 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
   100% { opacity: 0; transform: translate(calc(var(--x) + var(--dx)), -30px); }
 }
 @keyframes first-glow {
-  0%, 100% { box-shadow: 0 0 3px color-mix(in srgb, var(--aura-a) 25%, transparent); }
-  50% { box-shadow: 0 0 8px 1px color-mix(in srgb, var(--aura-a) 50%, transparent); }
+  0%, 100% { box-shadow: 0 0 3px color-mix(in srgb, var(--aura-a, #ffd65c) 25%, transparent); }
+  50% { box-shadow: 0 0 8px 1px color-mix(in srgb, var(--aura-a, #ffd65c) 50%, transparent); }
 }
 @keyframes first-halo { to { transform: rotate(360deg); } }
 .first-tag {
   margin-left: 4px; font-weight: 700; letter-spacing: .02em;
-  background: linear-gradient(100deg, #c98f10 0%, #f2c443 35%, #fff6d0 50%, #f2c443 65%, #c98f10 100%) 0 0 / 250% 100%;
+  background: linear-gradient(100deg, var(--aura-b, #c98f10) 0%, var(--aura-a, #f2c443) 35%, var(--aura-s, #fff6d0) 50%, var(--aura-a, #f2c443) 65%, var(--aura-b, #c98f10) 100%) 0 0 / 250% 100%;
   -webkit-background-clip: text; background-clip: text; color: transparent;
   animation: first-shine 4s linear infinite;
 }
@@ -610,6 +610,8 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 }
 
 /* ---------- Auras gallery (unlisted, /auras) ---------- */
-.aura-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; align-items: start; }
-.aura-card .rows > li { padding: 14px 16px; }
-.aura-swatch { width: 44px; height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--aura-a), var(--aura-b)); box-shadow: 0 0 8px color-mix(in srgb, var(--aura-a) 50%, transparent); }
+.aura-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.aura-card { display: flex; align-items: center; gap: 14px; padding: 14px 16px; margin: 0; }
+.aura-card .grow { flex: 1; min-width: 0; }
+.aura-card .title { display: block; font-weight: 700; }
+.aura-card .sub { color: var(--bone-dim); font-size: 0.9rem; }

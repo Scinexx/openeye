@@ -12,6 +12,8 @@ import {fileURLToPath} from 'node:url';
 import {parseElement, equipmentTooltip} from './tooltip.mjs';
 import {swfBitmaps} from './codex/swf.mjs';
 import {buildGraves} from './codex/graves.mjs';
+import {buildAuras} from './codex/auras.mjs';
+import {decodePng} from './codex/png.mjs';
 import {buildEnemies, literalDrops} from './codex/enemies.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -189,7 +191,10 @@ if (lootFile) {
   await writeFile(join(out, 'graves.json'), JSON.stringify({sheet: {width: sheet.width, height: sheet.height}, graves}));
   await writeFile(join(out, 'graves.png'), sheet.png);
 }
-await writeFile(join(out, 'items.png'), await get(SOURCES.sheet, true));
+const itemSheet = await get(SOURCES.sheet, true);
+await writeFile(join(out, 'items.png'), itemSheet);
+// First-find aura colours, from each rare UT's own sprite.
+await writeFile(join(out, 'auras.json'), JSON.stringify(buildAuras(items, decodePng(itemSheet))));
 await writeFile(join(out, 'items.json'), JSON.stringify(items));
 await writeFile(join(out, 'classes.json'), JSON.stringify(classes, null, 1));
 await writeFile(join(out, 'slots.json'), JSON.stringify(slots, null, 1));

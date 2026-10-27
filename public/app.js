@@ -314,55 +314,13 @@ const view = (html) => { main.innerHTML = String(html); };
 const loading = () => view(h`<p class="loading">Loading…</p>`);
 
 // ---- First-find auras ----
-// Each rare UT glows in the colours of where it comes from: its dungeon or the boss that
-// drops it (from the server's own loot tables), as players know them. Common UTs get none.
-const AURA_THEMES = {
-  hellfire:  {name: 'Abyss of Demons', a: '#ff5a1f', b: '#ffb02e', s: '#ffd27a'},
-  undead:    {name: 'Undead Lair', a: '#9fd8ff', b: '#e6f4ff', s: '#d6efff'},
-  pyramid:   {name: 'Tomb of the Ancients', a: '#e8c27a', b: '#c8963e', s: '#fff0c8'},
-  sphinx:    {name: 'Tomb of the Ancients, Nut', a: '#e8c27a', b: '#3a6fd8', s: '#fff0c8'},
-  nile:      {name: 'Tomb of the Ancients, Geb', a: '#e8c27a', b: '#2ec4b6', s: '#d8fff8'},
-  sprite:    {name: 'Sprite World', a: '#8a5cff', b: '#ff7ad9', s: '#ffffff'},
-  storm:     {name: 'Sprite World, Greater Nature Sprite', a: '#fff27a', b: '#7ad8ff', s: '#ffffff'},
-  crystal:   {name: 'Crystal Prisoner', a: '#c08bff', b: '#f0d8ff', s: '#ffffff'},
-  stone:     {name: 'Stone Guardian', a: '#b9b2a6', b: '#e8d38a', s: '#fff4cc'},
-  pentaract: {name: 'The Pentaract', a: '#c4153a', b: '#ff6b8a', s: '#ffc2cf'},
-  juggernaut:{name: 'Grand Sphinx and Hermit God', a: '#c87f3c', b: '#f0c27a', s: '#ffe2b0'},
-  holy:      {name: 'Manor of the Immortals, holy arsenal', a: '#fff1c2', b: '#ffd86b', s: '#ffffff'},
-  blood:     {name: 'Manor of the Immortals', a: '#b3122e', b: '#ff5a6e', s: '#ffc0c8'},
-  cube:      {name: 'Cube God', a: '#3fa9ff', b: '#b6e3ff', s: '#e6f6ff'},
-  skulls:    {name: 'Skull Shrine', a: '#e0362a', b: '#f3e6c8', s: '#ffd9a8'},
-  ogmur:     {name: 'Lord of the Lost Lands', a: '#3b5bdb', b: '#9fb4ff', s: '#dfe6ff'},
-  coral:     {name: 'Ocean Trench', a: '#ff7f7f', b: '#2ec4c4', s: '#e0ffff'},
-  locker:    {name: 'Davy Jones’ Locker', a: '#5ef2c4', b: '#b8ffe8', s: '#e8fff7'},
-  madlab:    {name: 'Mad Lab', a: '#7cff4f', b: '#c46bff', s: '#e8ffd8'}
-};
-const AURA_ITEMS = {
-  hellfire: ['Demon Blade'],
-  undead: ['Doom Bow'],
-  pyramid: ['Ring of the Pyramid', 'Tome of Holy Protection'],
-  sphinx: ['Ring of the Sphinx'],
-  nile: ['Ring of the Nile'],
-  sprite: ['Cloak of the Planewalker', 'Staff of Extreme Prejudice'],
-  storm: ['Quiver of Thunder'],
-  crystal: ['Crystal Sword', 'Crystal Wand'],
-  stone: ['Ancient Stone Sword'],
-  pentaract: ['Seal of Blasphemous Prayer'],
-  juggernaut: ['Helm of the Juggernaut'],
-  holy: ['Tome of Purification', "St. Abraham's Wand", 'Chasuble of Holy Light', 'Ring of Divine Faith'],
-  blood: ['Bone Dagger'],
-  cube: ['Dirk of Cronus'],
-  skulls: ['Orb of Conflict'],
-  ogmur: ['Shield of Ogmur'],
-  coral: ['Coral Bow', 'Coral Ring', 'Coral Silk Armor', 'Coral Venom Trap'],
-  locker: ["Captain's Ring", 'Spectral Cloth Armor', 'Spirit Dagger', 'Ghostly Prism'],
-  madlab: ['Scepter of Fulmination', 'Experimental Ring', 'Robe of the Mad Scientist']
-};
-const AURA_BY_NAME = new Map(Object.entries(AURA_ITEMS).flatMap(([k, names]) => names.map(n => [n, k])));
+// Each rare UT glows in its own colours: the two most prominent colours of its sprite and its
+// brightest highlight (built from the sprite sheet by tools/codex/auras.mjs). Common UTs get none.
+let AURAS = {};
+async function loadAuras() { AURAS = await staticJson('/catalog/auras.json').catch(() => ({})); }
 function auraOf(id) {
   const it = ITEMS.get(id);
-  if (!it || it.commonUt) return null;
-  return AURA_THEMES[AURA_BY_NAME.get(it.name)] ?? null;
+  return it && !it.commonUt ? AURAS[id] ?? null : null;
 }
 const auraStyle = t => (t ? `--aura-a:${t.a};--aura-b:${t.b};--aura-s:${t.s}` : '');
 
@@ -481,8 +439,8 @@ async function home() {
       </section>
       <section class="panel">
         <header><h2>Latest loot</h2><a href="/items" data-link>All items</a></header>
-        ${s.recentFinds.length ? h`<ul class="rows">${s.recentFinds.slice(0, 10).map(f => h`<li>
-          ${f.first ? h`<span class="first-find" style="${auraStyle(auraOf(f.item))}" title="First ever found on the server${auraOf(f.item) ? ` · ${auraOf(f.item).name}` : ''}">${itemSlot(f.item, 2)}${raw('<i class="spark"></i>'.repeat(3))}</span>` : itemSlot(f.item, 2)}
+        ${s.recentFinds.length ? h`<ul class="rows">${s.recentFinds.slice(0, 10).map(f => h`<li style="${f.first ? auraStyle(auraOf(f.item)) : ''}">
+          ${f.first ? h`<span class="first-find" title="First ever found on the server">${itemSlot(f.item, 2)}${raw('<i class="spark"></i>'.repeat(3))}</span>` : itemSlot(f.item, 2)}
           <span class="grow"><span class="title">${ITEMS.get(f.item)?.name ?? `Item ${f.item}`}</span>
           <span class="sub">${playerLink(f.name, f.stars)} ${when(f.found_at)}${f.first ? h` <span class="first-tag">First!</span>` : ''}</span></span>
           <span class="tier ${tierInfo(ITEMS.get(f.item)).cls}">${tierInfo(ITEMS.get(f.item)).label}</span>
@@ -1287,20 +1245,14 @@ async function about() {
 // Unlisted gallery of every first-find aura (not linked anywhere): /auras
 function auras() {
   document.title = 'Auras | OpenEye';
+  const ids = Object.keys(AURAS).map(Number).filter(id => auraOf(id)).sort((a, b) => ITEMS.get(a).name.localeCompare(ITEMS.get(b).name));
   view(h`
-    <div class="page-head"><div><h1>Auras</h1><p>The glow a UT gets in Latest loot when it is the first ever found, in the colours of where it drops.</p></div></div>
-    <div class="aura-gallery">${Object.entries(AURA_ITEMS).map(([key, names]) => {
-      const t = AURA_THEMES[key];
-      const ids = names.map(n => [...ITEMS.values()].find(i => i.name === n)?.id).filter(id => id !== undefined);
-      return h`<section class="panel aura-card">
-        <header><h2>${t.name}</h2><span class="aura-swatch" style="${auraStyle(t)}"></span></header>
-        <ul class="rows">${ids.map(id => h`<li>
-          <span class="first-find" style="${auraStyle(t)}">${itemSlot(id, 2)}${raw('<i class="spark"></i>'.repeat(3))}</span>
-          <span class="grow"><span class="title">${ITEMS.get(id).name}</span><span class="sub">${ITEMS.get(id).slotName}</span></span>
-          <span class="first-tag">First!</span>
-        </li>`)}</ul>
-      </section>`;
-    })}</div>`);
+    <div class="page-head"><div><h1>Auras</h1><p>The glow a UT gets in Latest loot when it is the first ever found, in the item’s own colours.</p></div></div>
+    <div class="aura-gallery">${ids.map(id => h`<div class="panel aura-card" style="${auraStyle(auraOf(id))}">
+      <span class="first-find">${itemSlot(id, 2)}${raw('<i class="spark"></i>'.repeat(3))}</span>
+      <span class="grow"><span class="title">${ITEMS.get(id).name}</span><span class="sub">${ITEMS.get(id).slotName}</span></span>
+      <span class="first-tag">First!</span>
+    </div>`)}</div>`);
 }
 
 function notFound(message = 'There is nothing at this address.') {
@@ -1525,7 +1477,7 @@ async function footer() {
   } catch { /* server stopped */ }
 }
 
-await Promise.all([loadCatalog(), loadCrown(), loadGraves()]);
+await Promise.all([loadCatalog(), loadCrown(), loadGraves(), loadAuras()]);
 drawBrand();
 route();
 footer();
