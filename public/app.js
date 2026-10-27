@@ -1441,7 +1441,7 @@ const themeMenu = document.getElementById('theme-menu');
 // eight stat potions, on the HUD's #363636, with the HUD's Nexus button to go back to the default.
 const SLOT_CUTS = {0: 'tl', 3: 'tr', 4: 'bl', 7: 'br'};
 // Drinking: double-click a potion to drink it, as in the game. It plays the game's own
-// use_potion sound, fades the site into that theme and leaves the slot empty until the
+// use_potion sound, switches the site to that theme and leaves the slot empty until the
 // next Nexus, which refills every potion and resets the theme.
 let drunk = new Set();
 try { drunk = new Set(JSON.parse(localStorage.getItem('drunkPotions') ?? '[]')); } catch { /* storage unavailable */ }
@@ -1450,19 +1450,19 @@ const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce
 function playSound(src, volume = 0.5) {
   try { const a = new Audio(src); a.volume = volume; a.play().catch(() => {}); } catch { /* no audio */ }
 }
+// A short cooldown between drinks.
+const DRINK_COOLDOWN = 700;
+let lastDrink = 0;
 function drink(key) {
   if (!key || drunk.has(key)) return;
+  if (performance.now() - lastDrink < DRINK_COOLDOWN) return;
+  lastDrink = performance.now();
   hideTip();
   drunk.add(key);
   saveDrunk();
   playSound('/sfx/use_potion.mp3');
-  // The potion is gone at once; only the page fades into the new theme.
   syncThemeMenu();
-  const root = document.documentElement;
-  root.classList.add('theme-fade');
   setTheme(key);
-  clearTimeout(drink.fadeTimer);
-  drink.fadeTimer = setTimeout(() => root.classList.remove('theme-fade'), 800);
 }
 // Nexus: the client's map loading screen, as read from client.swf (MapLoadingView and the code
 // that opens it): a black screen; the character walking right, its frames
