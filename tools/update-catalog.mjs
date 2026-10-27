@@ -16,6 +16,7 @@ import {buildWalk} from './codex/walk.mjs';
 import {buildAuras} from './codex/auras.mjs';
 import {decodePng} from './codex/png.mjs';
 import {buildEnemies, literalDrops} from './codex/enemies.mjs';
+import {buildCellar} from './codex/cellar.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'public', 'catalog');
@@ -32,6 +33,9 @@ const SOURCES = {
   endgame: ['Open-RotMG-Server', 'src/endgame.rs'],
   // The Nexus shop's stock, for items players can buy rather than loot.
   shop: ['Open-RotMG-Server', 'src/world/shop.rs'],
+  // The Wine Cellar's map and floor textures, for the Wine Cellar Incantation theme.
+  cellar: ['Open-RotMG-Server', 'data/wine-cellar.wmap'],
+  grounds: ['Open-RotMG-Server', 'data/grounds.xml'],
   items: ['Open-RotMG-Website', 'public/hiscores/items.json'],
   sheet: ['Open-RotMG-Website', 'public/hiscores/items.png'],
   classSprite: name => ['Open-RotMG-Website', `public/restoration/assets/player/${name}.png`],
@@ -202,6 +206,11 @@ if (lootFile) {
   const {graves, sheet} = buildGraves({objects, sheets: clientSheets});
   await writeFile(join(out, 'graves.json'), JSON.stringify({sheet: {width: sheet.width, height: sheet.height}, graves}));
   await writeFile(join(out, 'graves.png'), sheet.png);
+  const cellar = buildCellar({map: await get(SOURCES.cellar, true), grounds: await get(SOURCES.grounds), objects, sheets: clientSheets});
+  await writeFile(join(out, 'cellar.png'), cellar.map.png);
+  await writeFile(join(out, 'oryx.png'), cellar.oryx.png);
+  await writeFile(join(out, 'cellar.json'), JSON.stringify({map: {width: cellar.map.width, height: cellar.map.height, tile: cellar.map.tile, oryx: cellar.map.oryx},
+    oryx: {width: cellar.oryx.width, height: cellar.oryx.height, eyes: cellar.oryx.eyes}}));
 }
 const itemSheet = await get(SOURCES.sheet, true);
 await writeFile(join(out, 'items.png'), itemSheet);

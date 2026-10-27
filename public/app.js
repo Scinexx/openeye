@@ -1286,6 +1286,87 @@ function auras() {
     </div>`)}</div>`);
 }
 
+// ---------- the Vault (unlisted: /vault) ----------
+// Every theme in one place, kept in vault chests like the game's: click an item to wear its
+// theme, double-click to use it as in the game (loading screens, sounds and effects included).
+const THEME_NOTES = {
+  '': 'The Nexus: the default stone theme.',
+  life: 'Healing light: soft green crosses rise like the game’s heal effect.',
+  mana: 'Magic in the air: golden motes drift and sparkle.',
+  attack: 'Sword swipes flash across the page.',
+  defense: 'Plated steel with a sheen that sweeps across like light on armor.',
+  speed: 'Wind streaks rush past.',
+  dexterity: 'Arrows fly across the page.',
+  vitality: 'A heartbeat pulses at the edges of the screen.',
+  wisdom: 'Arcane rings turn slowly behind twinkling runes.',
+  tomb: 'Sand blows across a golden tomb.',
+  trench: 'Deep water: bubbles rise past glowing sea life.',
+  manor: 'A blood moon, crimson edges and bats flitting past.',
+  locker: 'Ghostly fog rolls over the sunken deck.',
+  madlab: 'Monitor scanlines sweep down; toxic bubbles rise.',
+  abyss: 'Embers rise from the magma below.',
+  undead: 'Cold mist and lost souls drifting upward.',
+  sprite: 'Twinkling stars, drifting nebulae and the odd shooting star.',
+  cellar: 'Oryx’s Wine Cellar from the game’s own map, with the Mad God himself watching.',
+  rum: 'Inside the ghostly bottle: rum sloshing, bubbles and spirits rising.',
+  snakeoil: 'The tonic show’s spotless white, with an oily rainbow sheen.',
+  mushroom: 'Amanita red, a turning rainbow and pulsing spores. Eat it to hallucinate.',
+  sunrise: 'The sun climbs out of the sea between the palms.',
+  paradise: 'Under the lagoon: caustic light, sun shafts and rising bubbles.',
+  passion: 'A warm magenta breeze carrying petals.',
+  jungle: 'A jungle bay at night, with fireflies and moonlight.'
+};
+function vault() {
+  document.title = 'Vault | OpenEye';
+  const byName = new Map([...ITEMS.values()].map(i => [i.name, i]));
+  const chests = [['Potions', POTIONS], ['Dungeon keys', KEYS], ['Rare finds', BREWS]];
+  const current = () => document.documentElement.dataset.theme ?? '';
+  const slotOf = ([key, label, item]) => {
+    const it = byName.get(item);
+    return h`<button type="button" class="vault-slot" data-vault="${key}" aria-pressed="${key === current()}" aria-label="${label}"${it ? raw(` data-tip="${it.id}"`) : ''}>${it ? itemSprite(it.id, 5) : ''}</button>`;
+  };
+  view(h`
+    <div class="page-head"><div><h1>Vault</h1><p>Every theme in one place. Click an item to wear its theme, double-click to use it like in the game.</p></div></div>
+    <div class="vault">
+      <div class="vault-top">
+        <button type="button" class="vault-nexus" data-vault="" aria-pressed="${current() === ''}"><img src="/icons/nexus.png" width="48" height="48" alt=""><span>Nexus</span></button>
+        <section class="panel vault-now" aria-live="polite"><p class="vault-name"></p><p class="vault-note"></p></section>
+      </div>
+      <div class="vault-chests">${chests.map(([title, list]) => h`<section class="vault-chest" aria-label="${title}">
+        <h2>${title}</h2>
+        <div class="vault-grid">${list.map(slotOf)}</div>
+      </section>`)}</div>
+    </div>`);
+  const sync = () => {
+    const key = current();
+    document.querySelectorAll('[data-vault]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.vault === key)));
+    const entry = INV_ALL.find(t => t[0] === key);
+    document.querySelector('.vault-name').textContent = entry ? (BREWS.includes(entry) ? entry[2] : KEYS.includes(entry) ? entry[1] : `${entry[1]} potion`) : 'Nexus';
+    document.querySelector('.vault-note').textContent = THEME_NOTES[key] ?? '';
+  };
+  sync();
+  const box = document.querySelector('.vault');
+  box.addEventListener('click', e => {
+    const b = e.target.closest('[data-vault]');
+    if (!b || mapLoading) return;
+    const key = b.dataset.vault;
+    if (e.detail > 1) return; // the double-click handler takes it from here
+    if (key === current() && key) return;
+    sober();
+    playSound(KEYS.some(k => k[0] === key) || key === 'cellar' ? '/sfx/use_key.mp3' : '/sfx/use_potion.mp3');
+    setTheme(key, {intro: true});
+    sync();
+  });
+  box.addEventListener('dblclick', e => {
+    const b = e.target.closest('[data-vault]');
+    if (!b || !b.dataset.vault || mapLoading) return;
+    hideTip();
+    useItem(b.dataset.vault, fxAt(b));
+    setTimeout(sync, 1100);
+    sync();
+  });
+}
+
 function notFound(message = 'There is nothing at this address.') {
   document.title = 'Not found | OpenEye';
   view(h`<div class="page-head"><div><h1>Not found</h1><p>${message}</p><p><a href="/" data-link>Go to the home page</a> or search for a player above.</p></div></div>`);
@@ -1307,7 +1388,8 @@ const routes = [
   [/^\/enemies$/, () => enemies(), 'enemies'],
   [/^\/enemy\/(\d+)$/, m => enemy(Number(m[1])), 'enemies'],
   [/^\/about$/, () => about(), 'about'],
-  [/^\/auras\/?$/, () => auras(), '']
+  [/^\/auras\/?$/, () => auras(), ''],
+  [/^\/vault\/?$/, () => vault(), '']
 ];
 
 const TITLES = {rankings: 'Rankings', graveyard: 'Graveyard', legends: 'Legends', loot: 'Loot', items: 'Items', enemies: 'Enemies', about: 'About'};
@@ -1511,13 +1593,20 @@ function drink(key) {
   if (performance.now() - lastDrink < DRINK_COOLDOWN) return;
   lastDrink = performance.now();
   hideTip();
+  const slot = themeMenu.querySelector(`.inv-slot[data-theme-key="${key}"]`);
+  const at = fxAt(slot);
   drunk.add(key);
   saveDrunk();
   syncThemeMenu();
+  useItem(key, at);
+}
+// Using an item, as in the game: keys (and the incantation) play the key sound and load into
+// their dungeon; potions play use_potion; rare consumables also do what the item does.
+function useItem(key, at) {
   const dungeon = KEYS.find(k => k[0] === key);
   if (dungeon) {
     playSound('/sfx/use_key.mp3');
-    loadingScreen(dungeon[1], () => setTheme(key));
+    loadingScreen(dungeon[1], () => setTheme(key, {intro: true}));
     return;
   }
   const brew = BREWS.find(b => b[0] === key);
@@ -1527,8 +1616,8 @@ function drink(key) {
     return;
   }
   playSound('/sfx/use_potion.mp3');
-  setTheme(key, {intro: Boolean(brew)});
-  if (brew) brewEffects(brew[4], themeMenu.querySelector(`.inv-slot[data-theme-key="${key}"]`));
+  setTheme(key, {intro: true});
+  if (brew) brewEffects(brew[4], at);
 }
 // Nexus: the client's map loading screen, as read from client.swf (MapLoadingView and the code
 // that opens it): a black screen; the character walking right, its frames
@@ -1657,12 +1746,12 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const pct = (a, b) => `${rand(a, b).toFixed(1)}%`;
 const many = (n, make) => Array.from({length: n}, (_, i) => make(i)).join('');
 const FX = {
-  cellar: () => '<i class="fx-sigil"></i><i class="fx-candle"></i><i class="fx-candle b"></i>',
+  cellar: () => `<i class="fx-cellar"></i><i class="fx-gloom"></i>${many(6, () => `<i class="fx-drip" style="left:${pct(3, 97)};--t:${rand(7, 14).toFixed(1)}s;--d:-${rand(0, 14).toFixed(1)}s"></i>`)}<i class="fx-oryx"><b></b><b></b></i><i class="fx-sigil"></i>`,
   rum: () => `<i class="fx-wave"></i><i class="fx-wave b"></i>${many(9, () => `<i class="fx-bubble" style="left:${pct(2, 98)};--s:${rand(4, 11).toFixed(0)}px;--t:${rand(6, 13).toFixed(1)}s;--d:-${rand(0, 13).toFixed(1)}s"></i>`)}${many(3, i => `<i class="fx-wisp" style="left:${10 + i * 32}%;--t:${rand(16, 24).toFixed(1)}s;--d:-${rand(0, 20).toFixed(1)}s"></i>`)}`,
   snakeoil: () => '<i class="fx-slick"></i>',
   mushroom: () => `<i class="fx-trip"></i>${many(7, () => `<i class="fx-spore" style="left:${pct(0, 100)};top:${pct(10, 95)};--s:${rand(14, 40).toFixed(0)}px;--t:${rand(7, 12).toFixed(1)}s;--d:-${rand(0, 12).toFixed(1)}s"></i>`)}`,
   sunrise: () => '<i class="fx-sun"></i><i class="fx-glare"></i><i class="fx-palm"></i><i class="fx-palm b"></i>',
-  paradise: () => `<i class="fx-caustics"></i><i class="fx-caustics b"></i>${many(6, () => `<i class="fx-glint" style="left:${pct(3, 97)};top:${pct(8, 95)};--t:${rand(3, 6).toFixed(1)}s;--d:-${rand(0, 6).toFixed(1)}s"></i>`)}`,
+  paradise: () => `<i class="fx-caustics"></i><i class="fx-caustics b"></i><i class="fx-surface"></i>${many(5, i => `<i class="fx-ray" style="left:${8 + i * 21 + rand(-5, 5)}%;--a:${rand(-14, 14).toFixed(1)}deg;--t:${rand(7, 12).toFixed(1)}s;--d:-${rand(0, 12).toFixed(1)}s"></i>`)}<i class="fx-deep"></i>${many(12, () => `<i class="fx-mote" style="left:${pct(2, 98)};--s:${rand(3, 9).toFixed(0)}px;--dx:${rand(-40, 40).toFixed(0)}px;--t:${rand(12, 24).toFixed(1)}s;--d:-${rand(0, 24).toFixed(1)}s"></i>`)}${many(5, () => `<i class="fx-glint" style="left:${pct(3, 97)};top:${pct(4, 30)};--t:${rand(3, 6).toFixed(1)}s;--d:-${rand(0, 6).toFixed(1)}s"></i>`)}`,
   passion: () => `<i class="fx-haze"></i>${many(11, () => `<i class="fx-petal" style="top:${pct(-10, 70)};--s:${rand(10, 20).toFixed(0)}px;--t:${rand(11, 19).toFixed(1)}s;--d:-${rand(0, 19).toFixed(1)}s;--r:${rand(-200, 200).toFixed(0)}deg"></i>`)}`,
   jungle: () => `<i class="fx-leaves"></i><i class="fx-leaves b"></i>${many(16, () => `<i class="fx-fly" style="left:${pct(2, 98)};top:${pct(25, 98)};--t:${rand(5, 10).toFixed(1)}s;--d:-${rand(0, 10).toFixed(1)}s;--dx:${rand(-60, 60).toFixed(0)}px;--dy:${rand(-50, 20).toFixed(0)}px"></i>`)}`
 };
@@ -1700,8 +1789,7 @@ function sober() {
   effectTimers.clear();
   hallucinate(false);
 }
-function brewEffects(fx, slot) {
-  const at = fxAt(slot);
+function brewEffects(fx, at) {
   if (fx.heal) {
     burst('fx-nova', at, `--r:${fx.range * TILE}px`);
     burst('fx-status', {x: at.x, y: at.y - 24}, '', `+${fx.heal}`);

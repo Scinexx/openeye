@@ -894,24 +894,43 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 }
 @keyframes fx-spin { to { transform: rotate(360deg); } }
 
-/* Wine Cellar Incantation: the incantation's orange rune turning slowly in a candlelit vault. */
-:root[data-theme="cellar"] { --stone: #1b0910; --stone-deep: #13060b; --panel: #2c0f19; --panel-raised: #38131f; --bevel-light: #b5762a; --bevel-dark: #0a0205; --muted: #c39d92; --bone: #fbeedd; --bone-dim: #e2c6b0; --accent: #ffa630; --accent-line: #8a3a10; --accent-wash: #33141a; }
-:root[data-theme="cellar"] body::before { background:
-  radial-gradient(100% 80% at 50% 40%, transparent 35%, rgb(40 0 10 / .7) 100%),
-  linear-gradient(rgb(0 0 0 / .22) 2px, transparent 2px) 0 0 / 96px 48px,
-  linear-gradient(90deg, rgb(0 0 0 / .22) 2px, transparent 2px) 0 0 / 96px 96px,
-  linear-gradient(90deg, rgb(0 0 0 / .22) 2px, transparent 2px) 48px 48px / 96px 96px,
-  #1b0910; }
-.fx-sigil { left: 50%; top: 50%; width: min(118vmin, 1150px); aspect-ratio: 1; translate: -50% -50%; opacity: .12; will-change: transform;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-100 -100 200 200' fill='none' stroke='%23ff9a1f'%3E%3Ccircle r='97' stroke-width='1.2'/%3E%3Ccircle r='92' stroke-width='5' stroke-dasharray='1.5 5.5'/%3E%3Ccircle r='86' stroke-width='.6'/%3E%3Ccircle r='62' stroke-width='.9'/%3E%3Ccircle r='31' stroke-width='.7'/%3E%3Cpath d='M0-86V86M-86 0H86M-61-61L61 61M-61 61L61-61' stroke-width='.35'/%3E%3Cpolygon points='0,-86 74.5,43 -74.5,43' stroke-width='.7'/%3E%3Cpolygon points='0,86 74.5,-43 -74.5,-43' stroke-width='.7'/%3E%3Cpath d='M0-62L15-15 62 0 15 15 0 62-15 15-62 0-15-15Z' stroke-width='1.3'/%3E%3Ccircle r='6' fill='%23ff9a1f'/%3E%3C/svg%3E") center / contain no-repeat;
-  animation: fx-spin 240s linear infinite; }
-.fx-candle { width: 70vmax; aspect-ratio: 1; left: -30vmax; bottom: -35vmax; border-radius: 50%; will-change: opacity;
-  background: radial-gradient(closest-side, rgb(255 150 40 / .22), rgb(255 110 20 / .08) 50%, transparent); animation: fx-flicker 3.7s steps(1, end) infinite; }
-.fx-candle.b { left: auto; right: -34vmax; bottom: auto; top: -36vmax; animation-duration: 4.3s; animation-delay: -1.2s; }
-@keyframes fx-flicker { 0% { opacity: 1; } 11% { opacity: .82; } 19% { opacity: .95; } 34% { opacity: .78; } 47% { opacity: 1; } 63% { opacity: .86; } 71% { opacity: .97; } 88% { opacity: .8; } }
-#theme-fx.intro .fx-sigil { animation: fx-sigil-in 1.8s cubic-bezier(.2, .7, .2, 1), fx-spin 240s linear infinite; }
-@keyframes fx-sigil-in { from { opacity: .7; transform: scale(.35) rotate(-120deg); } }
-:root[data-theme="cellar"] h1 { background: linear-gradient(180deg, #fff1c4 10%, #ffb347 55%, #e8500a 95%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 2px 0 #3d0610) drop-shadow(0 0 12px rgb(255 140 30 / .35)); }
+/* Wine Cellar Incantation: Oryx's Wine Cellar itself. The floor is the server's own map
+   (wine-cellar.wmap) in the client's textures, with the barrels and the Henchmen of Oryx where
+   the game puts them, drifting slowly as if the camera were moving; Oryx the Mad God looms in
+   the corner with his eyes glowing; wine drips from the barrels above. Using the incantation
+   opens the portal: its rune flares and fades as the cellar appears. */
+:root[data-theme="cellar"] { --stone: #120e16; --stone-deep: #0c090f; --panel: #221c29; --panel-raised: #2b2333; --bevel-light: #7a4a24; --bevel-dark: #070509; --muted: #aca2b8; --bone: #f3eef8; --bone-dim: #cec4da; --accent: #ff4d4d; --accent-line: #7a1c1c; --accent-wash: #2c1720; }
+:root[data-theme="cellar"] body::before { background: #050407; }
+.fx-cellar { left: 50%; top: 50%; width: 2240px; height: 2112px; margin: -1024px 0 0 -1344px; will-change: transform;
+  background: url(/catalog/cellar.png) 0 0 / 100% 100% no-repeat; image-rendering: pixelated; image-rendering: crisp-edges;
+  animation: fx-pan 90s ease-in-out infinite alternate; }
+@keyframes fx-pan { from { transform: translate(120px, 40px); } to { transform: translate(-300px, -90px); } }
+.fx-gloom { inset: 0; background:
+  radial-gradient(60% 70% at 88% 92%, rgb(160 10 20 / .22), transparent 70%),
+  radial-gradient(120% 95% at 50% 45%, rgb(8 5 12 / .45) 30%, rgb(4 2 6 / .92) 100%),
+  rgb(12 8 16 / .35); }
+.fx-oryx { right: max(2vw, 12px); bottom: 0; width: 256px; height: 256px; will-change: transform; animation: fx-loom 6s ease-in-out infinite alternate; }
+.fx-oryx::before { content: ""; position: absolute; inset: 0; opacity: .92;
+  background: url(/catalog/oryx.png) 0 0 / 100% 100% no-repeat; image-rendering: pixelated; image-rendering: crisp-edges;
+  filter: drop-shadow(0 0 24px rgb(0 0 0 / .9)) drop-shadow(0 0 2px rgb(255 60 60 / .3)); }
+@keyframes fx-loom { from { transform: translateY(6px); } to { transform: translateY(-6px); } }
+/* The eyes are the sprite's red pixels (6,4) and (9,4), 16px each at this size. */
+.fx-oryx > b { position: absolute; top: 64px; width: 16px; height: 16px; background: #ff5050; border-radius: 2px;
+  box-shadow: 0 0 10px 3px rgb(255 40 40 / .85), 0 0 34px 10px rgb(255 0 0 / .35); will-change: opacity; animation: fx-glare 3.2s ease-in-out infinite; }
+.fx-oryx > b:first-child { left: 96px; }
+.fx-oryx > b:last-child { left: 144px; }
+@keyframes fx-glare { 0%, 100% { opacity: .55; } 45% { opacity: 1; } 55% { opacity: .9; } }
+.fx-drip { top: -14px; width: 5px; height: 9px; border-radius: 50% 50% 50% 50% / 35% 35% 65% 65%; background: linear-gradient(#b0182c, #5a0612);
+  box-shadow: 0 0 4px rgb(200 20 40 / .5); will-change: transform, opacity; animation: fx-drip var(--t) cubic-bezier(.55, 0, 1, .45) var(--d) infinite; }
+@keyframes fx-drip { 0%, 60% { transform: translateY(0) scaleY(.6); opacity: 0; } 64% { opacity: .9; transform: translateY(0) scaleY(1.2); } 100% { transform: translateY(105vh) scaleY(1.4); opacity: .8; } }
+.fx-sigil { left: 50%; top: 50%; width: min(118vmin, 1150px); aspect-ratio: 1; translate: -50% -50%; opacity: 0; will-change: transform, opacity;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-100 -100 200 200' fill='none' stroke='%23ff9a1f'%3E%3Ccircle r='97' stroke-width='1.2'/%3E%3Ccircle r='92' stroke-width='5' stroke-dasharray='1.5 5.5'/%3E%3Ccircle r='86' stroke-width='.6'/%3E%3Ccircle r='62' stroke-width='.9'/%3E%3Ccircle r='31' stroke-width='.7'/%3E%3Cpath d='M0-86V86M-86 0H86M-61-61L61 61M-61 61L61-61' stroke-width='.35'/%3E%3Cpolygon points='0,-86 74.5,43 -74.5,43' stroke-width='.7'/%3E%3Cpolygon points='0,86 74.5,-43 -74.5,-43' stroke-width='.7'/%3E%3Cpath d='M0-62L15-15 62 0 15 15 0 62-15 15-62 0-15-15Z' stroke-width='1.3'/%3E%3Ccircle r='6' fill='%23ff9a1f'/%3E%3C/svg%3E") center / contain no-repeat; }
+#theme-fx.intro .fx-sigil { animation: fx-portal 2.8s cubic-bezier(.2, .7, .2, 1) forwards; }
+@keyframes fx-portal { 0% { opacity: .9; transform: scale(.3) rotate(-160deg); } 45% { opacity: .55; transform: scale(1) rotate(0); } 100% { opacity: 0; transform: scale(1.5) rotate(40deg); } }
+#theme-fx.intro .fx-oryx > b { animation: fx-wake 1.6s ease-out 1s both, fx-glare 3.2s ease-in-out 2.6s infinite; }
+@keyframes fx-wake { 0% { opacity: 0; } 50% { opacity: 1; box-shadow: 0 0 18px 8px rgb(255 60 60 / 1), 0 0 90px 40px rgb(255 0 0 / .5); } 100% { opacity: .7; } }
+:root[data-theme="cellar"] h1 { color: #f3eef8; text-shadow: 0 3px 0 #000, 0 0 2px #000, 0 0 22px rgb(255 40 40 / .4); }
+:root[data-theme="cellar"] .panel:not(.fame-box) { background: rgb(34 28 41 / .9); }
 
 /* Ghost Pirate Rum: inside the ghostly bottle, plum rum sloshing at the bottom, bubbles and spirits rising. */
 :root[data-theme="rum"] { --stone: #140f24; --stone-deep: #0e0a1a; --panel: #211936; --panel-raised: #2a1f44; --bevel-light: #6e62b0; --bevel-dark: #08060f; --muted: #a8a0cc; --bone: #f1ecff; --bone-dim: #c9c2e8; --accent: #b9f7ff; --accent-line: #5a3c8f; --accent-wash: #241b3d; }
@@ -996,23 +1015,37 @@ html.hallucinating .fx-trip { opacity: .42; }
 @keyframes fx-sway { from { transform: rotate(-1.6deg); } to { transform: rotate(1.6deg); } }
 :root[data-theme="sunrise"] h1 { background: linear-gradient(180deg, #fff6c8 0%, #ffd34d 35%, #ff8a2b 70%, #f7382e 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 3px 0 #3a1030) drop-shadow(0 0 14px rgb(255 160 60 / .35)); }
 
-/* Blue Paradise: a sunny lagoon, light dancing on the sea floor, glints on the water. */
-:root[data-theme="paradise"] { --stone: #066a8a; --stone-deep: #045670; --panel: #08344f; --panel-raised: #0b4062; --bevel-light: #41d7f2; --bevel-dark: #021b2b; --muted: #a5d6ea; --bone: #f3fcff; --bone-dim: #c8eaf7; --accent: #f2e235; --accent-line: #0ea2f2; --accent-wash: #0a3a58; }
-:root[data-theme="paradise"] body::before { background:
-  linear-gradient(165deg, rgb(255 255 255 / .16) 0 6%, transparent 6% 13%, rgb(255 255 255 / .1) 13% 16%, transparent 16% 26%, rgb(255 255 255 / .07) 26% 28%, transparent 28%),
-  linear-gradient(180deg, #13b6dc 0%, #0a8fb5 40%, #05617f 100%); }
-.fx-caustics { inset: -200px; opacity: .14; will-change: transform;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none' stroke='white' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M0 40C30 20 60 60 90 35S150 10 200 40'/%3E%3Cpath d='M0 110C40 90 70 140 110 105S170 80 200 110'/%3E%3Cpath d='M0 170C30 150 80 190 120 165S180 150 200 170'/%3E%3Cpath d='M40 0C20 40 70 70 45 110S20 170 40 200'/%3E%3Cpath d='M130 0C150 50 105 80 140 120S160 170 130 200'/%3E%3C/svg%3E") 0 0 / 200px 200px;
-  animation: fx-drift-a 26s linear infinite; }
-.fx-caustics.b { opacity: .1; background-size: 290px 290px; animation: fx-drift-b 34s linear infinite; }
-@keyframes fx-drift-a { to { transform: translate(200px, 200px); } }
-@keyframes fx-drift-b { to { transform: translate(-290px, 290px); } }
+/* Blue Paradise: under a tropical lagoon. Two nets of caustic light (public/fx/caustics.png,
+   drawn by tools/fx/caustics.py) drift across each other the way sunlight dances on a pool
+   floor, sun shafts sway down from the surface, bubbles and specks float up, the deep fades
+   to blue below. Everything moves by transform or opacity only. */
+:root[data-theme="paradise"] { --stone: #0786a8; --stone-deep: #056783; --panel: #073a57; --panel-raised: #0a4769; --bevel-light: #4fdcf5; --bevel-dark: #021b2b; --muted: #a8d9ec; --bone: #f3fcff; --bone-dim: #c8eaf7; --accent: #f2e235; --accent-line: #0ea2f2; --accent-wash: #0a3a58; }
+:root[data-theme="paradise"] body::before { background: linear-gradient(180deg, #2fd0ee 0%, #0fa6cf 22%, #0a86ad 55%, #065f80 100%); }
+/* Each layer reaches one tile past the screen on the side it comes from, so it never shows an edge. */
+.fx-caustics { inset: -512px 0 0 -512px; opacity: .34; will-change: transform;
+  background: url(/fx/caustics.png) 0 0 / 512px 512px; animation: fx-drift-a 38s linear infinite; }
+.fx-caustics.b { inset: -720px -720px 0 0; opacity: .24; background-size: 720px 720px; animation: fx-drift-b 52s linear infinite; }
+@keyframes fx-drift-a { to { transform: translate(512px, 512px); } }
+@keyframes fx-drift-b { to { transform: translate(-720px, 720px); } }
+.fx-surface { left: 0; right: 0; top: 0; height: 22vh; background: linear-gradient(180deg, rgb(220 255 255 / .35), transparent); }
+.fx-deep { left: 0; right: 0; bottom: 0; height: 60vh; background: linear-gradient(180deg, transparent, rgb(3 50 80 / .55)); }
+.fx-ray { top: -10vh; width: 9vw; height: 130vh; transform-origin: 50% 0; will-change: transform, opacity;
+  background: linear-gradient(180deg, rgb(255 255 240 / .22), rgb(255 255 240 / .06) 55%, transparent);
+  -webkit-mask: linear-gradient(90deg, transparent, #000 35%, #000 65%, transparent); mask: linear-gradient(90deg, transparent, #000 35%, #000 65%, transparent);
+  animation: fx-ray var(--t) ease-in-out var(--d) infinite alternate; }
+@keyframes fx-ray { from { transform: rotate(calc(var(--a) - 4deg)); opacity: .55; } to { transform: rotate(calc(var(--a) + 4deg)); opacity: 1; } }
+.fx-mote { bottom: -12px; width: var(--s); height: var(--s); border-radius: 50%; background: radial-gradient(circle at 35% 30%, rgb(255 255 255 / .9), rgb(200 250 255 / .25) 60%, transparent 72%);
+  will-change: transform, opacity; animation: fx-mote var(--t) linear var(--d) infinite; }
+@keyframes fx-mote { 0% { transform: translate(0, 0); opacity: 0; } 10% { opacity: .9; } 50% { transform: translate(var(--dx), -55vh); } 90% { opacity: .7; } 100% { transform: translate(0, -110vh); opacity: 0; } }
 .fx-glint { width: 14px; height: 14px; will-change: transform, opacity;
   background: radial-gradient(closest-side, #fff, transparent), linear-gradient(#fff, #fff) center / 2px 100% no-repeat, linear-gradient(#fff, #fff) center / 100% 2px no-repeat;
   -webkit-mask: radial-gradient(closest-side, #000 40%, transparent); mask: radial-gradient(closest-side, #000 40%, transparent);
   animation: fx-twinkle var(--t) ease-in-out var(--d) infinite; }
 @keyframes fx-twinkle { 0%, 70%, 100% { transform: scale(0) rotate(0); opacity: 0; } 82% { transform: scale(1.4) rotate(45deg); opacity: .9; } }
-:root[data-theme="paradise"] h1 { color: #ffffff; text-shadow: 0 3px 0 #04405a, 0 0 18px rgb(65 215 242 / .6); }
+#theme-fx.intro .fx-caustics { animation: fx-splash 1.2s ease-out, fx-drift-a 38s linear infinite; }
+#theme-fx.intro .fx-caustics.b { animation: fx-splash 1.2s ease-out, fx-drift-b 52s linear infinite; }
+@keyframes fx-splash { from { opacity: 0; } }
+:root[data-theme="paradise"] h1 { color: #ffffff; text-shadow: 0 3px 0 #04405a, 0 0 18px rgb(79 220 245 / .65); }
 :root[data-theme="paradise"] h1::first-letter { color: var(--accent); }
 
 /* Pink Passion Breeze: a warm magenta breeze carrying petals across the page. */
@@ -1088,3 +1121,30 @@ html.invisible main, html.invisible .footer { opacity: .28; }
   #theme-fx *, #theme-fx *::before, :root[data-theme] h1, :root[data-theme] h1::after { animation: none !important; }
   html.drunk main, html.drunk .footer { animation: none; }
 }
+
+/* ---------- The Vault (unlisted: /vault): every theme in chests like the game's ----------
+   The game's container colours: #363636 panels, #545454 slots, white bold titles. */
+.vault { display: grid; gap: 20px; }
+.vault-top { display: flex; gap: 16px; align-items: stretch; flex-wrap: wrap; }
+.vault-nexus { display: flex; align-items: center; gap: 12px; padding: 12px 22px 12px 14px; cursor: pointer; color: #fff; font: 700 1.3rem "Tooltip Sans", sans-serif;
+  background: #363636; border: 0; box-shadow: 0 4px 0 rgb(0 0 0 / .35); }
+.vault-nexus img { image-rendering: pixelated; image-rendering: crisp-edges; }
+.vault-nexus:hover img { filter: url(#nexus-hover); }
+.vault-nexus[aria-pressed="true"] { box-shadow: inset 0 0 0 3px var(--accent), 0 4px 0 rgb(0 0 0 / .35); }
+.vault-now { flex: 1; min-width: 260px; padding: 14px 18px; display: grid; align-content: center; gap: 4px; }
+.vault-name { font: 700 1.25rem var(--display); color: var(--accent); }
+.vault-note { color: var(--bone-dim); }
+.vault-chests { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 20px; }
+.vault-chest { background: #363636; padding: 14px 16px 18px; box-shadow: 0 4px 0 rgb(0 0 0 / .35); }
+.vault-chest h2 { font: 700 1.15rem "Tooltip Sans", sans-serif; color: #fff; margin-bottom: 12px; text-shadow: 0 0 6px rgb(0 0 0 / .5); }
+.vault-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 84px)); gap: 6px; }
+.vault-slot { position: relative; aspect-ratio: 1; display: grid; place-items: center; padding: 0; border: 0; cursor: pointer; background: #545454; transition: background .1s; }
+.vault-slot:hover { background: #686868; }
+.vault-slot:focus-visible, .vault-nexus:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.vault-slot[aria-pressed="true"] { background: #545454; box-shadow: inset 0 0 0 3px var(--accent); }
+.vault-grid .vault-slot:first-child { clip-path: polygon(6px 0, 100% 0, 100% 100%, 0 100%, 0 6px); }
+.vault-grid .vault-slot:nth-child(4) { clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%); }
+.vault-grid .vault-slot:nth-child(5) { clip-path: polygon(0 0, 100% 0, 100% 100%, 6px 100%, 0 calc(100% - 6px)); }
+.vault-grid .vault-slot:nth-child(8) { clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%); }
+.vault-slot .sprite { pointer-events: none; transition: transform .12s; }
+.vault-slot:hover .sprite { transform: scale(1.08); }
