@@ -579,19 +579,6 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
   filter: blur(2px);
   animation: first-halo 7s linear infinite;
 }
-.first-find .spark {
-  position: absolute; z-index: 3; left: 50%; bottom: 6px; width: 2px; height: 2px; border-radius: 50%; pointer-events: none;
-  background: var(--aura-s, #fff3c4); box-shadow: 0 0 3px 1px color-mix(in srgb, var(--aura-a, #ffd65c) 60%, transparent);
-  opacity: 0; animation: first-spark 3.6s ease-out infinite;
-}
-.first-find .spark:nth-of-type(1) { --x: -14px; --dx: -2px; animation-delay: 0s; }
-.first-find .spark:nth-of-type(2) { --x: 12px; --dx: 3px; animation-delay: 1.2s; background: var(--aura-b, #ffe68c); }
-.first-find .spark:nth-of-type(3) { --x: -2px; --dx: -2px; animation-delay: 2.4s; }
-@keyframes first-spark {
-  0% { opacity: 0; transform: translate(var(--x), 0); }
-  20% { opacity: .75; }
-  100% { opacity: 0; transform: translate(calc(var(--x) + var(--dx)), -30px); }
-}
 @keyframes first-glow {
   0%, 100% { box-shadow: 0 0 3px color-mix(in srgb, var(--aura-a, #ffd65c) 25%, transparent); }
   50% { box-shadow: 0 0 8px 1px color-mix(in srgb, var(--aura-a, #ffd65c) 50%, transparent); }
@@ -606,7 +593,7 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 @keyframes first-shine { from { background-position: 100% 0; } to { background-position: -150% 0; } }
 @media (prefers-reduced-motion: reduce) {
   .first-find > .slot, .first-find::before, .first-tag { animation: none; }
-  .first-find .spark { display: none; }
+  .first-find .p { display: none; }
 }
 
 /* ---------- Auras gallery (unlisted, /auras) ---------- */
@@ -615,3 +602,178 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 .aura-card .grow { flex: 1; min-width: 0; }
 .aura-card .title { display: block; font-weight: 700; }
 .aura-card .sub { color: var(--bone-dim); font-size: 0.9rem; }
+
+/* ---------- First-find effects: one small, subtle effect per UT or set ----------
+   Every first find carries six particles (.p) centred on the slot; each effect gives them a
+   shape, colour and motion. Colours come from the item's sprite (--aura-a/b/s). */
+.first-find .p {
+  position: absolute; left: 50%; top: 50%; z-index: 3; pointer-events: none; opacity: 0;
+  width: 2px; height: 2px; border-radius: 50%; background: var(--aura-s, #fff3c4);
+  --o: .75; --x0: 0px; --y0: 0px; --x1: 0px; --y1: -28px;
+  animation: fx-drift var(--t, 3.6s) ease-out var(--d, 0s) infinite;
+}
+@keyframes fx-drift {
+  0% { opacity: 0; transform: translate(-50%, -50%) translate(var(--x0), var(--y0)) scale(var(--s0, 1)) rotate(var(--r0, 0deg)); }
+  20% { opacity: var(--o); }
+  75% { opacity: calc(var(--o) * .7); }
+  100% { opacity: 0; transform: translate(-50%, -50%) translate(var(--x1), var(--y1)) scale(var(--s1, 1)) rotate(var(--r1, 0deg)); }
+}
+@keyframes fx-orbit {
+  from { opacity: var(--o); transform: translate(-50%, -50%) rotate(var(--a0, 0deg)) translateX(var(--rad, 24px)) rotate(var(--spin0, 0deg)); }
+  to { opacity: var(--o); transform: translate(-50%, -50%) rotate(calc(var(--a0, 0deg) + var(--dir, 1) * 360deg)) translateX(var(--rad, 24px)) rotate(var(--spin1, 0deg)); }
+}
+@keyframes fx-flash {
+  0%, 100% { opacity: 0; transform: translate(-50%, -50%) translate(var(--x0), var(--y0)) scale(.3) rotate(var(--r0, 0deg)); }
+  8% { opacity: var(--o); transform: translate(-50%, -50%) translate(var(--x0), var(--y0)) scale(1) rotate(var(--r0, 0deg)); }
+  18% { opacity: 0; transform: translate(-50%, -50%) translate(var(--x0), var(--y0)) scale(.6) rotate(var(--r1, 0deg)); }
+}
+@keyframes fx-ripple {
+  0% { opacity: var(--o); transform: translate(-50%, -50%) scale(var(--s0, .9)); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(var(--s1, 1.6)); }
+}
+@keyframes fx-pulse {
+  0%, 100% { opacity: calc(var(--o) * .2); }
+  50% { opacity: var(--o); }
+}
+/* Default: a few sparks drifting up (any UT without its own effect). */
+.fx-sparks .p:nth-of-type(n + 4) { display: none; }
+.fx-sparks .p:nth-of-type(1) { --x0: -14px; --y0: 12px; --x1: -16px; --y1: -18px; --d: 0s; }
+.fx-sparks .p:nth-of-type(2) { --x0: 12px; --y0: 12px; --x1: 15px; --y1: -18px; --d: 1.2s; background: var(--aura-b, #ffe68c); }
+.fx-sparks .p:nth-of-type(3) { --x0: -2px; --y0: 12px; --x1: -4px; --y1: -18px; --d: 2.4s; }
+
+/* Demon Blade: little tongues of flame licking up from the bottom edge. */
+.fx-flame .p { width: 4px; height: 7px; border-radius: 50% 50% 45% 45% / 65% 65% 35% 35%;
+  background: radial-gradient(ellipse at 50% 75%, var(--aura-s, #fff) 0 25%, var(--aura-a) 55%, transparent 80%);
+  --t: 1.5s; --o: .7; --s0: 1; --s1: .35; filter: blur(.3px); }
+.fx-flame .p:nth-of-type(1) { --x0: -12px; --y0: 16px; --x1: -13px; --y1: 2px; --d: 0s; }
+.fx-flame .p:nth-of-type(2) { --x0: -4px; --y0: 18px; --x1: -3px; --y1: 2px; --d: .5s; }
+.fx-flame .p:nth-of-type(3) { --x0: 5px; --y0: 17px; --x1: 6px; --y1: 1px; --d: .25s; }
+.fx-flame .p:nth-of-type(4) { --x0: 13px; --y0: 16px; --x1: 12px; --y1: 3px; --d: .8s; }
+.fx-flame .p:nth-of-type(5) { --x0: -16px; --y0: 6px; --x1: -17px; --y1: -8px; --d: 1.1s; width: 3px; height: 5px; }
+.fx-flame .p:nth-of-type(6) { --x0: 16px; --y0: 5px; --x1: 17px; --y1: -9px; --d: .65s; width: 3px; height: 5px; }
+
+/* Coral set: small bubbles wobbling up as if underwater. */
+.fx-bubbles .p { width: 4px; height: 4px; background: radial-gradient(circle at 35% 35%, rgb(255 255 255 / .8) 0 18%, transparent 30%);
+  border: 1px solid color-mix(in srgb, var(--aura-s) 75%, transparent); --t: 3.4s; --o: .6; }
+.fx-bubbles .p:nth-of-type(1) { --x0: -10px; --y0: 16px; --x1: -14px; --y1: -22px; --d: 0s; }
+.fx-bubbles .p:nth-of-type(2) { --x0: 8px; --y0: 16px; --x1: 12px; --y1: -24px; --d: 1.1s; width: 3px; height: 3px; }
+.fx-bubbles .p:nth-of-type(3) { --x0: 0px; --y0: 16px; --x1: -4px; --y1: -26px; --d: 2.2s; width: 5px; height: 5px; }
+.fx-bubbles .p:nth-of-type(4) { --x0: 15px; --y0: 10px; --x1: 18px; --y1: -14px; --d: .6s; width: 3px; height: 3px; }
+.fx-bubbles .p:nth-of-type(n + 5) { display: none; }
+
+/* Davy Jones' set and Doom Bow: soft wisps drifting around the slot. */
+.fx-ghost .p { width: 12px; height: 5px; border-radius: 50%; background: color-mix(in srgb, var(--aura-b) 55%, transparent);
+  filter: blur(2px); --t: 5s; --o: .55; }
+.fx-ghost .p:nth-of-type(1) { --x0: -22px; --y0: -6px; --x1: -6px; --y1: -14px; --d: 0s; }
+.fx-ghost .p:nth-of-type(2) { --x0: 22px; --y0: 8px; --x1: 8px; --y1: 2px; --d: 1.7s; }
+.fx-ghost .p:nth-of-type(3) { --x0: -18px; --y0: 14px; --x1: 0px; --y1: 18px; --d: 3.3s; }
+.fx-ghost .p:nth-of-type(n + 4) { display: none; }
+
+/* Tomb of the Ancients rings: fine sand blowing across on a desert wind. */
+.fx-sand .p { width: 1.5px; height: 1.5px; border-radius: 0; background: var(--aura-a); --t: 2.6s; --o: .8; }
+.fx-sand .p:nth-of-type(1) { --x0: -24px; --y0: -12px; --x1: 22px; --y1: -2px; --d: 0s; }
+.fx-sand .p:nth-of-type(2) { --x0: -24px; --y0: -2px; --x1: 22px; --y1: 8px; --d: .45s; }
+.fx-sand .p:nth-of-type(3) { --x0: -24px; --y0: 8px; --x1: 22px; --y1: 18px; --d: .9s; }
+.fx-sand .p:nth-of-type(4) { --x0: -24px; --y0: -18px; --x1: 22px; --y1: -8px; --d: 1.35s; background: var(--aura-b); }
+.fx-sand .p:nth-of-type(5) { --x0: -24px; --y0: 2px; --x1: 22px; --y1: 12px; --d: 1.8s; background: var(--aura-b); }
+.fx-sand .p:nth-of-type(6) { --x0: -24px; --y0: 14px; --x1: 22px; --y1: 22px; --d: 2.2s; }
+
+/* Quiver of Thunder, Scepter of Fulmination: brief little bolts flicking at the edges. */
+.fx-lightning .p { width: 5px; height: 9px; border-radius: 0; background: var(--aura-s);
+  clip-path: polygon(55% 0, 10% 55%, 45% 55%, 30% 100%, 90% 40%, 55% 40%, 75% 0);
+  filter: drop-shadow(0 0 2px var(--aura-a)); animation-name: fx-flash; --t: 2.8s; --o: .9; }
+.fx-lightning .p:nth-of-type(1) { --x0: -17px; --y0: -12px; --r0: -20deg; --d: 0s; }
+.fx-lightning .p:nth-of-type(2) { --x0: 17px; --y0: 6px; --r0: 15deg; --d: .9s; }
+.fx-lightning .p:nth-of-type(3) { --x0: 4px; --y0: -18px; --r0: 5deg; --d: 1.6s; }
+.fx-lightning .p:nth-of-type(4) { --x0: -14px; --y0: 15px; --r0: 200deg; --d: 2.2s; }
+.fx-lightning .p:nth-of-type(n + 5) { display: none; }
+
+/* Mad Lab gear: bubbles rising from a brew and popping. */
+.fx-toxic .p { width: 3px; height: 3px; background: var(--aura-a); box-shadow: 0 0 3px var(--aura-a); --t: 2.4s; --o: .75; --s0: .6; --s1: 1.8; }
+.fx-toxic .p:nth-of-type(1) { --x0: -8px; --y0: 16px; --x1: -9px; --y1: 6px; --d: 0s; }
+.fx-toxic .p:nth-of-type(2) { --x0: 6px; --y0: 17px; --x1: 7px; --y1: 7px; --d: .8s; background: var(--aura-b); }
+.fx-toxic .p:nth-of-type(3) { --x0: -1px; --y0: 16px; --x1: 0px; --y1: 4px; --d: 1.6s; }
+.fx-toxic .p:nth-of-type(4) { --x0: 13px; --y0: 14px; --x1: 14px; --y1: 5px; --d: 1.2s; width: 2px; height: 2px; }
+.fx-toxic .p:nth-of-type(n + 5) { display: none; }
+
+/* Holy items: soft rays of light turning slowly around the slot. */
+.fx-holy .p { width: 1.5px; height: 12px; border-radius: 1px; background: linear-gradient(to top, transparent, var(--aura-s), transparent);
+  animation-name: fx-pulse; --t: 3s; --o: .6;
+  transform: translate(-50%, -50%) rotate(var(--a)) translateY(-23px); }
+.fx-holy .p:nth-of-type(1) { --a: 0deg; --d: 0s; }
+.fx-holy .p:nth-of-type(2) { --a: 60deg; --d: .5s; }
+.fx-holy .p:nth-of-type(3) { --a: 120deg; --d: 1s; }
+.fx-holy .p:nth-of-type(4) { --a: 180deg; --d: 1.5s; }
+.fx-holy .p:nth-of-type(5) { --a: 240deg; --d: 2s; }
+.fx-holy .p:nth-of-type(6) { --a: 300deg; --d: 2.5s; }
+
+/* Crystal Sword and Wand: four-pointed glints catching the light. */
+.fx-glint .p { width: 7px; height: 7px; border-radius: 0; background: var(--aura-s);
+  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
+  filter: drop-shadow(0 0 2px var(--aura-a)); animation-name: fx-flash; --t: 2.6s; --o: .9; --r1: 45deg; }
+.fx-glint .p:nth-of-type(1) { --x0: -15px; --y0: -14px; --d: 0s; }
+.fx-glint .p:nth-of-type(2) { --x0: 16px; --y0: -4px; --d: .85s; width: 5px; height: 5px; }
+.fx-glint .p:nth-of-type(3) { --x0: -6px; --y0: 16px; --d: 1.7s; }
+.fx-glint .p:nth-of-type(n + 4) { display: none; }
+
+/* Sprite World: tiny stars orbiting the slot, twinkling. */
+.fx-stars .p { width: 2px; height: 2px; box-shadow: 0 0 3px var(--aura-s); animation-name: fx-orbit; animation-timing-function: linear; --t: 9s; --o: .7; --rad: 23px; }
+.fx-stars .p:nth-of-type(1) { --a0: 0deg; }
+.fx-stars .p:nth-of-type(2) { --a0: 120deg; background: var(--aura-a); }
+.fx-stars .p:nth-of-type(3) { --a0: 240deg; background: var(--aura-b); }
+.fx-stars .p:nth-of-type(4) { --a0: 60deg; --rad: 18px; --dir: -1; --t: 12s; width: 1.5px; height: 1.5px; }
+.fx-stars .p:nth-of-type(n + 5) { display: none; }
+
+/* Ancient Stone Sword: specks of stone dust settling. */
+.fx-dust .p { width: 2px; height: 2px; border-radius: 0; background: var(--aura-b); --t: 4s; --o: .6; }
+.fx-dust .p:nth-of-type(1) { --x0: -12px; --y0: -20px; --x1: -14px; --y1: 18px; --d: 0s; }
+.fx-dust .p:nth-of-type(2) { --x0: 10px; --y0: -20px; --x1: 13px; --y1: 18px; --d: 1.3s; background: var(--aura-a); }
+.fx-dust .p:nth-of-type(3) { --x0: 0px; --y0: -20px; --x1: -2px; --y1: 18px; --d: 2.6s; width: 1.5px; height: 1.5px; }
+.fx-dust .p:nth-of-type(n + 4) { display: none; }
+
+/* Bone Dagger: a slow drop of blood now and then. */
+.fx-drip .p { width: 3px; height: 4px; border-radius: 50% 50% 50% 50% / 35% 35% 65% 65%; background: #b3122e; --t: 3.2s; --o: .8; }
+.fx-drip .p:nth-of-type(1) { --x0: 5px; --y0: 14px; --x1: 5px; --y1: 26px; --d: 0s; }
+.fx-drip .p:nth-of-type(2) { --x0: -7px; --y0: 14px; --x1: -7px; --y1: 26px; --d: 1.6s; }
+.fx-drip .p:nth-of-type(n + 3) { display: none; }
+
+/* Seal of Blasphemous Prayer: the Pentaract's five points, turning slowly. */
+.fx-pentagon .p { width: 3px; height: 3px; background: var(--aura-a); box-shadow: 0 0 4px var(--aura-a); animation-name: fx-orbit; animation-timing-function: linear; --t: 14s; --o: .6; --rad: 24px; }
+.fx-pentagon .p:nth-of-type(1) { --a0: 0deg; }
+.fx-pentagon .p:nth-of-type(2) { --a0: 72deg; }
+.fx-pentagon .p:nth-of-type(3) { --a0: 144deg; }
+.fx-pentagon .p:nth-of-type(4) { --a0: 216deg; }
+.fx-pentagon .p:nth-of-type(5) { --a0: 288deg; }
+.fx-pentagon .p:nth-of-type(6) { display: none; }
+
+/* Dirk of Cronus: little cubes tumbling around the slot. */
+.fx-cubes .p { width: 3px; height: 3px; border-radius: 0; background: var(--aura-a); animation-name: fx-orbit; animation-timing-function: linear; --t: 7s; --o: .7; --rad: 23px; --spin1: 720deg; }
+.fx-cubes .p:nth-of-type(1) { --a0: 0deg; }
+.fx-cubes .p:nth-of-type(2) { --a0: 180deg; background: var(--aura-b); }
+.fx-cubes .p:nth-of-type(n + 3) { display: none; }
+
+/* Orb of Conflict: two motes circling in opposite directions, crossing paths. */
+.fx-conflict .p { width: 3px; height: 3px; animation-name: fx-orbit; animation-timing-function: linear; --t: 6s; --o: .75; --rad: 22px; }
+.fx-conflict .p:nth-of-type(1) { background: var(--aura-a); box-shadow: 0 0 4px var(--aura-a); }
+.fx-conflict .p:nth-of-type(2) { --dir: -1; background: var(--aura-b); box-shadow: 0 0 4px var(--aura-b); }
+.fx-conflict .p:nth-of-type(n + 3) { display: none; }
+
+/* Shield of Ogmur: a protective ward rippling outward. */
+.fx-ward .p { width: 34px; height: 34px; border-radius: 6px; background: none; border: 1px solid color-mix(in srgb, var(--aura-a) 70%, transparent);
+  animation-name: fx-ripple; --t: 3s; --o: .5; --s0: 1; --s1: 1.45; }
+.fx-ward .p:nth-of-type(2) { --d: 1.5s; }
+.fx-ward .p:nth-of-type(n + 3) { display: none; }
+
+/* Helm of the Juggernaut: a heavy footfall sending a shockwave along the ground. */
+.fx-stomp .p:nth-of-type(1) { width: 30px; height: 6px; top: calc(50% + 18px); border-radius: 50%; background: none;
+  border: 1px solid color-mix(in srgb, var(--aura-a) 70%, transparent); animation-name: fx-ripple; --t: 2.6s; --o: .6; --s0: .6; --s1: 1.7; }
+.fx-stomp .p:nth-of-type(2) { --x0: -6px; --y0: 18px; --x1: -14px; --y1: 12px; --t: 2.6s; --o: .6; background: var(--aura-b); }
+.fx-stomp .p:nth-of-type(3) { --x0: 6px; --y0: 18px; --x1: 14px; --y1: 12px; --t: 2.6s; --o: .6; background: var(--aura-b); }
+.fx-stomp .p:nth-of-type(n + 4) { display: none; }
+
+/* Amulet of Resurrection: a soft column of light with motes rising like a soul. */
+.fx-revive .p:nth-of-type(1) { width: 8px; height: 30px; border-radius: 4px; background: linear-gradient(to top, transparent, color-mix(in srgb, var(--aura-s) 50%, transparent), transparent);
+  filter: blur(2px); animation-name: fx-pulse; --t: 3.2s; --o: .5; transform: translate(-50%, -50%); }
+.fx-revive .p:nth-of-type(2) { --x0: -3px; --y0: 10px; --x1: -2px; --y1: -24px; --t: 3.2s; --d: .2s; }
+.fx-revive .p:nth-of-type(3) { --x0: 3px; --y0: 12px; --x1: 4px; --y1: -22px; --t: 3.2s; --d: 1.8s; background: var(--aura-b); }
+.fx-revive .p:nth-of-type(n + 4) { display: none; }

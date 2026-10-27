@@ -323,6 +323,29 @@ function auraOf(id) {
   return it && !it.commonUt ? AURAS[id] ?? null : null;
 }
 const auraStyle = t => (t ? `--aura-a:${t.a};--aura-b:${t.b};--aura-s:${t.s}` : '');
+// A small effect per UT or matching set, themed on the item (colours still from its sprite).
+const AURA_FX = {
+  flame: {label: 'Flickering flames', items: ['Demon Blade']},
+  bubbles: {label: 'Rising bubbles', items: ['Coral Bow', 'Coral Ring', 'Coral Silk Armor', 'Coral Venom Trap']},
+  ghost: {label: 'Ghostly wisps', items: ["Captain's Ring", 'Spectral Cloth Armor', 'Spirit Dagger', 'Ghostly Prism', 'Doom Bow']},
+  sand: {label: 'Drifting sand', items: ['Ring of the Sphinx', 'Ring of the Nile', 'Ring of the Pyramid']},
+  lightning: {label: 'Crackling lightning', items: ['Quiver of Thunder', 'Scepter of Fulmination']},
+  toxic: {label: 'Bubbling fumes', items: ['Experimental Ring', 'Robe of the Mad Scientist']},
+  holy: {label: 'Holy light', items: ['Tome of Purification', 'Chasuble of Holy Light', 'Tome of Holy Protection']},
+  glint: {label: 'Crystal glints', items: ['Crystal Sword', 'Crystal Wand']},
+  stars: {label: 'Orbiting stars', items: ['Cloak of the Planewalker', 'Staff of Extreme Prejudice']},
+  dust: {label: 'Falling stone dust', items: ['Ancient Stone Sword']},
+  drip: {label: 'Dripping blood', items: ['Bone Dagger']},
+  pentagon: {label: 'Five turning points', items: ['Seal of Blasphemous Prayer']},
+  cubes: {label: 'Tumbling cubes', items: ['Dirk of Cronus']},
+  conflict: {label: 'Opposing motes', items: ['Orb of Conflict']},
+  ward: {label: 'Protective ward', items: ['Shield of Ogmur']},
+  stomp: {label: 'Heavy stomp', items: ['Helm of the Juggernaut']},
+  revive: {label: 'Rising soul light', items: ['Amulet of Resurrection']}
+};
+const FX_BY_NAME = new Map(Object.entries(AURA_FX).flatMap(([k, f]) => f.items.map(n => [n, k])));
+const auraFx = id => FX_BY_NAME.get(ITEMS.get(id)?.name) ?? 'sparks';
+const firstFind = (id, title = '') => h`<span class="first-find fx-${auraFx(id)}"${title ? raw(` title="${esc(title)}"`) : ''}>${itemSlot(id, 2)}${raw('<i class="p"></i>'.repeat(6))}</span>`;
 
 // ---- Graves ----
 // The gravestone a death leaves, by the server's rule (src/world.rs finish_death): with no
@@ -440,7 +463,7 @@ async function home() {
       <section class="panel">
         <header><h2>Latest loot</h2><a href="/items" data-link>All items</a></header>
         ${s.recentFinds.length ? h`<ul class="rows">${s.recentFinds.slice(0, 10).map(f => h`<li style="${f.first ? auraStyle(auraOf(f.item)) : ''}">
-          ${f.first ? h`<span class="first-find" title="First ever found on the server">${itemSlot(f.item, 2)}${raw('<i class="spark"></i>'.repeat(3))}</span>` : itemSlot(f.item, 2)}
+          ${f.first ? firstFind(f.item, 'First ever found on the server') : itemSlot(f.item, 2)}
           <span class="grow"><span class="title">${ITEMS.get(f.item)?.name ?? `Item ${f.item}`}</span>
           <span class="sub">${playerLink(f.name, f.stars)} ${when(f.found_at)}${f.first ? h` <span class="first-tag">First!</span>` : ''}</span></span>
           <span class="tier ${tierInfo(ITEMS.get(f.item)).cls}">${tierInfo(ITEMS.get(f.item)).label}</span>
@@ -1249,8 +1272,8 @@ function auras() {
   view(h`
     <div class="page-head"><div><h1>Auras</h1><p>The glow a UT gets in Latest loot when it is the first ever found, in the item’s own colours.</p></div></div>
     <div class="aura-gallery">${ids.map(id => h`<div class="panel aura-card" style="${auraStyle(auraOf(id))}">
-      <span class="first-find">${itemSlot(id, 2)}${raw('<i class="spark"></i>'.repeat(3))}</span>
-      <span class="grow"><span class="title">${ITEMS.get(id).name}</span><span class="sub">${ITEMS.get(id).slotName}</span></span>
+      ${firstFind(id)}
+      <span class="grow"><span class="title">${ITEMS.get(id).name}</span><span class="sub">${AURA_FX[auraFx(id)]?.label ?? 'Sparks'}</span></span>
       <span class="first-tag">First!</span>
     </div>`)}</div>`);
 }
