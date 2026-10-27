@@ -1434,7 +1434,7 @@ const THEMES = [
   ['attack', 'Attack', 'Potion of Attack'], ['defense', 'Defense', 'Potion of Defense'], ['speed', 'Speed', 'Potion of Speed'],
   ['dexterity', 'Dexterity', 'Potion of Dexterity'], ['vitality', 'Vitality', 'Potion of Vitality'], ['wisdom', 'Wisdom', 'Potion of Wisdom']
 ];
-// A secret: pressing the Nexus on cramshon's profile fills the inventory with the keys to the
+// A secret: pressing the Nexus on cramshon's or RedBracket's profile fills the inventory with the keys to the
 // eight hardest dungeons instead. Using a key loads into its dungeon (the client's loading
 // screen with the dungeon's name) and dresses the site in that dungeon's colours.
 const KEYS = [
@@ -1443,6 +1443,7 @@ const KEYS = [
   ['madlab', 'Mad Lab', 'Lab Key'], ['abyss', 'Abyss of Demons', 'Abyss of Demons Key'],
   ['undead', 'Undead Lair', 'Undead Lair Key'], ['sprite', 'Sprite World', 'Sprite World Key']
 ];
+const KEY_PROFILES = ['/player/cramshon', '/player/redbracket'];
 let invMode = 'potions';
 try { if (localStorage.getItem('inventory') === 'keys') invMode = 'keys'; } catch { /* storage unavailable */ }
 const invItems = () => (invMode === 'keys' ? KEYS : THEMES.filter(t => t[2]));
@@ -1493,10 +1494,10 @@ async function loadWalk() { WALK = await staticJson('/catalog/walk.json').catch(
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function nexus() {
   closeThemes();
-  // On cramshon's profile the Nexus hands out dungeon keys instead of potions.
+  // On cramshon's or RedBracket's profile the Nexus hands out dungeon keys instead of potions.
   let here = '';
   try { here = decodeURIComponent(location.pathname).toLowerCase(); } catch { /* malformed address */ }
-  invMode = here === '/player/cramshon' ? 'keys' : 'potions';
+  invMode = KEY_PROFILES.includes(here) ? 'keys' : 'potions';
   try { localStorage.setItem('inventory', invMode); } catch { /* storage unavailable */ }
   await loadingScreen('Nexus', () => {
     drunk.clear();
