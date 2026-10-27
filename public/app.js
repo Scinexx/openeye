@@ -499,8 +499,9 @@ async function bestCharacters() {
   const params = new URLSearchParams(location.search);
   const sort = CHAR_SORTS[params.get('sort')] ? params.get('sort') : 'fame';
   const dead = params.get('dead') === '1';
+  const max20 = params.get('level') === '20';
   const [{characters}] = await Promise.all([get(`/api/characters${dead ? '?dead=1' : ''}`), loadGraves()]);
-  const rows = characters.map(c => {
+  const rows = characters.filter(c => !max20 || c.level >= 20).map(c => {
     const max = CLASSES.get(c.class)?.max;
     const known = max && Array.isArray(c.stats) && c.stats.length === 8;
     return {...c, maxed: known ? STAT_KEYS.filter(([k], i) => c.stats[i] >= max[k]).length : null, bonus: gearBonus(c.equipment)};
@@ -511,7 +512,7 @@ async function bestCharacters() {
   // Ties are broken by fame, then level, so every character gets its own rank.
   rows.forEach((c, i) => { c.rank = i + 1; });
   const link = changes => {
-    const q = new URLSearchParams({...(sort !== 'fame' ? {sort} : {}), ...(dead ? {dead: '1'} : {})});
+    const q = new URLSearchParams({...(sort !== 'fame' ? {sort} : {}), ...(dead ? {dead: '1'} : {}), ...(max20 ? {level: '20'} : {})});
     for (const [k, v] of Object.entries(changes)) { if (v === null) q.delete(k); else q.set(k, v); }
     const qs = q.toString();
     return `/rankings/characters${qs ? `?${qs}` : ''}`;
@@ -529,7 +530,7 @@ async function bestCharacters() {
       <td class="n${sort === 'gear' ? ' main-metric' : ''}">${c.bonus ? `+${c.bonus}%` : '0%'}</td>
       <td>${gear(c.equipment, 2)}</td>
       ${dead ? h`<td>${c.died_at ? when(c.died_at) : ''}</td>` : ''}
-    </tr>`)}` : h`<tr><td colspan="${dead ? 9 : 8}" class="empty">${rows.length ? `No characters match “${filter}”.` : dead ? 'No player deaths yet.' : 'No living characters yet.'}</td></tr>`);
+    </tr>`)}` : h`<tr><td colspan="${dead ? 9 : 8}" class="empty">${rows.length ? `No characters match “${filter}”.` : max20 ? `No ${dead ? 'dead' : 'living'} level 20 characters yet.` : dead ? 'No player deaths yet.' : 'No living characters yet.'}</td></tr>`);
   };
   document.title = 'Best characters | OpenEye';
   view(h`
@@ -538,8 +539,9 @@ async function bestCharacters() {
     <div class="controls">
       <nav class="tabs" style="margin:0" aria-label="Sort characters">${Object.entries(CHAR_SORTS).map(([k, o]) => h`<a href="${link({sort: k === 'fame' ? null : k})}" data-link ${k === sort ? raw('aria-current="page"') : ''}>${o.title}</a>`)}</nav>
       <label class="sr" for="char-filter">Filter characters</label><input id="char-filter" type="search" placeholder="Filter by player or class">
-      <span class="muted">${fmt(rows.length)} ${dead ? 'dead' : 'living'} characters</span>
-      <nav class="tabs" style="margin:0 0 0 auto" aria-label="Alive or dead">
+      <span class="muted">${fmt(rows.length)} ${dead ? 'dead' : 'living'}${max20 ? ' level 20' : ''} characters</span>
+      <label class="check" style="margin-left:auto"><input type="checkbox" id="char-max20" ${max20 ? raw('checked') : ''}> Level 20 only</label>
+      <nav class="tabs" style="margin:0" aria-label="Alive or dead">
         <a href="${link({dead: null})}" data-link ${!dead ? raw('aria-current="page"') : ''}>Alive</a>
         <a href="${link({dead: '1'})}" data-link ${dead ? raw('aria-current="page"') : ''}>Dead</a>
       </nav>
@@ -550,6 +552,7 @@ async function bestCharacters() {
     </table></div></section>`);
   draw();
   document.getElementById('char-filter').addEventListener('input', e => draw(e.target.value));
+  document.getElementById('char-max20').addEventListener('change', e => navigate(link({level: e.target.checked ? '20' : null}), true));
 }
 
 async function rankings(board) {

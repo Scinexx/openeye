@@ -479,7 +479,12 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 
 /* ---------- most fame earned in the last 24 hours (home) ----------
    Coloured like the game's fame icon (lofiObj3 sprite 224). */
-.fame-box { --fame-orange: var(--fame); border-color: #ffb13b #9c4a00 #9c4a00 #ffb13b; margin-bottom: 16px; }
+/* Its own warm colours inside, so it looks the same under every theme. */
+.fame-box {
+  --fame-orange: var(--fame); --panel: #2e2112; --bevel-light: #8a5a1c; --bevel-dark: #1c1309;
+  --muted: #b99a72; --bone: #f6ead8; --bone-dim: #d9c3a3; --accent: #ffc24a;
+  background: #2e2112; border-color: #ffb13b #9c4a00 #9c4a00 #ffb13b; margin-bottom: 16px;
+}
 .fame-box > header { background: linear-gradient(#5a3a12, #46300f); border-bottom-color: #9c4a00; }
 .fame-box > header h2 { display: flex; align-items: center; gap: 10px; color: #ffc24a; }
 .fame-box > header span { color: #f0b46a; font-size: 0.9rem; white-space: nowrap; }
