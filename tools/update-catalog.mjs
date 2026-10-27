@@ -29,6 +29,8 @@ const SOURCES = {
   // Loot tables: used to find which tiers can actually drop and how common each UT is.
   loot: ['Open-RotMG-Server', 'src/loot.rs'],
   endgame: ['Open-RotMG-Server', 'src/endgame.rs'],
+  // The Nexus shop's stock, for items players can buy rather than loot.
+  shop: ['Open-RotMG-Server', 'src/world/shop.rs'],
   items: ['Open-RotMG-Website', 'public/hiscores/items.json'],
   sheet: ['Open-RotMG-Website', 'public/hiscores/items.png'],
   classSprite: name => ['Open-RotMG-Website', `public/restoration/assets/player/${name}.png`],
@@ -118,8 +120,13 @@ for (const [, rate, hex] of lootSrc.matchAll(/\(\s*([0-9.]+)\s*,\s*(?:Pick::Item
   dropRate.set(id, Math.max(dropRate.get(id) ?? 0, Number(rate)));
 }
 if (!Object.keys(maxDropTier).length) throw new Error('Could not read tier drops from loot.rs; the file format may have changed');
+// Items sold in the shop: every 0x.. kind listed before "=>" in shop.rs's price table.
+const shopSrc = await get(SOURCES.shop).catch(() => '');
+const shopItems = new Set([...shopSrc.matchAll(/^\s*((?:0x[0-9a-fA-F]+\s*\|?\s*)+)=>/gm)]
+  .flatMap(([, kinds]) => kinds.match(/0x[0-9a-fA-F]+/g).map(k => parseInt(k, 16))));
 for (const it of items) {
   it.dropRate = dropRate.get(it.id) ?? null;
+  it.shop = shopItems.has(it.id);
   it.topTier = it.tier !== null && maxDropTier[it.slot] !== undefined && it.tier === maxDropTier[it.slot];
   it.commonUt = it.untiered && ((it.dropRate ?? 0) >= COMMON_UT_RATE || COMMON_UT_EXTRA.includes(it.name));
   // Shown in "Latest loot": rare untiered items and the best tier that can drop.
