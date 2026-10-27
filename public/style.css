@@ -802,3 +802,77 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 .map-loading .ml-name { position: absolute; left: calc(50% - 0.5px); top: calc(50% - 9.5px); transform: translateX(-50%);
   font: 700 30px "Tooltip Sans", sans-serif; color: #fff; white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) { .map-loading { transition: none; } .map-loading .ml-char { animation: none; } }
+
+/* ---------- Dungeon themes (keys, from the Nexus on cramshon's profile) ----------
+   Eight palettes after the hardest dungeons, each with a fixed, static backdrop (no animation,
+   so they cost nothing while idle) and a glow on titles. Fame stays orange everywhere. */
+:root[data-theme="tomb"] { --stone: #131d36; --stone-deep: #0e162a; --panel: #1c2a4d; --panel-raised: #223260; --bevel-light: #c9a24a; --bevel-dark: #0a1020; --muted: #a8997a; --bone: #f6e8c6; --bone-dim: #d9c69c; --accent: #f2c14e; --accent-line: #8a6a1f; --accent-wash: #2a2b3a; }
+:root[data-theme="trench"] { --stone: #04161c; --stone-deep: #021014; --panel: #0a2a33; --panel-raised: #0d3540; --bevel-light: #1f8a8a; --bevel-dark: #01090c; --muted: #6fa8a6; --bone: #dffaf7; --bone-dim: #9fd8d4; --accent: #ff7aa8; --accent-line: #16676b; --accent-wash: #0b2a30; }
+:root[data-theme="manor"] { --stone: #150b10; --stone-deep: #0e070a; --panel: #2a1219; --panel-raised: #34161f; --bevel-light: #8c2a3c; --bevel-dark: #070305; --muted: #a2878f; --bone: #f4e8ec; --bone-dim: #cbb4bb; --accent: #ff2e4f; --accent-line: #6e1022; --accent-wash: #26101a; }
+:root[data-theme="locker"] { --stone: #0f1d1a; --stone-deep: #0b1513; --panel: #19302b; --panel-raised: #1e3a34; --bevel-light: #3f7a6b; --bevel-dark: #07100e; --muted: #7fa79a; --bone: #e3fff4; --bone-dim: #a9d6c7; --accent: #6fffd2; --accent-line: #1f6b58; --accent-wash: #14302a; }
+:root[data-theme="madlab"] { --stone: #160f24; --stone-deep: #100a1b; --panel: #231a3a; --panel-raised: #2b2047; --bevel-light: #6b4fb8; --bevel-dark: #0a0612; --muted: #9488b8; --bone: #f1ecff; --bone-dim: #c4b8e6; --accent: #a6ff3d; --accent-line: #4e8a12; --accent-wash: #1f1a33; }
+:root[data-theme="abyss"] { --stone: #1a0b07; --stone-deep: #120705; --panel: #2c120a; --panel-raised: #36170c; --bevel-light: #b3471b; --bevel-dark: #0a0302; --muted: #b48467; --bone: #ffeedd; --bone-dim: #e3b99c; --accent: #ff6a1a; --accent-line: #7a2c0c; --accent-wash: #2e140b; }
+:root[data-theme="undead"] { --stone: #1c1d22; --stone-deep: #15161a; --panel: #2a2b32; --panel-raised: #33343c; --bevel-light: #6e7090; --bevel-dark: #0d0e11; --muted: #9396a8; --bone: #eceef5; --bone-dim: #c0c3d1; --accent: #b8a6ff; --accent-line: #4b4380; --accent-wash: #23233a; }
+:root[data-theme="sprite"] { --stone: #0b0a1f; --stone-deep: #070616; --panel: #16143a; --panel-raised: #1c1948; --bevel-light: #5a4bd6; --bevel-dark: #04030c; --muted: #8f89c4; --bone: #f3f0ff; --bone-dim: #c3bdf0; --accent: #7cf7ff; --accent-line: #4b3ad1; --accent-wash: #1a1745; }
+
+:root:is([data-theme="tomb"], [data-theme="trench"], [data-theme="manor"], [data-theme="locker"], [data-theme="madlab"], [data-theme="abyss"], [data-theme="undead"], [data-theme="sprite"]) body { isolation: isolate; }
+:root:is([data-theme="tomb"], [data-theme="trench"], [data-theme="manor"], [data-theme="locker"], [data-theme="madlab"], [data-theme="abyss"], [data-theme="undead"], [data-theme="sprite"]) body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+}
+/* Tomb: warm sand glowing up from below, a faint diagonal weave of gold. */
+:root[data-theme="tomb"] body::before { background:
+  radial-gradient(120% 60% at 50% 115%, rgb(242 193 78 / .22), transparent 70%),
+  repeating-linear-gradient(45deg, rgb(242 193 78 / .035) 0 2px, transparent 2px 14px),
+  repeating-linear-gradient(-45deg, rgb(242 193 78 / .035) 0 2px, transparent 2px 14px); }
+/* Ocean Trench: light shafts from the surface fading into the deep, bioluminescent specks. */
+:root[data-theme="trench"] body::before { background:
+  linear-gradient(100deg, transparent 20%, rgb(150 255 240 / .05) 25%, transparent 31%, transparent 52%, rgb(150 255 240 / .04) 57%, transparent 63%),
+  radial-gradient(90% 50% at 50% -10%, rgb(120 240 230 / .18), transparent 70%),
+  radial-gradient(2px 2px at 12% 72%, rgb(255 122 168 / .7), transparent), radial-gradient(2px 2px at 78% 58%, rgb(111 255 230 / .7), transparent),
+  radial-gradient(1.5px 1.5px at 36% 88%, rgb(111 255 230 / .6), transparent), radial-gradient(2px 2px at 64% 82%, rgb(255 122 168 / .5), transparent),
+  radial-gradient(1.5px 1.5px at 90% 90%, rgb(111 255 230 / .6), transparent), radial-gradient(1.5px 1.5px at 22% 40%, rgb(111 255 230 / .4), transparent); }
+/* Manor: a pale moon behind the clouds, the edges bleeding crimson. */
+:root[data-theme="manor"] body::before { background:
+  radial-gradient(160px 160px at 86% 12%, rgb(255 236 240 / .14), rgb(255 236 240 / .04) 45%, transparent 70%),
+  radial-gradient(130% 100% at 50% 50%, transparent 55%, rgb(150 10 35 / .35) 100%); }
+/* Davy Jones' Locker: banks of ghostly fog drifting over the sunken deck. */
+:root[data-theme="locker"] body::before { background:
+  radial-gradient(70% 18% at 20% 78%, rgb(111 255 210 / .08), transparent 70%),
+  radial-gradient(60% 14% at 80% 62%, rgb(111 255 210 / .07), transparent 70%),
+  radial-gradient(80% 22% at 50% 96%, rgb(200 255 235 / .10), transparent 70%),
+  radial-gradient(50% 12% at 65% 30%, rgb(111 255 210 / .05), transparent 70%); }
+/* Mad Lab: monitor scanlines and a toxic spill glowing in the corner. */
+:root[data-theme="madlab"] body::before { background:
+  repeating-linear-gradient(0deg, rgb(166 255 61 / .028) 0 1px, transparent 1px 4px),
+  radial-gradient(60% 50% at 100% 100%, rgb(166 255 61 / .16), transparent 70%),
+  radial-gradient(50% 40% at 0% 0%, rgb(140 90 255 / .14), transparent 70%); }
+/* Abyss of Demons: magma glowing from below with embers rising. */
+:root[data-theme="abyss"] body::before { background:
+  radial-gradient(130% 55% at 50% 118%, rgb(255 106 26 / .34), rgb(255 60 10 / .10) 45%, transparent 75%),
+  radial-gradient(2px 2px at 18% 70%, rgb(255 170 60 / .8), transparent), radial-gradient(1.5px 1.5px at 33% 82%, rgb(255 120 40 / .8), transparent),
+  radial-gradient(2px 2px at 58% 76%, rgb(255 190 80 / .7), transparent), radial-gradient(1.5px 1.5px at 72% 64%, rgb(255 120 40 / .7), transparent),
+  radial-gradient(2px 2px at 86% 84%, rgb(255 170 60 / .8), transparent), radial-gradient(1.5px 1.5px at 46% 56%, rgb(255 140 50 / .5), transparent); }
+/* Undead Lair: cold mist pooling on the floor, a chill at the edges. */
+:root[data-theme="undead"] body::before { background:
+  radial-gradient(120% 40% at 50% 110%, rgb(200 190 255 / .16), transparent 70%),
+  radial-gradient(140% 110% at 50% 45%, transparent 60%, rgb(10 10 25 / .55) 100%); }
+/* Sprite World: a starfield over drifting nebulae. */
+:root[data-theme="sprite"] body::before { background:
+  radial-gradient(1.5px 1.5px at 8% 14%, #fff, transparent), radial-gradient(1px 1px at 23% 37%, #cdf, transparent),
+  radial-gradient(1.5px 1.5px at 41% 9%, #fff, transparent), radial-gradient(1px 1px at 57% 28%, #fcf, transparent),
+  radial-gradient(1.5px 1.5px at 69% 12%, #fff, transparent), radial-gradient(1px 1px at 83% 33%, #cff, transparent),
+  radial-gradient(1px 1px at 94% 7%, #fff, transparent), radial-gradient(1.5px 1.5px at 14% 66%, #fff, transparent),
+  radial-gradient(1px 1px at 33% 81%, #cdf, transparent), radial-gradient(1.5px 1.5px at 52% 62%, #fff, transparent),
+  radial-gradient(1px 1px at 77% 74%, #fcf, transparent), radial-gradient(1.5px 1.5px at 91% 88%, #fff, transparent),
+  radial-gradient(50% 40% at 20% 30%, rgb(255 90 220 / .12), transparent 70%),
+  radial-gradient(45% 40% at 80% 70%, rgb(80 230 255 / .12), transparent 70%); }
+
+/* Titles take on each dungeon's light. */
+:root[data-theme="tomb"] h1 { color: #f6e3b0; text-shadow: 0 0 18px rgb(242 193 78 / .45), 0 2px 0 #6a4f12; }
+:root[data-theme="trench"] h1 { color: #e6fffb; text-shadow: 0 0 16px rgb(111 255 230 / .5), 0 0 34px rgb(255 122 168 / .25); }
+:root[data-theme="manor"] h1 { color: #ffe9ee; text-shadow: 0 0 14px rgb(255 46 79 / .55), 0 3px 0 #4a0714; }
+:root[data-theme="locker"] h1 { color: #e3fff4; text-shadow: 0 0 20px rgb(111 255 210 / .55); }
+:root[data-theme="madlab"] h1 { color: #eaffd6; text-shadow: 0 0 10px rgb(166 255 61 / .7), 2px 0 0 rgb(170 90 255 / .5), -2px 0 0 rgb(80 255 200 / .35); }
+:root[data-theme="abyss"] h1 { background: linear-gradient(180deg, #fff2c8 0%, #ffb347 45%, #ff4d12 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 10px rgb(255 106 26 / .45)); }
+:root[data-theme="undead"] h1 { color: #f0edff; text-shadow: 0 0 18px rgb(184 166 255 / .5), 0 0 2px #fff; }
+:root[data-theme="sprite"] h1 { background: linear-gradient(90deg, #7cf7ff, #b48cff 35%, #ff7ad9 65%, #ffe27a); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 10px rgb(124 247 255 / .35)); }

@@ -1434,6 +1434,18 @@ const THEMES = [
   ['attack', 'Attack', 'Potion of Attack'], ['defense', 'Defense', 'Potion of Defense'], ['speed', 'Speed', 'Potion of Speed'],
   ['dexterity', 'Dexterity', 'Potion of Dexterity'], ['vitality', 'Vitality', 'Potion of Vitality'], ['wisdom', 'Wisdom', 'Potion of Wisdom']
 ];
+// A secret: pressing the Nexus on cramshon's profile fills the inventory with the keys to the
+// eight hardest dungeons instead. Using a key loads into its dungeon (the client's loading
+// screen with the dungeon's name) and dresses the site in that dungeon's colours.
+const KEYS = [
+  ['tomb', 'Tomb of the Ancients', 'Tomb of the Ancients Key'], ['trench', 'Ocean Trench', 'Ocean Trench Key'],
+  ['manor', 'Manor of the Immortals', 'Manor Key'], ['locker', "Davy Jones' Locker", "Davy's Key"],
+  ['madlab', 'Mad Lab', 'Lab Key'], ['abyss', 'Abyss of Demons', 'Abyss of Demons Key'],
+  ['undead', 'Undead Lair', 'Undead Lair Key'], ['sprite', 'Sprite World', 'Sprite World Key']
+];
+let invMode = 'potions';
+try { if (localStorage.getItem('inventory') === 'keys') invMode = 'keys'; } catch { /* storage unavailable */ }
+const invItems = () => (invMode === 'keys' ? KEYS : THEMES.filter(t => t[2]));
 const themeButton = document.getElementById('theme-button');
 const themeMenu = document.getElementById('theme-menu');
 // The theme menu is the game's inventory: eight slots (InventoryGrid: 40px slots, 4px apart,
@@ -1454,14 +1466,20 @@ function playSound(src, volume = 0.5) {
 const DRINK_COOLDOWN = 700;
 let lastDrink = 0;
 function drink(key) {
-  if (!key || drunk.has(key)) return;
+  if (!key || drunk.has(key) || mapLoading) return;
   if (performance.now() - lastDrink < DRINK_COOLDOWN) return;
   lastDrink = performance.now();
   hideTip();
   drunk.add(key);
   saveDrunk();
-  playSound('/sfx/use_potion.mp3');
   syncThemeMenu();
+  const dungeon = KEYS.find(k => k[0] === key);
+  if (dungeon) {
+    playSound('/sfx/use_key.mp3');
+    loadingScreen(dungeon[1], () => setTheme(key));
+    return;
+  }
+  playSound('/sfx/use_potion.mp3');
   setTheme(key);
 }
 // Nexus: the client's map loading screen, as read from client.swf (MapLoadingView and the code
@@ -1475,23 +1493,37 @@ async function loadWalk() { WALK = await staticJson('/catalog/walk.json').catch(
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function nexus() {
   closeThemes();
+  // On cramshon's profile the Nexus hands out dungeon keys instead of potions.
+  let here = '';
+  try { here = decodeURIComponent(location.pathname).toLowerCase(); } catch { /* malformed address */ }
+  invMode = here === '/player/cramshon' ? 'keys' : 'potions';
+  try { localStorage.setItem('inventory', invMode); } catch { /* storage unavailable */ }
+  await loadingScreen('Nexus', () => {
+    drunk.clear();
+    saveDrunk();
+    setTheme('');
+    drawThemeMenu();
+    if (location.pathname !== '/') navigate('/');
+  });
+}
+let mapLoading = false;
+async function loadingScreen(name, behind) {
+  if (mapLoading) return;
+  mapLoading = true;
   const classes = [...CLASSES.values()];
   const c = classes[Math.floor(Math.random() * classes.length)];
   const screen = document.createElement('div');
   screen.className = 'map-loading';
   screen.setAttribute('role', 'status');
   const row = c && WALK?.rows?.[c.id];
-  screen.innerHTML = String(h`${row !== undefined ? h`<span class="ml-char" role="img" aria-label="${c.name}" style="--walk-y:-${row * 40}px;background-size:${WALK.sheet.width * 5}px ${WALK.sheet.height * 5}px"></span>` : ''}<span class="ml-name">Nexus</span>`);
+  screen.innerHTML = String(h`${row !== undefined ? h`<span class="ml-char" role="img" aria-label="${c.name}" style="--walk-y:-${row * 40}px;background-size:${WALK.sheet.width * 5}px ${WALK.sheet.height * 5}px"></span>` : ''}<span class="ml-name">${name}</span>`);
   document.body.append(screen);
-  drunk.clear();
-  saveDrunk();
-  setTheme('');
-  drawThemeMenu();
-  if (location.pathname !== '/') navigate('/');
+  try { behind(); } catch (e) { console.error(e); }
   await sleep(1000);
   screen.classList.add('out');
   await sleep(reducedMotion() ? 0 : 400);
   screen.remove();
+  mapLoading = false;
 }
 
 // Updates the open inventory in place (selection and drunk slots) without rebuilding it, so a
@@ -1504,7 +1536,7 @@ function syncThemeMenu() {
       b.classList.add('drunk');
       b.querySelector('canvas')?.remove();
       b.removeAttribute('data-tip');
-      b.setAttribute('aria-label', `${b.getAttribute('aria-label').replace(/^Drink the | \(double-click\)$/g, '')}, drunk`);
+      b.setAttribute('aria-label', `${b.getAttribute('aria-label').replace(/^(Drink|Use) the | \(double-click\)$/g, '')}, used`);
     }
   });
 }
@@ -1512,14 +1544,16 @@ function syncThemeMenu() {
 function drawThemeMenu() {
   const current = document.documentElement.dataset.theme ?? '';
   const byName = new Map([...ITEMS.values()].map(i => [i.name, i]));
-  const potions = THEMES.filter(t => t[2]);
+  const potions = invItems();
+  const keys = invMode === 'keys';
   themeMenu.innerHTML = String(h`<div class="inv-panel">
     <span class="inv-title">Themes</span>
     <button type="button" class="inv-nexus" role="menuitemradio" aria-checked="${current === ''}" aria-label="Nexus: default theme" data-theme-key="" data-tip-title="Nexus" data-tip-text="Default theme"><canvas width="40" height="40"></canvas></button>
     <div class="inv-grid">${potions.map(([key, label, potion], i) => {
       const it = byName.get(potion);
       const gone = drunk.has(key);
-      return h`<button type="button" class="inv-slot ${SLOT_CUTS[i] ?? ''}${gone ? ' drunk' : ''}" role="menuitemradio" aria-checked="${key === current}" aria-label="${gone ? `${label} potion, drunk` : `Drink the ${label} potion (double-click)`}" data-theme-key="${key}"${!gone && it ? raw(` data-tip="${it.id}"`) : ''}><span class="inv-num" aria-hidden="true">${i + 1}</span>${gone ? '' : h`<canvas width="56" height="56" data-potion="${it?.id ?? ''}"></canvas>`}</button>`;
+      const what = keys ? `${label} key` : `${label} potion`;
+      return h`<button type="button" class="inv-slot ${SLOT_CUTS[i] ?? ''}${gone ? ' drunk' : ''}" role="menuitemradio" aria-checked="${key === current}" aria-label="${gone ? `${what}, used` : `${keys ? 'Use' : 'Drink'} the ${what} (double-click)`}" data-theme-key="${key}"${!gone && it ? raw(` data-tip="${it.id}"`) : ''}><span class="inv-num" aria-hidden="true">${i + 1}</span>${gone ? '' : h`<canvas width="56" height="56" data-potion="${it?.id ?? ''}"></canvas>`}</button>`;
     })}</div></div>`);
   themeMenu.querySelectorAll('canvas[data-potion]').forEach(async c => {
     const it = ITEMS.get(Number(c.dataset.potion));
@@ -1536,7 +1570,7 @@ function drawThemeMenu() {
 // With a potion theme, the logo becomes that potion (sprite positions come from the item catalog).
 function drawBrand() {
   const key = document.documentElement.dataset.theme ?? '';
-  const potion = THEMES.find(t => t[0] === key)?.[2];
+  const potion = [...THEMES, ...KEYS].find(t => t[0] === key)?.[2];
   const it = potion && [...ITEMS.values()].find(i => i.name === potion);
   const el = document.getElementById('brand-potion');
   if (!it?.sprite) { el.removeAttribute('style'); return; }
