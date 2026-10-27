@@ -881,3 +881,210 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 :root[data-theme="abyss"] h1 { background: linear-gradient(180deg, #fff2c8 0%, #ffb347 45%, #ff4d12 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 10px rgb(255 106 26 / .45)); }
 :root[data-theme="undead"] h1 { color: #f0edff; text-shadow: 0 0 18px rgb(184 166 255 / .5), 0 0 2px #fff; }
 :root[data-theme="sprite"] h1 { background: linear-gradient(90deg, #7cf7ff, #b48cff 35%, #ff7ad9 65%, #ffe27a); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 10px rgb(124 247 255 / .35)); }
+
+/* ---------- Rare consumable themes (1% from the Nexus, or certain on a dropping enemy's page) ----------
+   Each has its own moving layer in #theme-fx. Only transform and opacity move, so idle pages
+   stay cheap; nothing moves with reduced motion. Fame stays orange (a deeper one on white). */
+#theme-fx { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+#theme-fx:empty { display: none; }
+#theme-fx i { position: absolute; display: block; }
+:root:is([data-theme="cellar"], [data-theme="rum"], [data-theme="snakeoil"], [data-theme="mushroom"], [data-theme="sunrise"], [data-theme="paradise"], [data-theme="passion"], [data-theme="jungle"]) body { isolation: isolate; }
+:root:is([data-theme="cellar"], [data-theme="rum"], [data-theme="snakeoil"], [data-theme="mushroom"], [data-theme="sunrise"], [data-theme="paradise"], [data-theme="passion"], [data-theme="jungle"]) body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+}
+@keyframes fx-spin { to { transform: rotate(360deg); } }
+
+/* Wine Cellar Incantation: the incantation's orange rune turning slowly in a candlelit vault. */
+:root[data-theme="cellar"] { --stone: #1b0910; --stone-deep: #13060b; --panel: #2c0f19; --panel-raised: #38131f; --bevel-light: #b5762a; --bevel-dark: #0a0205; --muted: #c39d92; --bone: #fbeedd; --bone-dim: #e2c6b0; --accent: #ffa630; --accent-line: #8a3a10; --accent-wash: #33141a; }
+:root[data-theme="cellar"] body::before { background:
+  radial-gradient(100% 80% at 50% 40%, transparent 35%, rgb(40 0 10 / .7) 100%),
+  linear-gradient(rgb(0 0 0 / .22) 2px, transparent 2px) 0 0 / 96px 48px,
+  linear-gradient(90deg, rgb(0 0 0 / .22) 2px, transparent 2px) 0 0 / 96px 96px,
+  linear-gradient(90deg, rgb(0 0 0 / .22) 2px, transparent 2px) 48px 48px / 96px 96px,
+  #1b0910; }
+.fx-sigil { left: 50%; top: 50%; width: min(118vmin, 1150px); aspect-ratio: 1; translate: -50% -50%; opacity: .12; will-change: transform;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-100 -100 200 200' fill='none' stroke='%23ff9a1f'%3E%3Ccircle r='97' stroke-width='1.2'/%3E%3Ccircle r='92' stroke-width='5' stroke-dasharray='1.5 5.5'/%3E%3Ccircle r='86' stroke-width='.6'/%3E%3Ccircle r='62' stroke-width='.9'/%3E%3Ccircle r='31' stroke-width='.7'/%3E%3Cpath d='M0-86V86M-86 0H86M-61-61L61 61M-61 61L61-61' stroke-width='.35'/%3E%3Cpolygon points='0,-86 74.5,43 -74.5,43' stroke-width='.7'/%3E%3Cpolygon points='0,86 74.5,-43 -74.5,-43' stroke-width='.7'/%3E%3Cpath d='M0-62L15-15 62 0 15 15 0 62-15 15-62 0-15-15Z' stroke-width='1.3'/%3E%3Ccircle r='6' fill='%23ff9a1f'/%3E%3C/svg%3E") center / contain no-repeat;
+  animation: fx-spin 240s linear infinite; }
+.fx-candle { width: 70vmax; aspect-ratio: 1; left: -30vmax; bottom: -35vmax; border-radius: 50%; will-change: opacity;
+  background: radial-gradient(closest-side, rgb(255 150 40 / .22), rgb(255 110 20 / .08) 50%, transparent); animation: fx-flicker 3.7s steps(1, end) infinite; }
+.fx-candle.b { left: auto; right: -34vmax; bottom: auto; top: -36vmax; animation-duration: 4.3s; animation-delay: -1.2s; }
+@keyframes fx-flicker { 0% { opacity: 1; } 11% { opacity: .82; } 19% { opacity: .95; } 34% { opacity: .78; } 47% { opacity: 1; } 63% { opacity: .86; } 71% { opacity: .97; } 88% { opacity: .8; } }
+#theme-fx.intro .fx-sigil { animation: fx-sigil-in 1.8s cubic-bezier(.2, .7, .2, 1), fx-spin 240s linear infinite; }
+@keyframes fx-sigil-in { from { opacity: .7; transform: scale(.35) rotate(-120deg); } }
+:root[data-theme="cellar"] h1 { background: linear-gradient(180deg, #fff1c4 10%, #ffb347 55%, #e8500a 95%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 2px 0 #3d0610) drop-shadow(0 0 12px rgb(255 140 30 / .35)); }
+
+/* Ghost Pirate Rum: inside the ghostly bottle, plum rum sloshing at the bottom, bubbles and spirits rising. */
+:root[data-theme="rum"] { --stone: #140f24; --stone-deep: #0e0a1a; --panel: #211936; --panel-raised: #2a1f44; --bevel-light: #6e62b0; --bevel-dark: #08060f; --muted: #a8a0cc; --bone: #f1ecff; --bone-dim: #c9c2e8; --accent: #b9f7ff; --accent-line: #5a3c8f; --accent-wash: #241b3d; }
+:root[data-theme="rum"] body::before { background:
+  linear-gradient(90deg, transparent 4%, rgb(200 190 255 / .07) 6%, transparent 9%, transparent 91%, rgb(200 190 255 / .04) 93%, transparent 95%),
+  radial-gradient(120% 90% at 50% 30%, transparent 40%, rgb(5 2 12 / .65) 100%),
+  linear-gradient(#1a1430, #120c22 70%, #2a0f2a); }
+.fx-wave { left: 0; bottom: 0; width: 200%; height: 90px; opacity: .55; will-change: transform;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 90' preserveAspectRatio='none'%3E%3Cpath d='M0 30Q50 12 100 30T200 30T300 30T400 30V90H0Z' fill='%237a2450'/%3E%3C/svg%3E") 0 0 / 50% 100% repeat-x;
+  animation: fx-slosh 9s linear infinite; }
+.fx-wave.b { height: 70px; opacity: .45; animation-duration: 14s; animation-direction: reverse;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 70' preserveAspectRatio='none'%3E%3Cpath d='M0 24Q50 6 100 24T200 24T300 24T400 24V70H0Z' fill='%23501838'/%3E%3C/svg%3E"); }
+@keyframes fx-slosh { to { transform: translateX(-50%); } }
+.fx-bubble { bottom: -20px; width: var(--s); height: var(--s); border-radius: 50%; border: 1.5px solid rgb(220 200 255 / .5); background: radial-gradient(circle at 35% 30%, rgb(255 255 255 / .5) 0 18%, transparent 30%);
+  will-change: transform, opacity; animation: fx-rise var(--t) linear var(--d) infinite; }
+@keyframes fx-rise { 0% { transform: translateY(0); opacity: 0; } 8% { opacity: 1; } 70% { opacity: .8; } 100% { transform: translateY(-75vh) translateX(18px); opacity: 0; } }
+.fx-wisp { bottom: -40vh; width: 26vw; height: 46vh; border-radius: 50%; background: radial-gradient(closest-side, rgb(185 247 255 / .10), transparent);
+  will-change: transform, opacity; animation: fx-wisp var(--t) ease-in-out var(--d) infinite; }
+@keyframes fx-wisp { 0% { transform: translate(0, 0) scale(.8); opacity: 0; } 30% { opacity: 1; } 50% { transform: translate(4vw, -60vh) scale(1); } 100% { transform: translate(-3vw, -130vh) scale(1.2); opacity: 0; } }
+:root[data-theme="rum"] h1 { color: #f1ecff; text-shadow: 3px -2px 0 rgb(185 247 255 / .28), -3px 2px 0 rgb(200 60 140 / .28), 0 0 18px rgb(185 247 255 / .45); }
+
+/* Snake Oil: the travelling tonic show's spotless white, a faint scale pattern, an oily rainbow sheen. */
+:root[data-theme="snakeoil"] { --stone: #fbfbf8; --stone-deep: #efefea; --panel: #ffffff; --panel-raised: #f5f5f0; --bevel-light: #ffffff; --bevel-dark: #cfcfc6; --muted: #66665f; --bone: #16161a; --bone-dim: #3b3b40; --accent: #0b8457; --accent-line: #a6dbc3; --accent-wash: #e5f4ed; --fame: #d27400; color-scheme: light; }
+:root[data-theme="snakeoil"] body::before { background:
+  radial-gradient(circle at 50% 100%, transparent 9px, rgb(0 0 0 / .045) 9.5px 10.5px, transparent 11px) 0 0 / 22px 13px,
+  radial-gradient(circle at 50% 100%, transparent 9px, rgb(0 0 0 / .045) 9.5px 10.5px, transparent 11px) 11px 6.5px / 22px 13px,
+  linear-gradient(#ffffff, #f3f3ee); }
+.fx-slick { right: -22vmax; bottom: -22vmax; width: 70vmax; aspect-ratio: 1; border-radius: 50%; opacity: .32; will-change: transform;
+  background: conic-gradient(from 30deg, #ff9ad5, #ffd36e, #a8ff9a, #7fe3ff, #b39bff, #ff9ad5);
+  -webkit-mask: radial-gradient(closest-side, #000 30%, transparent); mask: radial-gradient(closest-side, #000 30%, transparent);
+  animation: fx-spin 70s linear infinite; }
+:root[data-theme="snakeoil"] h1 { background: linear-gradient(100deg, #16161a 0 38%, #7fd6ff 45%, #c49bff 50%, #ff9fd0 55%, #16161a 62% 100%) 0 0 / 300% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+/* The sheen is a light strip screened over the title: it only shows on the dark letters. */
+:root[data-theme="snakeoil"] h1 { color: #16161a; background: none; position: relative; overflow: hidden; }
+:root[data-theme="snakeoil"] h1::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 45%; pointer-events: none; mix-blend-mode: screen; will-change: transform;
+  background: linear-gradient(100deg, transparent, #7fd6ff 30%, #c49bff 50%, #ff9fd0 70%, transparent); transform: translateX(-120%); animation: fx-sheen 7s ease-in-out infinite; }
+@keyframes fx-sheen { 0% { transform: translateX(-120%); } 30%, 100% { transform: translateX(260%); } }
+/* The game's stat colours are made for a dark screen; darkened here so they read on white. */
+:root[data-theme="snakeoil"] .char-stats { filter: brightness(.6) saturate(1.5); }
+:root[data-theme="snakeoil"] .topbar { box-shadow: inset 0 -2px 0 #fff, 0 2px 12px rgb(0 0 0 / .06); }
+
+/* Magic Mushroom: an amanita red with white spots, and a rainbow that never stops turning. */
+:root[data-theme="mushroom"] { --stone: #1f0709; --stone-deep: #170405; --panel: #3b0d10; --panel-raised: #481114; --bevel-light: #e0483f; --bevel-dark: #0e0203; --muted: #dba7a3; --bone: #fff7f2; --bone-dim: #f0d0ca; --accent: #ffe04d; --accent-line: #981212; --accent-wash: #3d1013; }
+:root[data-theme="mushroom"] body::before { background:
+  radial-gradient(circle, rgb(255 255 255 / .06) 0 9px, transparent 10px) 0 0 / 120px 120px,
+  radial-gradient(circle, rgb(255 255 255 / .045) 0 5px, transparent 6px) 60px 70px / 120px 120px,
+  radial-gradient(110% 80% at 50% 50%, #3a0a0e, #1a0507); }
+.fx-trip { left: 50%; top: 50%; width: 130vmax; aspect-ratio: 1; margin: -65vmax 0 0 -65vmax; border-radius: 50%; opacity: .22; transition: opacity 1.5s; will-change: transform;
+  background: conic-gradient(from 0deg, #ff004c, #ff9a00, #fff200, #00ff6a, #00c8ff, #7a00ff, #ff00d4, #ff004c, #ff9a00, #fff200, #00ff6a, #00c8ff, #7a00ff, #ff00d4, #ff004c);
+  -webkit-mask: radial-gradient(closest-side, transparent 6%, #000 22%, transparent 75%); mask: radial-gradient(closest-side, transparent 6%, #000 22%, transparent 75%);
+  animation: fx-trip 60s linear infinite; }
+@keyframes fx-trip { 0% { transform: rotate(0) scale(1); } 50% { transform: rotate(180deg) scale(1.18); } 100% { transform: rotate(360deg) scale(1); } }
+html.hallucinating .fx-trip { opacity: .42; }
+.fx-spore { width: var(--s); aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, rgb(255 255 255 / .55), rgb(255 255 255 / .15) 60%, transparent 70%);
+  will-change: transform, opacity; animation: fx-spore var(--t) ease-in-out var(--d) infinite; }
+@keyframes fx-spore { 0%, 100% { transform: translate(0, 0) scale(.6); opacity: .25; } 50% { transform: translate(14px, -26px) scale(1.25); opacity: .8; } }
+#theme-fx.intro .fx-trip { animation: fx-trip-in 2.4s cubic-bezier(.2, .7, .2, 1), fx-trip 60s linear infinite; }
+@keyframes fx-trip-in { from { transform: scale(.05) rotate(-270deg); opacity: .9; } }
+:root[data-theme="mushroom"] h1 { background: linear-gradient(90deg, #ff4d6d, #ffb347, #fff35c, #6bff9e, #5cd6ff, #b36bff, #ff5ce1);
+  -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 3px 0 #4d0508); }
+/* Bahama Sunrise: the drink's layers as a sky, the sun climbing out of the sea, palms either side. */
+:root[data-theme="sunrise"] { --stone: #2a1638; --stone-deep: #200f2c; --panel: #3b1d45; --panel-raised: #4a2453; --bevel-light: #ff8a5c; --bevel-dark: #160a1f; --muted: #e9b5a5; --bone: #fff4e6; --bone-dim: #f6d0ba; --accent: #ffd34d; --accent-line: #c24a3a; --accent-wash: #4a2246; }
+:root[data-theme="sunrise"] body::before { background:
+  linear-gradient(180deg, transparent 82%, #3a1a46 82%, #22102f 100%),
+  linear-gradient(180deg, #1b1240 0%, #4a2160 24%, #a3355a 46%, #f7612e 66%, #ffa53d 76%, #ffd36b 82%); }
+.fx-sun { left: 0; right: 0; bottom: 18vh; height: 50vh; overflow: hidden; }
+.fx-sun::before { content: ""; position: absolute; left: 50%; bottom: -12vmin; width: 30vmin; aspect-ratio: 1; margin-left: -15vmin; border-radius: 50%;
+  background: radial-gradient(circle, #fffbe0, #ffe27a 45%, #ffb13d 70%, #ff8a2b); box-shadow: 0 0 60px 20px rgb(255 190 80 / .55), 0 0 160px 70px rgb(255 120 60 / .3); will-change: transform; }
+#theme-fx.intro .fx-sun::before { animation: fx-sunrise 3.4s cubic-bezier(.25, .6, .2, 1) both; }
+@keyframes fx-sunrise { from { transform: translateY(34vmin); } }
+.fx-glare { left: 50%; bottom: 0; width: 26vmin; height: 18vh; translate: -50% 0; opacity: .7; will-change: opacity;
+  background: repeating-linear-gradient(180deg, rgb(255 210 110 / .75) 0 3px, transparent 3px 11px);
+  -webkit-mask: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent), linear-gradient(#000, transparent); -webkit-mask-composite: source-in;
+  mask: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent), linear-gradient(#000, transparent); mask-composite: intersect;
+  animation: fx-shimmer 2.8s ease-in-out infinite alternate; }
+@keyframes fx-shimmer { to { opacity: .35; } }
+.fx-palm { left: -2vw; bottom: 8vh; width: min(30vw, 340px); aspect-ratio: 2 / 3; transform-origin: 50% 100%; will-change: transform;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 300'%3E%3Cg fill='%23170a22'%3E%3Cpath d='M86 300C92 230 102 170 118 110L128 112C114 172 106 232 106 300Z'/%3E%3Cpath d='M123 108C90 78 48 82 12 114C50 96 86 98 119 118Z'/%3E%3Cpath d='M123 108C110 64 78 36 34 30C74 50 100 78 117 116Z'/%3E%3Cpath d='M123 108C140 62 170 46 198 48C168 64 146 86 129 116Z'/%3E%3Cpath d='M123 108C160 94 188 110 200 140C176 118 150 112 127 118Z'/%3E%3Cpath d='M123 108C116 142 94 170 64 182C90 160 108 136 119 112Z'/%3E%3Cpath d='M124 110C144 136 152 162 146 194C140 164 132 140 121 116Z'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
+  animation: fx-sway 7s ease-in-out infinite alternate; }
+.fx-palm.b { left: auto; right: -3vw; bottom: 6vh; width: min(24vw, 270px); scale: -1 1; animation-duration: 8.5s; animation-delay: -3s; }
+@keyframes fx-sway { from { transform: rotate(-1.6deg); } to { transform: rotate(1.6deg); } }
+:root[data-theme="sunrise"] h1 { background: linear-gradient(180deg, #fff6c8 0%, #ffd34d 35%, #ff8a2b 70%, #f7382e 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 3px 0 #3a1030) drop-shadow(0 0 14px rgb(255 160 60 / .35)); }
+
+/* Blue Paradise: a sunny lagoon, light dancing on the sea floor, glints on the water. */
+:root[data-theme="paradise"] { --stone: #066a8a; --stone-deep: #045670; --panel: #08344f; --panel-raised: #0b4062; --bevel-light: #41d7f2; --bevel-dark: #021b2b; --muted: #a5d6ea; --bone: #f3fcff; --bone-dim: #c8eaf7; --accent: #f2e235; --accent-line: #0ea2f2; --accent-wash: #0a3a58; }
+:root[data-theme="paradise"] body::before { background:
+  linear-gradient(165deg, rgb(255 255 255 / .16) 0 6%, transparent 6% 13%, rgb(255 255 255 / .1) 13% 16%, transparent 16% 26%, rgb(255 255 255 / .07) 26% 28%, transparent 28%),
+  linear-gradient(180deg, #13b6dc 0%, #0a8fb5 40%, #05617f 100%); }
+.fx-caustics { inset: -200px; opacity: .14; will-change: transform;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none' stroke='white' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M0 40C30 20 60 60 90 35S150 10 200 40'/%3E%3Cpath d='M0 110C40 90 70 140 110 105S170 80 200 110'/%3E%3Cpath d='M0 170C30 150 80 190 120 165S180 150 200 170'/%3E%3Cpath d='M40 0C20 40 70 70 45 110S20 170 40 200'/%3E%3Cpath d='M130 0C150 50 105 80 140 120S160 170 130 200'/%3E%3C/svg%3E") 0 0 / 200px 200px;
+  animation: fx-drift-a 26s linear infinite; }
+.fx-caustics.b { opacity: .1; background-size: 290px 290px; animation: fx-drift-b 34s linear infinite; }
+@keyframes fx-drift-a { to { transform: translate(200px, 200px); } }
+@keyframes fx-drift-b { to { transform: translate(-290px, 290px); } }
+.fx-glint { width: 14px; height: 14px; will-change: transform, opacity;
+  background: radial-gradient(closest-side, #fff, transparent), linear-gradient(#fff, #fff) center / 2px 100% no-repeat, linear-gradient(#fff, #fff) center / 100% 2px no-repeat;
+  -webkit-mask: radial-gradient(closest-side, #000 40%, transparent); mask: radial-gradient(closest-side, #000 40%, transparent);
+  animation: fx-twinkle var(--t) ease-in-out var(--d) infinite; }
+@keyframes fx-twinkle { 0%, 70%, 100% { transform: scale(0) rotate(0); opacity: 0; } 82% { transform: scale(1.4) rotate(45deg); opacity: .9; } }
+:root[data-theme="paradise"] h1 { color: #ffffff; text-shadow: 0 3px 0 #04405a, 0 0 18px rgb(65 215 242 / .6); }
+:root[data-theme="paradise"] h1::first-letter { color: var(--accent); }
+
+/* Pink Passion Breeze: a warm magenta breeze carrying petals across the page. */
+:root[data-theme="passion"] { --stone: #2b0b2e; --stone-deep: #210824; --panel: #44144a; --panel-raised: #521a59; --bevel-light: #f449e9; --bevel-dark: #150417; --muted: #e6abe2; --bone: #fff0fd; --bone-dim: #f4cbef; --accent: #ffe94d; --accent-line: #7c40dd; --accent-wash: #3d1243; }
+:root[data-theme="passion"] body::before { background:
+  repeating-linear-gradient(-14deg, transparent 0 60px, rgb(255 160 240 / .035) 60px 62px, transparent 62px 150px),
+  radial-gradient(70% 60% at 85% 10%, rgb(244 73 233 / .28), transparent 70%),
+  radial-gradient(60% 60% at 10% 95%, rgb(124 64 221 / .3), transparent 70%),
+  #2b0b2e; }
+.fx-haze { left: -20vw; top: 20vh; width: 70vw; height: 60vh; border-radius: 50%; background: radial-gradient(closest-side, rgb(255 140 230 / .13), transparent);
+  will-change: transform; animation: fx-haze 22s ease-in-out infinite alternate; }
+@keyframes fx-haze { to { transform: translate(60vw, -12vh) scale(1.2); } }
+.fx-petal { left: -40px; width: var(--s); height: calc(var(--s) * .62); border-radius: 80% 0 80% 0;
+  background: linear-gradient(135deg, #ffc2f6, #f449e9 55%, #b0279f); box-shadow: inset -2px -2px 0 rgb(120 20 110 / .35);
+  will-change: transform, opacity; animation: fx-petal var(--t) linear var(--d) infinite; }
+@keyframes fx-petal {
+  0% { transform: translate(0, 0) rotate(0); opacity: 0; }
+  8% { opacity: .85; }
+  50% { transform: translate(55vw, 18vh) rotate(calc(var(--r) / 2)); }
+  92% { opacity: .85; }
+  100% { transform: translate(112vw, 42vh) rotate(var(--r)); opacity: 0; } }
+:root[data-theme="passion"] h1 { color: #fff0fd; text-shadow: 0 0 10px rgb(244 73 233 / .8), 0 0 28px rgb(244 73 233 / .45), 0 3px 0 #5a1060; }
+
+/* Lime Jungle Bay: a jungle bay at night, leaves overhead, moonlight on the water, fireflies. */
+:root[data-theme="jungle"] { --stone: #06130d; --stone-deep: #040e09; --panel: #0d2219; --panel-raised: #112b20; --bevel-light: #3f8f4a; --bevel-dark: #020604; --muted: #96bb9f; --bone: #f0fff1; --bone-dim: #c2dec6; --accent: #b6ff3b; --accent-line: #2e6b1c; --accent-wash: #12291c; }
+:root[data-theme="jungle"] body::before { background:
+  radial-gradient(10vmin 10vmin at 82% 12%, rgb(220 230 255 / .5), rgb(103 123 229 / .12) 60%, transparent 100%),
+  linear-gradient(180deg, transparent 84%, rgb(103 123 229 / .14) 84% 84.4%, transparent 84.4%),
+  linear-gradient(90deg, transparent 79%, rgb(200 215 255 / .10) 81%, transparent 85%) 0 86vh / 100% 14vh no-repeat,
+  radial-gradient(80% 60% at 82% 0%, rgb(88 105 196 / .22), transparent 70%),
+  linear-gradient(180deg, #071a12, #06130d 84%, #08142a); }
+.fx-leaves { left: -40px; top: -40px; width: min(42vw, 520px); aspect-ratio: 1; transform-origin: 0 0; will-change: transform;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300'%3E%3Cg fill='%23020a05'%3E%3Cpath d='M0 0C80 10 160 50 210 120C150 100 80 72 0 62Z'/%3E%3Cpath d='M0 40C60 82 110 150 122 244C82 192 32 142 0 122Z'/%3E%3Cpath d='M30 0C92 38 152 58 262 50C192 92 110 82 40 30Z'/%3E%3Cpath d='M0 90C30 140 44 200 36 290C18 230 6 180 0 160Z'/%3E%3C/g%3E%3Cg fill='none' stroke='%230a1f10' stroke-width='2'%3E%3Cpath d='M0 30C70 50 140 80 200 116'/%3E%3Cpath d='M0 80C50 120 94 170 118 238'/%3E%3Cpath d='M40 20C110 46 180 54 250 52'/%3E%3C/g%3E%3C/svg%3E") 0 0 / contain no-repeat;
+  animation: fx-leaf 9s ease-in-out infinite alternate; }
+.fx-leaves.b { left: auto; right: -40px; scale: -1 1; transform-origin: 0 0; width: min(34vw, 420px); animation-duration: 11s; animation-delay: -4s; }
+@keyframes fx-leaf { from { transform: rotate(-1.5deg); } to { transform: rotate(2deg); } }
+.fx-fly { width: 4px; height: 4px; border-radius: 50%; background: #efff9a; box-shadow: 0 0 6px 2px rgb(182 255 59 / .75), 0 0 16px 6px rgb(182 255 59 / .25);
+  will-change: transform, opacity; animation: fx-fly var(--t) ease-in-out var(--d) infinite; }
+@keyframes fx-fly { 0%, 100% { transform: translate(0, 0); opacity: 0; } 20% { opacity: 1; } 35% { opacity: .2; } 50% { transform: translate(var(--dx), var(--dy)); opacity: .95; } 70% { opacity: 0; } }
+:root[data-theme="jungle"] h1 { color: #e9ffd0; text-shadow: 0 0 12px rgb(182 255 59 / .55), 0 3px 0 #0b2a10; }
+
+/* The outdoor scenes show faintly through the panels. */
+:root[data-theme="rum"] .panel:not(.fame-box) { background: rgb(33 25 54 / .88); }
+:root[data-theme="mushroom"] .panel:not(.fame-box) { background: rgb(59 13 16 / .9); }
+:root[data-theme="sunrise"] .panel:not(.fame-box) { background: rgb(59 29 69 / .84); }
+:root[data-theme="paradise"] .panel:not(.fame-box) { background: rgb(8 52 79 / .86); }
+:root[data-theme="passion"] .panel:not(.fame-box) { background: rgb(68 20 74 / .86); }
+:root[data-theme="jungle"] .panel:not(.fame-box) { background: rgb(13 34 25 / .84); }
+
+/* Using them: the server's ShowEffect nova ring (white), the healed amount in green
+   (CharacterStatusText, rising for a second), and a burst of light for stat boosts. */
+.fx-burst { position: fixed; z-index: 1001; pointer-events: none; translate: -50% -50%; }
+.fx-nova { width: calc(var(--r) * 2); aspect-ratio: 1; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 10px rgb(255 255 255 / .6), inset 0 0 10px rgb(255 255 255 / .4);
+  animation: fx-nova .45s ease-out forwards; }
+@keyframes fx-nova { from { transform: scale(.08); opacity: 1; } to { transform: scale(1); opacity: 0; } }
+.fx-status { font: 700 22px "Tooltip Sans", sans-serif; color: #00ff00; white-space: nowrap;
+  text-shadow: 1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000; animation: fx-status 1s ease-out forwards; }
+@keyframes fx-status { from { transform: translateY(0); opacity: 1; } 70% { opacity: 1; } to { transform: translateY(-40px); opacity: 0; } }
+.fx-heal { width: 56px; height: 56px;
+  background: radial-gradient(3px 3px at 20% 70%, #fff, transparent), radial-gradient(3px 3px at 50% 85%, #fff, transparent), radial-gradient(3px 3px at 78% 66%, #fff, transparent),
+    radial-gradient(2px 2px at 35% 45%, #fff, transparent), radial-gradient(2px 2px at 65% 40%, #fff, transparent);
+  animation: fx-heal .9s ease-out forwards; }
+@keyframes fx-heal { from { transform: translateY(10px); opacity: 1; } to { transform: translateY(-36px); opacity: 0; } }
+
+/* Drunk: the page sways (the count of swings fits the effect's length); invisible: the page
+   fades to a ghost; both end on their own. */
+main, .footer { transition: opacity .3s; }
+html.drunk main, html.drunk .footer { transform-origin: 50% 0; animation: fx-drunk 3s ease-in-out infinite; }
+@keyframes fx-drunk { 0%, 100% { transform: none; } 25% { transform: translateX(-7px) rotate(-.7deg); } 75% { transform: translateX(7px) rotate(.7deg); } }
+html.invisible main, html.invisible .footer { opacity: .28; }
+
+@media (prefers-reduced-motion: reduce) {
+  #theme-fx *, #theme-fx *::before, :root[data-theme] h1, :root[data-theme] h1::after { animation: none !important; }
+  html.drunk main, html.drunk .footer { animation: none; }
+}

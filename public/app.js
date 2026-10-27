@@ -540,7 +540,7 @@ async function bestCharacters() {
       <nav class="tabs" style="margin:0" aria-label="Sort characters">${Object.entries(CHAR_SORTS).map(([k, o]) => h`<a href="${link({sort: k === 'fame' ? null : k})}" data-link ${k === sort ? raw('aria-current="page"') : ''}>${o.title}</a>`)}</nav>
       <label class="sr" for="char-filter">Filter characters</label><input id="char-filter" type="search" placeholder="Filter by player or class">
       <span class="muted">${fmt(rows.length)} ${dead ? 'dead' : 'living'}${max20 ? ' level 20' : ''} characters</span>
-      <label class="check" style="margin-left:auto"><input type="checkbox" id="char-max20" ${max20 ? raw('checked') : ''}> Level 20 only</label>
+      <label class="check" style="margin-left:auto"><input type="checkbox" id="char-max20" ${max20 ? raw('checked') : ''}> Level 20</label>
       <nav class="tabs" style="margin:0" aria-label="Alive or dead">
         <a href="${link({dead: null})}" data-link ${!dead ? raw('aria-current="page"') : ''}>Alive</a>
         <a href="${link({dead: '1'})}" data-link ${dead ? raw('aria-current="page"') : ''}>Dead</a>
@@ -1447,9 +1447,45 @@ const KEYS = [
   ['undead', 'Undead Lair', 'Undead Lair Key'], ['sprite', 'Sprite World', 'Sprite World Key']
 ];
 const KEY_PROFILES = ['/player/cramshon', '/player/redbracket'];
-let invMode = 'potions';
-try { if (localStorage.getItem('inventory') === 'keys') invMode = 'keys'; } catch { /* storage unavailable */ }
-const invItems = () => (invMode === 'keys' ? KEYS : THEMES.filter(t => t[2]));
+// Rare finds: each of these consumables has a 1% chance to take the place of a potion when the
+// Nexus refills the inventory, and is certain to on the page of an enemy that drops it. Each has
+// its own theme with moving effects, and using it does what the item does in the game
+// (objects.xml): the incantation opens the Wine Cellar with the key sound, Snake Oil heals 100 HP
+// in a 10-tile nova, the mushroom makes you hallucinate for 30 s, and the rum and the Masked
+// Party God's drinks make you drunk (6 s and 15 s; the rum also turns you invisible for 4 s).
+// [key, label, item, verb, effects]
+const BREWS = [
+  ['cellar', 'Wine Cellar', 'Wine Cellar Incantation', 'Use', {portal: 'Wine Cellar'}],
+  ['rum', 'Ghost Pirate Rum', 'Ghost Pirate Rum', 'Drink', {drunk: 6, invisible: 4}],
+  ['snakeoil', 'Snake Oil', 'Snake Oil', 'Drink', {heal: 100, range: 10}],
+  ['mushroom', 'Magic Mushroom', 'Magic Mushroom', 'Eat', {hallucinating: 30}],
+  ['sunrise', 'Bahama Sunrise', 'Bahama Sunrise', 'Drink', {boost: true, drunk: 15}],
+  ['paradise', 'Blue Paradise', 'Blue Paradise', 'Drink', {boost: true, drunk: 15}],
+  ['passion', 'Pink Passion Breeze', 'Pink Passion Breeze', 'Drink', {boost: true, drunk: 15}],
+  ['jungle', 'Lime Jungle Bay', 'Lime Jungle Bay', 'Drink', {boost: true, drunk: 15}]
+];
+const BREW_CHANCE = 0.01;
+const POTIONS = THEMES.filter(t => t[2]);
+const INV_ALL = [...POTIONS, ...KEYS, ...BREWS];
+// The inventory is the list of the eight slots' keys, kept in this browser until the next Nexus.
+let inventory = POTIONS.map(t => t[0]);
+try {
+  const saved = localStorage.getItem('inventory');
+  if (saved === 'keys') inventory = KEYS.map(k => k[0]);
+  else if (saved?.startsWith('[')) {
+    const list = JSON.parse(saved);
+    if (Array.isArray(list) && list.length === 8 && list.every(k => INV_ALL.some(t => t[0] === k))) inventory = list;
+  }
+} catch { /* storage unavailable */ }
+const invItems = () => inventory.map(k => INV_ALL.find(t => t[0] === k));
+const invKind = key => (KEYS.some(k => k[0] === key) ? 'key' : BREWS.some(b => b[0] === key) ? 'brew' : 'potion');
+function rollInventory(forced = new Set()) {
+  const slots = POTIONS.map(t => t[0]);
+  const found = BREWS.filter(b => forced.has(b[2]) || Math.random() < BREW_CHANCE).map(b => b[0]);
+  const free = [...slots.keys()].sort(() => Math.random() - 0.5);
+  found.slice(0, 8).forEach((k, i) => { slots[free[i]] = k; });
+  return slots;
+}
 const themeButton = document.getElementById('theme-button');
 const themeMenu = document.getElementById('theme-menu');
 // The theme menu is the game's inventory: eight slots (InventoryGrid: 40px slots, 4px apart,
@@ -1468,7 +1504,7 @@ function playSound(src, volume = 0.5) {
 }
 // A short cooldown between drinks.
 const DRINK_COOLDOWN = 700;
-let lastDrink = 0;
+let lastDrink = -Infinity;
 function drink(key) {
   if (!key || drunk.has(key) || mapLoading) return;
   if (performance.now() - lastDrink < DRINK_COOLDOWN) return;
@@ -1483,8 +1519,15 @@ function drink(key) {
     loadingScreen(dungeon[1], () => setTheme(key));
     return;
   }
+  const brew = BREWS.find(b => b[0] === key);
+  if (brew?.[4].portal) {
+    playSound('/sfx/use_key.mp3');
+    loadingScreen(brew[4].portal, () => setTheme(key, {intro: true}));
+    return;
+  }
   playSound('/sfx/use_potion.mp3');
-  setTheme(key);
+  setTheme(key, {intro: Boolean(brew)});
+  if (brew) brewEffects(brew[4], themeMenu.querySelector(`.inv-slot[data-theme-key="${key}"]`));
 }
 // Nexus: the client's map loading screen, as read from client.swf (MapLoadingView and the code
 // that opens it): a black screen; the character walking right, its frames
@@ -1497,11 +1540,23 @@ async function loadWalk() { WALK = await staticJson('/catalog/walk.json').catch(
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function nexus() {
   closeThemes();
-  // On cramshon's or RedBracket's profile the Nexus hands out dungeon keys instead of potions.
+  // On cramshon's or RedBracket's profile the Nexus hands out dungeon keys instead of potions;
+  // anywhere else, a rare consumable may turn up among the potions.
   let here = '';
   try { here = decodeURIComponent(location.pathname).toLowerCase(); } catch { /* malformed address */ }
-  invMode = KEY_PROFILES.includes(here) ? 'keys' : 'potions';
-  try { localStorage.setItem('inventory', invMode); } catch { /* storage unavailable */ }
+  if (KEY_PROFILES.includes(here)) inventory = KEYS.map(k => k[0]);
+  else {
+    // On the page of an enemy that drops one of the rare consumables, it is certain to be there.
+    const enemy = /^\/enemy\/(\d+)$/.exec(here);
+    const forced = new Set();
+    if (enemy) {
+      const E = await loadEnemies();
+      const names = new Set((E.byId.get(Number(enemy[1]))?.drops ?? []).map(id => ITEMS.get(id)?.name));
+      for (const b of BREWS) if (names.has(b[2])) forced.add(b[2]);
+    }
+    inventory = rollInventory(forced);
+  }
+  try { localStorage.setItem('inventory', JSON.stringify(inventory)); } catch { /* storage unavailable */ }
   await loadingScreen('Nexus', () => {
     drunk.clear();
     saveDrunk();
@@ -1540,7 +1595,7 @@ function syncThemeMenu() {
       b.classList.add('drunk');
       b.querySelector('canvas')?.remove();
       b.removeAttribute('data-tip');
-      b.setAttribute('aria-label', `${b.getAttribute('aria-label').replace(/^(Drink|Use) the | \(double-click\)$/g, '')}, used`);
+      b.setAttribute('aria-label', `${b.getAttribute('aria-label').replace(/^(Drink|Use|Eat) the | \(double-click\)$/g, '')}, used`);
     }
   });
 }
@@ -1549,15 +1604,15 @@ function drawThemeMenu() {
   const current = document.documentElement.dataset.theme ?? '';
   const byName = new Map([...ITEMS.values()].map(i => [i.name, i]));
   const potions = invItems();
-  const keys = invMode === 'keys';
   themeMenu.innerHTML = String(h`<div class="inv-panel">
     <span class="inv-title">Themes</span>
     <button type="button" class="inv-nexus" role="menuitemradio" aria-checked="${current === ''}" aria-label="Nexus: default theme" data-theme-key="" data-tip-title="Nexus" data-tip-text="Default theme"><canvas width="40" height="40"></canvas></button>
-    <div class="inv-grid">${potions.map(([key, label, potion], i) => {
+    <div class="inv-grid">${potions.map(([key, label, potion, verb], i) => {
       const it = byName.get(potion);
       const gone = drunk.has(key);
-      const what = keys ? `${label} key` : `${label} potion`;
-      return h`<button type="button" class="inv-slot ${SLOT_CUTS[i] ?? ''}${gone ? ' drunk' : ''}" role="menuitemradio" aria-checked="${key === current}" aria-label="${gone ? `${what}, used` : `${keys ? 'Use' : 'Drink'} the ${what} (double-click)`}" data-theme-key="${key}"${!gone && it ? raw(` data-tip="${it.id}"`) : ''}><span class="inv-num" aria-hidden="true">${i + 1}</span>${gone ? '' : h`<canvas width="56" height="56" data-potion="${it?.id ?? ''}"></canvas>`}</button>`;
+      const kind = invKind(key);
+      const what = kind === 'key' ? `${label} key` : kind === 'brew' ? potion : `${label} potion`;
+      return h`<button type="button" class="inv-slot ${SLOT_CUTS[i] ?? ''}${gone ? ' drunk' : ''}" role="menuitemradio" aria-checked="${key === current}" aria-label="${gone ? `${what}, used` : `${verb ?? (kind === 'key' ? 'Use' : 'Drink')} the ${what} (double-click)`}" data-theme-key="${key}"${!gone && it ? raw(` data-tip="${it.id}"`) : ''}><span class="inv-num" aria-hidden="true">${i + 1}</span>${gone ? '' : h`<canvas width="56" height="56" data-potion="${it?.id ?? ''}"></canvas>`}</button>`;
     })}</div></div>`);
   themeMenu.querySelectorAll('canvas[data-potion]').forEach(async c => {
     const it = ITEMS.get(Number(c.dataset.potion));
@@ -1574,18 +1629,126 @@ function drawThemeMenu() {
 // With a potion theme, the logo becomes that potion (sprite positions come from the item catalog).
 function drawBrand() {
   const key = document.documentElement.dataset.theme ?? '';
-  const potion = [...THEMES, ...KEYS].find(t => t[0] === key)?.[2];
+  const potion = [...THEMES, ...KEYS, ...BREWS].find(t => t[0] === key)?.[2];
   const it = potion && [...ITEMS.values()].find(i => i.name === potion);
   const el = document.getElementById('brand-potion');
   if (!it?.sprite) { el.removeAttribute('style'); return; }
   const s = 4; // 8px sprite at 4x, 32px tall like the logo
   el.style.cssText = `background-image:url(/catalog/items.png);background-size:${320 * s}px auto;background-position:-${(it.sprite.x + 4) * s}px -${(it.sprite.y + 4) * s}px`;
 }
-function setTheme(key) {
+function setTheme(key, {intro = false} = {}) {
   if (key) document.documentElement.dataset.theme = key; else delete document.documentElement.dataset.theme;
   try { if (key) localStorage.setItem('theme', key); else localStorage.removeItem('theme'); } catch { /* storage unavailable */ }
   syncThemeMenu();
   drawBrand();
+  themeFx(key, intro);
+  if (!key) sober();
+}
+
+// ---------- rare consumable themes: moving layers and what using the item does ----------
+// Every moving part only changes transform or opacity, so the browser can run it without
+// redrawing the page, and nothing moves for people who ask for reduced motion.
+const fxLayer = document.createElement('div');
+fxLayer.id = 'theme-fx';
+fxLayer.setAttribute('aria-hidden', 'true');
+document.body.prepend(fxLayer);
+const rand = (a, b) => a + Math.random() * (b - a);
+const pct = (a, b) => `${rand(a, b).toFixed(1)}%`;
+const many = (n, make) => Array.from({length: n}, (_, i) => make(i)).join('');
+const FX = {
+  cellar: () => '<i class="fx-sigil"></i><i class="fx-candle"></i><i class="fx-candle b"></i>',
+  rum: () => `<i class="fx-wave"></i><i class="fx-wave b"></i>${many(9, () => `<i class="fx-bubble" style="left:${pct(2, 98)};--s:${rand(4, 11).toFixed(0)}px;--t:${rand(6, 13).toFixed(1)}s;--d:-${rand(0, 13).toFixed(1)}s"></i>`)}${many(3, i => `<i class="fx-wisp" style="left:${10 + i * 32}%;--t:${rand(16, 24).toFixed(1)}s;--d:-${rand(0, 20).toFixed(1)}s"></i>`)}`,
+  snakeoil: () => '<i class="fx-slick"></i>',
+  mushroom: () => `<i class="fx-trip"></i>${many(7, () => `<i class="fx-spore" style="left:${pct(0, 100)};top:${pct(10, 95)};--s:${rand(14, 40).toFixed(0)}px;--t:${rand(7, 12).toFixed(1)}s;--d:-${rand(0, 12).toFixed(1)}s"></i>`)}`,
+  sunrise: () => '<i class="fx-sun"></i><i class="fx-glare"></i><i class="fx-palm"></i><i class="fx-palm b"></i>',
+  paradise: () => `<i class="fx-caustics"></i><i class="fx-caustics b"></i>${many(6, () => `<i class="fx-glint" style="left:${pct(3, 97)};top:${pct(8, 95)};--t:${rand(3, 6).toFixed(1)}s;--d:-${rand(0, 6).toFixed(1)}s"></i>`)}`,
+  passion: () => `<i class="fx-haze"></i>${many(11, () => `<i class="fx-petal" style="top:${pct(-10, 70)};--s:${rand(10, 20).toFixed(0)}px;--t:${rand(11, 19).toFixed(1)}s;--d:-${rand(0, 19).toFixed(1)}s;--r:${rand(-200, 200).toFixed(0)}deg"></i>`)}`,
+  jungle: () => `<i class="fx-leaves"></i><i class="fx-leaves b"></i>${many(16, () => `<i class="fx-fly" style="left:${pct(2, 98)};top:${pct(25, 98)};--t:${rand(5, 10).toFixed(1)}s;--d:-${rand(0, 10).toFixed(1)}s;--dx:${rand(-60, 60).toFixed(0)}px;--dy:${rand(-50, 20).toFixed(0)}px"></i>`)}`
+};
+function themeFx(key, intro = false) {
+  fxLayer.className = intro ? 'intro' : '';
+  fxLayer.innerHTML = FX[key]?.() ?? '';
+}
+// One-shot effects as the server sends them (src/world/consumables.rs): a nova ring around the
+// player (the item's range, or 1 tile for a condition), and the healed amount in green.
+const TILE = 28;
+function fxAt(el) {
+  const r = el?.getBoundingClientRect();
+  return r ? {x: r.left + r.width / 2, y: r.top + r.height / 2} : {x: innerWidth / 2, y: innerHeight / 2};
+}
+function burst(cls, {x, y}, style = '', text = '') {
+  if (reducedMotion() && cls !== 'fx-status') return;
+  const el = document.createElement('div');
+  el.className = `fx-burst ${cls}`;
+  el.setAttribute('aria-hidden', 'true');
+  el.style.cssText = `left:${x}px;top:${y}px;${style}`;
+  el.textContent = text;
+  document.body.append(el);
+  setTimeout(() => el.remove(), 1600);
+}
+const effectTimers = new Map();
+function condition(name, seconds) {
+  if (reducedMotion() && name !== 'invisible') return;
+  clearTimeout(effectTimers.get(name));
+  document.documentElement.classList.add(name);
+  effectTimers.set(name, setTimeout(() => { document.documentElement.classList.remove(name); if (name === 'hallucinating') hallucinate(false); }, seconds * 1000));
+  if (name === 'hallucinating') hallucinate(true);
+}
+function sober() {
+  for (const [name, t] of effectTimers) { clearTimeout(t); document.documentElement.classList.remove(name); }
+  effectTimers.clear();
+  hallucinate(false);
+}
+function brewEffects(fx, slot) {
+  const at = fxAt(slot);
+  if (fx.heal) {
+    burst('fx-nova', at, `--r:${fx.range * TILE}px`);
+    burst('fx-status', {x: at.x, y: at.y - 24}, '', `+${fx.heal}`);
+  }
+  if (fx.boost) burst('fx-heal', at);
+  for (const name of ['drunk', 'invisible', 'hallucinating']) {
+    if (!fx[name]) continue;
+    burst('fx-nova', at, `--r:${TILE}px`);
+    condition(name, fx[name]);
+  }
+}
+// Hallucinating: as in the client, things are drawn with the wrong textures. Every sprite on the
+// page (items, classes and enemies) is swapped for a random one, again and again, until it ends.
+let tripTimer = null;
+async function hallucinate(on) {
+  clearInterval(tripTimer);
+  tripTimer = null;
+  if (!on) {
+    document.querySelectorAll('[data-sober]').forEach(el => {
+      if (el.tagName === 'IMG') el.src = el.dataset.sober; else el.style.backgroundPosition = el.dataset.sober;
+      el.removeAttribute('data-sober');
+    });
+    return;
+  }
+  const E = await loadEnemies();
+  const items = [...ITEMS.values()].filter(i => i.sprite);
+  const classes = [...CLASSES.values()];
+  const bySize = new Map();
+  for (const e of E.list) if (e.sprite) { const k = `${e.sprite.w}x${e.sprite.h}`; if (!bySize.has(k)) bySize.set(k, []); bySize.get(k).push(e); }
+  const pick = list => list[Math.floor(Math.random() * list.length)];
+  const swap = () => {
+    for (const el of document.querySelectorAll('main .sprite:not(.none), main img.cls, main .esprite:not(.none)')) {
+      if (Math.random() < 0.5) continue;
+      if (!el.dataset.sober) el.dataset.sober = el.tagName === 'IMG' ? el.getAttribute('src') : el.style.backgroundPosition;
+      if (el.tagName === 'IMG') { el.src = `/catalog/classes/${pick(classes).slug}.png`; continue; }
+      const scale = parseFloat(el.style.backgroundSize) / (el.classList.contains('esprite') ? E.sheetWidth : 320);
+      if (el.classList.contains('esprite')) {
+        const same = bySize.get(`${Math.round(parseFloat(el.style.width) / scale)}x${Math.round(parseFloat(el.style.height) / scale)}`);
+        const e = same && pick(same);
+        if (e) el.style.backgroundPosition = `-${e.sprite.x * scale}px -${e.sprite.y * scale}px`;
+      } else {
+        const it = pick(items);
+        el.style.backgroundPosition = `-${it.sprite.x * scale}px -${it.sprite.y * scale}px`;
+      }
+    }
+  };
+  swap();
+  tripTimer = setInterval(swap, 1200);
 }
 const closeThemes = () => { themeMenu.hidden = true; themeButton.setAttribute('aria-expanded', 'false'); };
 themeButton.addEventListener('click', e => {
@@ -1626,6 +1789,7 @@ async function footer() {
 
 await Promise.all([loadCatalog(), loadCrown(), loadGraves(), loadAuras(), loadWalk()]);
 drawBrand();
+themeFx(document.documentElement.dataset.theme ?? '');
 route();
 footer();
 setInterval(() => { footer(); loadCrown(); }, 60000);
