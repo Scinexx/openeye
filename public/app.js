@@ -1529,7 +1529,7 @@ const KEYS = [
   ['undead', 'Undead Lair', 'Undead Lair Key'], ['sprite', 'Sprite World', 'Sprite World Key']
 ];
 const KEY_PROFILES = ['/player/cramshon', '/player/redbracket'];
-// Rare finds: each of these consumables (and each dungeon key) has a 1% chance to take the place of a potion when the
+// Rare finds: each of these consumables (and each dungeon key) has a 3% chance to take the place of a potion when the
 // Nexus refills the inventory, and is certain to on the page of an enemy that drops it. Each has
 // its own theme with moving effects, and using it does what the item does in the game
 // (objects.xml): the incantation opens the Wine Cellar with the key sound, Snake Oil heals 100 HP
@@ -1546,7 +1546,7 @@ const BREWS = [
   ['passion', 'Pink Passion Breeze', 'Pink Passion Breeze', 'Drink', {boost: true, drunk: 15}],
   ['jungle', 'Lime Jungle Bay', 'Lime Jungle Bay', 'Drink', {boost: true, drunk: 15}]
 ];
-const BREW_CHANCE = 0.01;
+const BREW_CHANCE = 0.03;
 const POTIONS = THEMES.filter(t => t[2]);
 const INV_ALL = [...POTIONS, ...KEYS, ...BREWS];
 // The inventory is the list of the eight slots' keys, kept in this browser until the next Nexus.
@@ -1563,7 +1563,7 @@ const invItems = () => inventory.map(k => INV_ALL.find(t => t[0] === k));
 const invKind = key => (KEYS.some(k => k[0] === key) ? 'key' : BREWS.some(b => b[0] === key) ? 'brew' : 'potion');
 function rollInventory(forced = new Set()) {
   const slots = POTIONS.map(t => t[0]);
-  // The dungeon keys can turn up the same way, at the same 1% each.
+  // The dungeon keys can turn up the same way, at the same 3% each.
   const found = [...BREWS.filter(b => forced.has(b[2])), ...[...BREWS, ...KEYS].filter(b => !forced.has(b[2]) && Math.random() < BREW_CHANCE)].map(b => b[0]);
   const free = [...slots.keys()].sort(() => Math.random() - 0.5);
   found.slice(0, 8).forEach((k, i) => { slots[free[i]] = k; });
