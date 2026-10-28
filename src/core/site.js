@@ -289,9 +289,11 @@ export function makeApi(db, catalog, settings) {
         WHERE account = ? AND seen_at > ? ORDER BY fame DESC, level DESC, char_id`, p.account, now() - 3600) : []
     ]);
     const features = {characters: Number(await getMeta(db, 'characters_at') ?? 0) > now() - 86400, graveyard: (await getMeta(db, 'graveyard_ok')) !== null};
+    // When OpenEye began keeping records: history from before then is estimated (src/core/backfill.js).
+    const trackedFrom = (await one('SELECT MIN(first_seen) AS t FROM players'))?.t ?? p.first_seen;
     const guild = p.guild_id === null || p.guild_id === undefined ? null
       : await one('SELECT id, name, level FROM guilds WHERE id = ? AND listed = 1', p.guild_id);
-    return {player: p, ranks, rankedPlayers, names, history, collection, deaths: deaths.map(parseDeath), legends, fameGains, features,
+    return {player: p, ranks, rankedPlayers, names, history, collection, deaths: deaths.map(parseDeath), legends, fameGains, features, trackedFrom,
       guild: guild && {...guild, rank: p.guild_rank, fame: p.guild_fame},
       characters: characters.map(c => ({...c, stats: JSON.parse(c.stats), equipment: JSON.parse(c.equipment)}))};
   }

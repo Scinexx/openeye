@@ -289,13 +289,75 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
   .score:nth-child(-n+2) { border-top: 0; }
   .score:nth-child(even) { border-left: 2px solid var(--bevel-dark); }
 }
-.chart { width: 100%; height: auto; display: block; }
-.chart .line { fill: none; stroke: var(--accent); stroke-width: 2; }
-.chart .area { fill: rgba(242, 196, 67, 0.07); }
-.chart .axis { fill: var(--muted); font: 17px var(--body); }
-.chart .grid { stroke: var(--stone-deep); stroke-width: 1; }
-.chart .dot { fill: var(--accent); }
-.chart-readout { min-height: 1.5em; color: var(--bone-dim); margin-top: 8px; }
+/* History graphs sit in a sunken well, like the game's inventory slots. */
+.chart-head { display: flex; align-items: baseline; gap: 10px 14px; flex-wrap: wrap; margin-bottom: 10px; }
+.chart-now b { font: 700 1.6rem var(--display); line-height: 1; }
+.chart-now span { color: var(--bone-dim); }
+.chart-delta { color: var(--muted); font-size: 0.95rem; }
+.chart-delta.up { color: var(--online); }
+.chart-delta.down { color: var(--blood); }
+.tabs.mini { margin: 0 0 0 auto; gap: 4px; }
+.tabs.mini button { padding: 3px 8px; font-size: 0.85rem; }
+.chart-wrap, .bars, .hbars { background: var(--stone-deep); border: 2px solid; border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark); }
+.chart { width: 100%; height: auto; display: block; color: var(--accent); }
+.chart.chart-fame { color: var(--fame); }
+.chart .line { fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linejoin: round; }
+.chart .line.est { stroke-dasharray: 6 5; opacity: 0.75; }
+.chart .area { stroke: none; }
+.chart .axis { fill: var(--muted); font: 13px var(--body); }
+.chart .grid { stroke: var(--bevel-dark); stroke-width: 1; stroke-dasharray: 2 4; }
+.chart .grid.base { stroke: var(--bevel-light); stroke-dasharray: none; opacity: 0.6; }
+.chart .tick { stroke: var(--bevel-light); opacity: 0.6; }
+.chart .hatch { stroke: var(--bone); stroke-width: 2; opacity: 0.06; }
+.chart .est-label { fill: var(--muted); font: italic 13px var(--body); }
+.chart .end-dot { fill: currentColor; stroke: var(--stone-deep); stroke-width: 2; }
+.chart .end-ring { fill: currentColor; opacity: 0.25; }
+.chart .hit { fill: transparent; }
+.chart .cross { stroke: var(--bone-dim); stroke-width: 1; stroke-dasharray: 3 3; }
+.chart .hdot { fill: currentColor; stroke: var(--bone); stroke-width: 2; }
+.chart .hov .cross, .chart .hov .hdot { opacity: 0; }
+.chart .hov:hover .cross, .chart .hov:hover .hdot { opacity: 1; }
+.chart-readout { min-height: 1.5em; color: var(--muted); margin: 8px 0 0; font-size: 0.9rem; }
+
+/* Profile stats: small charts in a grid of cards. */
+.stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.stat-cell { min-width: 0; display: flex; }
+.stat-cell.wide { grid-column: 1 / -1; }
+.stat-card { flex: 1; min-width: 0; padding: 12px 14px 14px; background: var(--panel-raised); border: 2px solid; border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light); }
+.stat-card > header { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.stat-card h3 { margin: 0; font: 700 1.05rem var(--display); }
+.stat-card > header .muted { font-size: 0.9rem; }
+.stat-card > header b { color: var(--bone); }
+.stat-card > header b.fame { color: var(--fame); }
+.stat-foot { margin: 8px 0 0; color: var(--muted); font-size: 0.85rem; }
+.stat-foot b.fame { color: var(--fame); }
+@media (max-width: 760px) { .stat-grid { grid-template-columns: 1fr; } }
+/* Column bars: each bar is a full-height hover target with its fill anchored to the floor. */
+.bars { display: flex; align-items: stretch; gap: 2px; height: 120px; padding: 18px 6px 0; }
+.bars .bar { position: relative; flex: 1 1 0; min-width: 0; display: flex; align-items: flex-end; text-decoration: none; }
+.bars .bar i { display: block; width: 100%; background: var(--accent); opacity: 0.8; }
+.bars .bar:hover i { opacity: 1; filter: brightness(1.2); }
+.bars .bar.best i { opacity: 1; }
+.bars .bar b { position: absolute; left: 50%; transform: translateX(-50%); top: -17px; font: 700 0.75rem var(--body); color: var(--bone); white-space: nowrap; pointer-events: none; }
+.fame-bars .bar i, .life-bars .bar i { background: var(--fame); }
+.bars .bar.est i { background: repeating-linear-gradient(135deg, var(--fame) 0 3px, transparent 3px 6px); opacity: 0.7; }
+.life-bars .bar.maxed i { background: var(--gold); box-shadow: 0 0 6px rgba(242, 196, 67, 0.6); }
+.clock-bars { height: 90px; padding-top: 6px; }
+.life-bars { justify-content: center; gap: 4px; }
+.life-bars .bar { max-width: 48px; }
+.bar-axis { display: flex; justify-content: space-between; margin-top: 4px; color: var(--muted); font-size: 0.8rem; }
+.clock-axis { display: grid; grid-template-columns: repeat(4, 1fr); }
+/* Horizontal bars: a label, the bar, the count. */
+.hbars { list-style: none; margin: 0; padding: 6px 8px; display: grid; gap: 4px; }
+.hbars li { display: grid; grid-template-columns: minmax(0, 9rem) 1fr 2.5rem; align-items: center; gap: 8px; min-height: 28px; }
+.hbars li:has(> .cls) { grid-template-columns: 24px minmax(0, 7.5rem) 1fr 2.5rem; }
+.hb-who { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--bone); text-decoration: none; }
+.hb-who:hover .hb-name { text-decoration: underline; }
+.hb-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hb-track { height: 12px; background: rgba(0, 0, 0, 0.25); }
+.hb-track i { display: block; height: 100%; background: var(--accent); }
+.nemesis .hb-track i { background: var(--blood); }
+.hb-n { text-align: right; font-weight: 700; }
 
 .item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; }
 .item-grid a.slot { justify-content: center; }
@@ -799,7 +861,6 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 /* Item pages: the same first-find aura, twice the size (zoom keeps the pixels sharp). */
 .aura-big { zoom: 2; display: inline-flex; flex: none; margin: 4px; }
 
-.estimate-note { margin: 2px 0 0; color: var(--muted); font-size: 0.85rem; font-style: italic; }
 
 /* ---------- Drinking potions and the Nexus loading screen ---------- */
 /* A drunk potion leaves an empty slot (and no selection ring) until the next Nexus. */
