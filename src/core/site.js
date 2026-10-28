@@ -179,6 +179,13 @@ export function makeApi(db, catalog, settings) {
   async function fameEarned(days) {
     return {days, players: await fameToday(3, days)};
   }
+  /** Deadliest enemies: player deaths by killer (bots never), optionally level 20 only. */
+  async function deadliest(level20 = false) {
+    const rows = await q(`SELECT d.killed_by AS name, COUNT(*) AS kills, SUM(d.level = 20) AS kills20, MAX(d.died_at) AS last
+      FROM deaths d WHERE d.killed_by IS NOT NULL AND d.killed_by != '' AND NOT ${IS_BOT}${level20 ? ' AND d.level = 20' : ''}
+      GROUP BY d.killed_by ORDER BY kills DESC, last DESC LIMIT 500`);
+    return {level20, enemies: rows.map((r, i) => ({...r, rank: i + 1}))};
+  }
   /** Oryx's most loyal: the enemy that has killed the most level 20 players. */
   async function mostLoyal() {
     return one(`SELECT d.killed_by AS name, COUNT(*) AS kills, MAX(d.died_at) AS last FROM deaths d
@@ -400,7 +407,7 @@ export function makeApi(db, catalog, settings) {
       since: Number(await getMeta(db, 'guilds_since') ?? 0) || null};
   }
 
-  return {status, summary, crown, fameToday, fameEarned, rankings, characters, search, player, graveyard, death, legends, loot, lootTiers, items, item, guilds, guild};
+  return {status, summary, crown, fameToday, fameEarned, deadliest, rankings, characters, search, player, graveyard, death, legends, loot, lootTiers, items, item, guilds, guild};
 }
 
 const int = (v, max) => Math.min(max, Math.max(1, Math.floor(Number(v)) || 1));
@@ -415,6 +422,7 @@ export async function routeApi(api, url) {
   if ((m = p.match(/^\/api\/rankings\/([a-z_]+)$/))) return api.rankings(m[1]);
   if (p === '/api/characters') return api.characters({dead: url.searchParams.get('dead') === '1'});
   if (p === '/api/guilds') return api.guilds();
+  if (p === '/api/deadliest') return api.deadliest(url.searchParams.get('level') === '20');
   if (p === '/api/fame-earned') {
     const days = Number(url.searchParams.get('days'));
     return api.fameEarned([1, 7, 30].includes(days) ? days : 1);

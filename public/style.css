@@ -1336,3 +1336,4 @@ html.invisible main, html.invisible .footer { opacity: .28; }
 .itip-stats .maxed { color: #fcdf00; }
 .itip-stats .maxed b { color: #fcdf00; }
 .itip:has(.itip-stats) { width: auto; }
+.inline-arrows { display: inline-flex; align-items: center; }

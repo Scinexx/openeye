@@ -656,7 +656,7 @@ const statsTipAttr = (cls, stats) => (Array.isArray(stats) && stats.length === 8
 const statsMaxed = (cls, stats, n) => h`<span class="maxed-count${n === 8 ? ' hl' : ''}"${statsTipAttr(cls, stats)}>${n === null || n === undefined ? '?' : n}/8</span>`;
 
 // Ranking tabs: the player boards, then Best characters.
-const boardTabs = current => h`<nav class="tabs" aria-label="Ranking boards">${Object.entries(BOARDS).map(([k, b]) => h`<a href="/rankings/${k}" data-link ${k === current ? raw('aria-current="page"') : ''}>${b.title}</a>`)}<a href="/rankings/characters" data-link ${current === 'characters' ? raw('aria-current="page"') : ''}>Best characters</a></nav>`;
+const boardTabs = current => h`<nav class="tabs" aria-label="Ranking boards">${Object.entries(BOARDS).map(([k, b]) => h`<a href="/rankings/${k}" data-link ${k === current ? raw('aria-current="page"') : ''}>${b.title}</a>`)}<a href="/rankings/characters" data-link ${current === 'characters' ? raw('aria-current="page"') : ''}>Best characters</a><a href="/rankings/enemies" data-link ${current === 'enemies' ? raw('aria-current="page"') : ''}>Deadliest enemies</a></nav>`;
 
 // Best characters: living characters of ranked players, by fame, by stats maxed (x/8, then
 // fame) or by gear: the summed fame bonus % of the 4 equipped items, the same total the
@@ -727,9 +727,49 @@ async function bestCharacters() {
   document.getElementById('char-max20').addEventListener('change', e => navigate(link({level: e.target.checked ? '20' : null}), true));
 }
 
+// Deadliest enemies: what has killed the most players (as recorded in the graveyard), or only
+// level 20 players.
+async function deadliestEnemies() {
+  const max20 = new URLSearchParams(location.search).get('level') === '20';
+  const [{enemies: rows}, E] = await Promise.all([get(`/api/deadliest${max20 ? '?level=20' : ''}`), loadEnemies()]);
+  const byName = new Map();
+  for (const e of E.list) { const k = e.name.toLowerCase(); if (!byName.has(k) || (!byName.get(k).sprite && e.sprite)) byName.set(k, e); }
+  document.title = 'Deadliest enemies | OpenEye';
+  const draw = (filter = '') => {
+    const f = filter.toLowerCase();
+    const shown = rows.filter(r => r.name.toLowerCase().includes(f));
+    document.getElementById('enemy-body').innerHTML = String(shown.length ? h`${shown.map(r => {
+      const e = byName.get(r.name.toLowerCase());
+      return h`<tr class="${r.rank === 1 ? 'top1' : ''}">
+        <td class="rank">${r.rank}</td>
+        <td>${e ? h`<a class="who" href="/enemy/${e.id}" data-link>${enemySprite(e, 32)} <span>${r.name}</span></a>` : h`<span class="who"><span class="esprite none" style="width:32px;height:32px"></span> <span>${r.name}</span></span>`}</td>
+        <td class="n main-metric">${fmt(max20 ? r.kills20 : r.kills)}</td>
+        ${max20 ? '' : h`<td class="n">${fmt(r.kills20)}</td>`}
+        <td>${r.last ? when(r.last) : ''}</td>
+      </tr>`;
+    })}` : h`<tr><td colspan="${max20 ? 4 : 5}" class="empty">${rows.length ? `No enemies match “${filter}”.` : max20 ? 'No level 20 player has died yet.' : 'No player deaths recorded yet.'}</td></tr>`);
+  };
+  view(h`
+    <div class="page-head"><div><h1>Rankings</h1></div></div>
+    ${boardTabs('enemies')}
+    <div class="controls">
+      <label class="sr" for="enemy-filter">Filter enemies</label><input id="enemy-filter" type="search" placeholder="Filter by enemy">
+      <span class="muted">${fmt(rows.length)} enem${rows.length === 1 ? 'y' : 'ies'}</span>
+      <label class="check" style="margin-left:auto"><input type="checkbox" id="enemy-max20" ${max20 ? raw('checked') : ''}> Level 20</label>
+    </div>
+    <section class="panel"><div class="table-wrap"><table>
+      <thead><tr><th>Rank</th><th>Enemy</th><th class="n" aria-sort="descending">${max20 ? 'Level 20 players killed' : 'Players killed'}</th>${max20 ? '' : h`<th class="n">Level 20</th>`}<th>Latest kill</th></tr></thead>
+      <tbody id="enemy-body"></tbody>
+    </table></div></section>`);
+  draw();
+  document.getElementById('enemy-filter').addEventListener('input', e => draw(e.target.value));
+  document.getElementById('enemy-max20').addEventListener('change', e => navigate(`/rankings/enemies${e.target.checked ? '?level=20' : ''}`, true));
+}
+
 async function rankings(board) {
   if (board === 'total_fame') return navigate('/rankings/fame_earned', true); // retired board
   if (board === 'characters') return bestCharacters();
+  if (board === 'enemies') return deadliestEnemies();
   if (!BOARDS[board]) return notFound();
   const {players} = await get(`/api/rankings/${board}`);
   // Columns stay in the same order on every board; the selected one is highlighted.
@@ -968,10 +1008,10 @@ async function graveyard() {
       <td class="killed">${d.killed_by ?? ''}</td>
       <td>${d.died_at ? when(d.died_at) : h`<span class="muted">Loading</span>`}</td>
     </tr>`)}` : h`<tr><td colspan="7" class="empty">${st.q ? `No deaths match “${st.q}”${st.cls ? ` for ${className(st.cls)}` : ''}.` : `No deaths recorded${st.cls ? ` for ${className(st.cls)}` : ''} yet.`}</td></tr>`);
-    document.getElementById('gy-pager').innerHTML = String(h`
-      <span class="muted">${fmt(g.total)} death${g.total === 1 ? '' : 's'}, page ${Math.min(st.page, pages)} of ${pages}</span>
-      ${st.page > 1 ? h`<a class="btn" href="${link({page: st.page - 1})}" data-link>Previous</a>` : ''}
-      ${st.page < pages ? h`<a class="btn" href="${link({page: st.page + 1})}" data-link>Next</a>` : ''}`);
+    // The same page arrows as on profiles: click the page number to type one.
+    const host = document.getElementById('gy-pager');
+    host.innerHTML = String(h`<span class="muted">${fmt(g.total)} death${g.total === 1 ? '' : 's'}</span><div class="page-arrows inline-arrows"></div>`);
+    mountPager(host.querySelector('.page-arrows'), {pages, page: st.page, onPage: n => navigate(link({page: n}))});
   };
 
   const [first] = await Promise.all([load(), loadGraves()]);
