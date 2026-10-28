@@ -336,11 +336,11 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 .bars .bar i { display: block; width: 100%; background: var(--accent); opacity: 0.8; }
 .bars .bar:hover i { opacity: 1; filter: brightness(1.2); }
 .bars .bar.best i { opacity: 1; }
-.bars .bar b { position: absolute; left: 50%; transform: translateX(-50%); top: -17px; font: 700 0.75rem var(--body); color: var(--bone); white-space: nowrap; pointer-events: none; }
-.life-bars .bar i { background: var(--fame); }
-.life-bars .bar.maxed i { background: var(--gold); box-shadow: 0 0 6px rgba(242, 196, 67, 0.6); }
-.life-bars { justify-content: center; gap: 4px; }
-.life-bars .bar { max-width: 48px; }
+.fame-bars .bar i { position: relative; background: var(--fame); }
+.bars .bar.est i { background: repeating-linear-gradient(135deg, var(--fame) 0 3px, transparent 3px 6px); opacity: 0.7; }
+.fame-bars.has-crowns { padding-top: 30px; }
+/* A crown sits on top of each day the player led the daily fame board. */
+.fame-bars .bar i .crown { position: absolute; left: 50%; bottom: calc(100% + 3px); transform: translateX(-50%); filter: drop-shadow(0 0 4px rgba(242, 196, 67, 0.55)); }
 .bar-axis { display: flex; justify-content: space-between; margin-top: 4px; color: var(--muted); font-size: 0.8rem; }
 /* Horizontal bars: a label, the bar, the count. */
 .hbars { list-style: none; margin: 0; padding: 6px 8px; display: grid; gap: 4px; }

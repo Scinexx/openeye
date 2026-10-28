@@ -944,28 +944,47 @@ function nemesisCard(deaths, enemies) {
     })}</ul>`);
 }
 
-/** Every life that ended, in order, by the fame it was worth. */
-function livesCard(deaths) {
-  const lives = deaths.filter(d => d.died_at).sort((a, b) => a.died_at - b.died_at).slice(-40);
-  if (lives.length < 2) return '';
-  const max = Math.max(1, ...lives.map(d => d.total_fame ?? 0));
-  const best = lives.reduce((a, b) => ((b.total_fame ?? 0) > (a.total_fame ?? 0) ? b : a));
-  const total = lives.reduce((n, d) => n + (d.total_fame ?? 0), 0);
-  return statCard('Fame per life', h`Best: <b class="fame">${fmt(best.total_fame)}</b> as a level ${best.level} ${className(best.class)}`, h`
-    <div class="bars life-bars" role="img" aria-label="Fame of each character that died, oldest first">
-      ${lives.map(d => {
-        const maxed = deathMaxed(d);
-        return h`<a class="bar${d === best ? ' best' : ''}${maxed === 8 ? ' maxed' : ''}" href="/death/${d.account}/${d.char_id}" data-link data-tip-title="${fmt(d.total_fame)} fame" data-tip-text="Level ${d.level} ${className(d.class)}${maxed !== null ? `, ${maxed}/8` : ''}${d.killed_by ? ` · killed by ${d.killed_by}` : ''} · ${day(d.died_at)}"><i style="height:${pctH(d.total_fame ?? 0, max)}"></i></a>`;
-      })}
+const dayKey = ts => { const d = new Date(ts * 1000); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; };
+/** Fame earned on each of the last 30 days (the viewer's days), oldest first. */
+function fameByDay(gains, estimatedBefore, crowns = []) {
+  if (!gains.length) return [];
+  const sums = new Map();
+  for (const g of gains) {
+    const k = dayKey(g.at), e = sums.get(k) ?? {v: 0, est: true};
+    e.v += g.amount;
+    e.est &&= Boolean(estimatedBefore) && g.at < estimatedBefore;
+    sums.set(k, e);
+  }
+  const end = new Date(); end.setHours(0, 0, 0, 0);
+  const start = new Date(Math.max(gains[0].at * 1000, end.getTime() - 29 * 86400000)); start.setHours(0, 0, 0, 0);
+  const days = [];
+  for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const at = d.getTime() / 1000, next = new Date(d); next.setDate(next.getDate() + 1);
+    const e = sums.get(dayKey(at)), until = next.getTime() / 1000;
+    days.push({at, v: e?.v ?? 0, est: e?.est ?? (Boolean(estimatedBefore) && until <= estimatedBefore),
+      crown: crowns.some(([a, b]) => a < until && b > at)});
+  }
+  return days;
+}
+
+function fameDaysCard(days, stars) {
+  if (!days.some(d => d.v)) return '';
+  const max = Math.max(...days.map(d => d.v)), best = days.reduce((a, b) => (b.v > a.v ? b : a));
+  const today = days.at(-1), crowned = days.filter(d => d.crown).length;
+  const labels = [days[0], days[Math.floor((days.length - 1) / 2)], today].filter((d, i, a) => a.indexOf(d) === i);
+  return statCard('Fame per day', h`Best: <b class="fame">${fmt(best.v)}</b> on ${shortDay(best.at)}`, h`
+    <div class="bars fame-bars${crowned ? ' has-crowns' : ''}" role="img" aria-label="Fame earned per day, best ${fmt(best.v)} on ${shortDay(best.at)}${crowned ? `, top of the daily board on ${crowned} day${crowned === 1 ? '' : 's'}` : ''}">
+      ${days.map(d => h`<span class="bar${d.est ? ' est' : ''}${d === best ? ' best' : ''}" data-tip-title="${fmt(d.v)} fame" data-tip-text="${new Date(d.at * 1000).toLocaleDateString(undefined, {weekday: 'long', month: 'short', day: 'numeric'})}${d.est ? ' (estimated)' : ''}${d.crown ? ' · #1 in fame earned' : ''}"><i style="height:${pctH(d.v, max)}">${d.crown ? crownIcon(stars, 20) : ''}</i></span>`)}
     </div>
-    <p class="stat-foot">${fmt(lives.length)} lives from ${shortDay(lives[0].died_at)} to ${shortDay(lives.at(-1).died_at)}, worth <b class="fame">${fmt(total)}</b> fame, about ${fmt(Math.round(total / lives.length))} each${lives.some(d => deathMaxed(d) === 8) ? ' · gold bars were 8/8' : ''}. Click a bar for its grave.</p>`);
+    <div class="bar-axis">${labels.map(d => h`<span>${d === today ? 'Today' : shortDay(d.at)}</span>`)}</div>
+    <p class="stat-foot">Today so far: <b class="fame">${fmt(today.v)}</b> fame${crowned ? ` · the crown marks day${crowned === 1 ? '' : 's'} they were #1 in fame earned` : ''}${days.some(d => d.est && d.v) ? ' · striped days are estimated' : ''}</p>`);
 }
 
 function profileStats(data, p, estimated, enemies) {
   const cards = [
     [deathClassCard(data.deaths), 'half'],
     [nemesisCard(data.deaths, enemies), 'half'],
-    [livesCard(data.deaths), 'wide']
+    [fameDaysCard(fameByDay(data.fameGains, estimated ? p.first_seen : null, data.crowns ?? []), p.stars), 'wide']
   ].filter(([c]) => c);
   // Half-width cards go in pairs; one left on its own stretches across.
   const halves = cards.filter(([, w]) => w === 'half');

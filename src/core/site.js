@@ -181,6 +181,47 @@ export function makeApi(db, catalog, settings) {
       JOIN players p ON p.account = g.account AND ${rankedWhere(settings.minRankedStat, 'p.')}
       WHERE g.at > ? GROUP BY g.account HAVING fame > 0 ORDER BY fame DESC, MAX(g.at) ASC LIMIT ?`, now() - days * 86400, limit);
   }
+  /**
+   * When `account` wore the crown (most fame earned in the last 24 hours, the homepage's
+   * daily board) during the last 30 days: [start, end] spells, found by replaying every
+   * gain into and out of the rolling 24-hour window. Only times the site was keeping
+   * records count; ties go to whoever reached the total first, as on the board.
+   */
+  async function crownSpells(account) {
+    const t = now(), live = Number(await getMeta(db, 'fame_earned_since') ?? t);
+    const from = Math.max(live, t - 30 * 86400);
+    const gains = await q(`SELECT g.account, g.at, g.amount FROM fame_gains g
+      JOIN players p ON p.account = g.account AND ${rankedWhere(settings.minRankedStat, 'p.')}
+      WHERE g.at > ? AND g.amount > 0 ORDER BY g.at`, from - 86400);
+    if (!gains.some(g => g.account === account)) return [];
+    // Events: a gain counts from its time until 24 hours later.
+    const times = [...new Set([...gains.map(g => g.at), ...gains.map(g => g.at + 86400)])].filter(x => x <= t).sort((a, b) => a - b);
+    const sums = new Map(), last = new Map();
+    let i = 0, j = 0;
+    const spells = [];
+    let open = null;
+    for (let k = 0; k < times.length; k++) {
+      const at = times[k];
+      for (; i < gains.length && gains[i].at <= at; i++) {
+        const g = gains[i];
+        sums.set(g.account, (sums.get(g.account) ?? 0) + g.amount);
+        last.set(g.account, g.at);
+      }
+      for (; j < gains.length && gains[j].at + 86400 <= at; j++) {
+        const g = gains[j];
+        sums.set(g.account, sums.get(g.account) - g.amount);
+      }
+      let lead = null, best = 0;
+      for (const [a, v] of sums) {
+        if (v > best || (v === best && v > 0 && lead !== null && last.get(a) < last.get(lead))) { lead = a; best = v; }
+      }
+      const mine = lead === account && at >= from;
+      if (mine && !open) open = [Math.max(at, from)];
+      if (!mine && open) { open.push(at); spells.push(open); open = null; }
+    }
+    if (open) { open.push(t); spells.push(open); }
+    return spells;
+  }
   /** Most fame earned over 1, 7 or 30 days, for the homepage box. */
   async function fameEarned(days) {
     return {days, players: await fameToday(3, days)};
@@ -291,9 +332,10 @@ export function makeApi(db, catalog, settings) {
     const features = {characters: Number(await getMeta(db, 'characters_at') ?? 0) > now() - 86400, graveyard: (await getMeta(db, 'graveyard_ok')) !== null};
     // When OpenEye began keeping records: history from before then is estimated (src/core/backfill.js).
     const trackedFrom = (await one('SELECT MIN(first_seen) AS t FROM players'))?.t ?? p.first_seen;
+    const crowns = await crownSpells(p.account);
     const guild = p.guild_id === null || p.guild_id === undefined ? null
       : await one('SELECT id, name, level FROM guilds WHERE id = ? AND listed = 1', p.guild_id);
-    return {player: p, ranks, rankedPlayers, names, history, collection, deaths: deaths.map(parseDeath), legends, fameGains, features, trackedFrom,
+    return {player: p, ranks, rankedPlayers, names, history, collection, deaths: deaths.map(parseDeath), legends, fameGains, features, trackedFrom, crowns,
       guild: guild && {...guild, rank: p.guild_rank, fame: p.guild_fame},
       characters: characters.map(c => ({...c, stats: JSON.parse(c.stats), equipment: JSON.parse(c.equipment)}))};
   }
