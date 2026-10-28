@@ -598,8 +598,8 @@ async function home() {
     </section>
     <div class="grid-2">
       <section class="panel">
-        <header><h2>Latest player deaths</h2><a href="/graveyard" data-link>Graveyard</a></header>
-        ${deathRows(s.recentDeaths, {limit: 8})}
+        <header><h2>Latest level 20 deaths</h2><a href="/graveyard" data-link>Graveyard</a></header>
+        ${s.recentDeaths.length ? deathRows(s.recentDeaths, {limit: 8}) : h`<p class="empty">No level 20 player has died yet.</p>`}
       </section>
       <section class="panel">
         <header><h2>Latest loot</h2><a href="/items" data-link>All items</a></header>

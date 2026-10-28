@@ -215,8 +215,9 @@ export function makeApi(db, catalog, settings) {
     await Promise.all(BOARDS.map(async board => {
       top[board] = await q(`${rankedSql(board)} AND ${board} > 0 ORDER BY ${board} DESC, account LIMIT 5`);
     }));
-    const recentDeaths = (await q(`SELECT ${DEATH_COLS} FROM deaths d WHERE NOT ${IS_BOT}
-      ORDER BY COALESCE(d.died_at, d.discovered_at) DESC LIMIT 40`)).map(parseDeath);
+    // The homepage shows level 20 deaths only; every death is in the graveyard.
+    const recentDeaths = (await q(`SELECT ${DEATH_COLS} FROM deaths d WHERE NOT ${IS_BOT} AND d.level = 20
+      ORDER BY COALESCE(d.died_at, d.discovered_at) DESC LIMIT 8`)).map(parseDeath);
     // The day's memorial (the most stats maxed among player deaths of the last 24 hours, the
     // browser picks) and the realm's strongest (the same among living characters).
     const fallen = (await q(`SELECT ${DEATH_COLS}, p.name AS player FROM deaths d JOIN players p ON p.account = d.account
