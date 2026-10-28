@@ -198,7 +198,9 @@ function crownIcon(stars, size = 16) {
 const rankIcon = (name, stars, size = 16, star = true) => (crowned(name) ? crownIcon(stars, size) : star ? starIcon(stars, size) : '');
 const playerLink = (name, stars, {star = true} = {}) => h`<span class="player">${rankIcon(name, stars, 16, star)}<a href="/player/${encodeURIComponent(name)}" data-link>${name}</a></span>`;
 // Bots have no player page, so their name is plain text with a badge.
-const ownerLink = d => (d.is_bot ? h`<span class="who">${d.name} <span class="badge bot" title="A computer-controlled character run by the game server">Bot</span></span>` : playerLink(d.player ?? d.name, d.player_stars));
+const ownerLink = d => (d.is_bot ? h`<span class="who">${d.name} <span class="badge bot" title="A computer-controlled character run by the game server">Bot</span></span>`
+  : d.is_guest ? h`<span class="who">${d.name} <span class="badge" title="A player on an account that never chose a name; not on the hiscores, so no profile">Guest</span></span>`
+  : playerLink(d.player ?? d.name, d.player_stars));
 const discordIcon = id => (id ? h`<a class="discord" href="https://discord.com/users/${id}" rel="noopener" title="Discord account linked" aria-label="Discord profile"><svg viewBox="0 0 16 12" width="16" height="12" aria-hidden="true"><path fill="#8b9cf7" d="M13.5 1A13 13 0 0 0 10.3 0l-.4.8a12 12 0 0 0-3.8 0L5.7 0a13 13 0 0 0-3.2 1C.4 4 0 7 .2 9.9A13 13 0 0 0 4.1 12l.8-1.3a8 8 0 0 1-1.3-.6l.3-.2a9 9 0 0 0 8.2 0l.3.2-1.3.6.8 1.3a13 13 0 0 0 3.9-2c.3-3.4-.5-6.3-2.3-8.9ZM5.4 8.3c-.8 0-1.4-.7-1.4-1.6s.6-1.6 1.4-1.6 1.4.7 1.4 1.6-.6 1.6-1.4 1.6Zm5.2 0c-.8 0-1.4-.7-1.4-1.6s.6-1.6 1.4-1.6S12 5.8 12 6.7s-.6 1.6-1.4 1.6Z"/></svg></a>` : '');
 const gear = (equipment, scale = 2, count = 4) => h`<span class="gear">${(equipment ?? []).slice(0, count).map(id => itemSlot(id, scale))}</span>`;
 
@@ -1115,7 +1117,7 @@ async function death(account, charId) {
         ${d.equipment.slice(4).some(i => i !== -1) ? h`<div><span class="muted">Inventory</span><div style="margin-top:6px">${gear(d.equipment.slice(4), 2, 8)}</div></div>` : ''}
         ${d.guild_name ? h`<p class="muted">Its ${fmt(d.total_fame)} fame went to the guild <a href="/guild/${encodeURIComponent(d.guild_name)}" data-link>${d.guild_name}</a>.</p>` : ''}
         ${dyeItems(d).length ? h`<div class="dyes"><span class="muted">Dyes</span>${dyeItems(d).map(id => h`<span class="dye">${itemSlot(id, 2)}<span>${ITEMS.get(id).name}</span></span>`)}</div>` : ''}
-        <p class="muted">${d.is_bot ? 'Bot' : 'Player'}: ${ownerLink(d)}${data.legends.length ? h`. On the Legends board: ${data.legends.map(l => `${SPANS[l.timespan]} rank ${l.rank}`).join(', ')}` : ''}.</p>
+        <p class="muted">${d.is_bot ? 'Bot' : d.is_guest ? 'Guest' : 'Player'}: ${ownerLink(d)}${data.legends.length ? h`. On the Legends board: ${data.legends.map(l => `${SPANS[l.timespan]} rank ${l.rank}`).join(', ')}` : ''}.</p>
       </div>
     </div></section>
     ${s ? h`<div class="grid-2" style="margin-top:24px">

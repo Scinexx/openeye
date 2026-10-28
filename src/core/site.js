@@ -21,7 +21,12 @@ export class HttpError extends Error {
 
 // A death belongs to a bot when its account has never been on the hiscores:
 // the game server keeps every bot account off the hiscores and out of collections.
-const IS_BOT = 'NOT EXISTS (SELECT 1 FROM players bp WHERE bp.account = d.account)';
+// Guests: the server names every new account "Guest" + its account number (src/store/accounts.rs)
+// and a chosen name can only be letters (3 to 10), so a name of exactly Guest<account> is an
+// account that never chose a name, never a bot (bots carry persona names). Guests who never
+// joined the hiscores have no profile, but they are people, not bots.
+const IS_GUEST = "d.name = 'Guest' || d.account";
+const IS_BOT = `(NOT EXISTS (SELECT 1 FROM players bp WHERE bp.account = d.account) AND NOT (${IS_GUEST}))`;
 const BOT_CONFIRMED = 'EXISTS (SELECT 1 FROM bots b WHERE b.name = d.name)';
 
 const DEATH_COLS = `d.account, d.char_id, d.name, d.class, d.tex1, d.tex2, d.equipment, d.total_fame, d.base_fame,
@@ -29,6 +34,7 @@ const DEATH_COLS = `d.account, d.char_id, d.name, d.class, d.tex1, d.tex2, d.equ
   d.level, d.died_at, d.killed_by, d.discovered_at, d.detail_status,
   COALESCE(d.base_stats, (SELECT cs.stats FROM char_stats cs WHERE cs.char_id = d.char_id)) AS base_stats,
   ${IS_BOT} AS is_bot, ${BOT_CONFIRMED} AS bot_confirmed,
+  (${IS_GUEST} AND NOT EXISTS (SELECT 1 FROM players gp WHERE gp.account = d.account)) AS is_guest,
   (SELECT sp.stars FROM players sp WHERE sp.account = d.account) AS player_stars`;
 
 const parseDeath = d => d && ({
@@ -146,8 +152,8 @@ export function makeApi(db, catalog, settings) {
   // period. Everyone else's deaths are on the Rankings page.
   async function legendBoard(span) {
     const since = SPANS[span] ? now() - SPANS[span] : null;
-    const rows = await q(`SELECT ${DEATH_COLS}, p.name AS player FROM deaths d JOIN players p ON p.account = d.account
-      WHERE d.died_at IS NOT NULL${since ? ' AND d.died_at > ?' : ''}
+    const rows = await q(`SELECT ${DEATH_COLS}, COALESCE(p.name, d.name) AS player FROM deaths d LEFT JOIN players p ON p.account = d.account
+      WHERE (p.account IS NOT NULL OR ${IS_GUEST}) AND d.died_at IS NOT NULL${since ? ' AND d.died_at > ?' : ''}
         AND d.account IN (SELECT account FROM legends WHERE timespan = ?)
       ORDER BY d.total_fame DESC, d.died_at ASC, d.char_id ASC LIMIT ${LEGENDS_SIZE}`, ...(since ? [since] : []), span);
     return rows.map((d, i) => ({...parseDeath(d), rank: i + 1}));
