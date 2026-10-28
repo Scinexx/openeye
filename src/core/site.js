@@ -183,13 +183,13 @@ export function makeApi(db, catalog, settings) {
   }
   /**
    * When `account` wore the crown (most fame earned in the last 24 hours, the homepage's
-   * daily board) during the last 30 days: [start, end] spells, found by replaying every
+   * daily board) since OpenEye began keeping records: [start, end] spells, found by replaying every
    * gain into and out of the rolling 24-hour window. Only times the site was keeping
    * records count; ties go to whoever reached the total first, as on the board.
    */
   async function crownSpells(account) {
     const t = now(), live = Number(await getMeta(db, 'fame_earned_since') ?? t);
-    const from = Math.max(live, t - 30 * 86400);
+    const from = live;
     const gains = await q(`SELECT g.account, g.at, g.amount FROM fame_gains g
       JOIN players p ON p.account = g.account AND ${rankedWhere(settings.minRankedStat, 'p.')}
       WHERE g.at > ? AND g.amount > 0 ORDER BY g.at`, from - 86400);

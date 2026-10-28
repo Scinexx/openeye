@@ -946,7 +946,7 @@ function nemesisCard(deaths, enemies) {
 
 const dayKey = ts => { const d = new Date(ts * 1000); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; };
 /** Fame earned on each of the last 30 days (the viewer's days), oldest first. */
-function fameByDay(gains, estimatedBefore, crowns = []) {
+function fameByDay(gains, estimatedBefore) {
   if (!gains.length) return [];
   const sums = new Map();
   for (const g of gains) {
@@ -960,31 +960,52 @@ function fameByDay(gains, estimatedBefore, crowns = []) {
   const days = [];
   for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
     const at = d.getTime() / 1000, next = new Date(d); next.setDate(next.getDate() + 1);
-    const e = sums.get(dayKey(at)), until = next.getTime() / 1000;
-    days.push({at, v: e?.v ?? 0, est: e?.est ?? (Boolean(estimatedBefore) && until <= estimatedBefore),
-      crown: crowns.some(([a, b]) => a < until && b > at)});
+    const e = sums.get(dayKey(at));
+    days.push({at, v: e?.v ?? 0, est: e?.est ?? (Boolean(estimatedBefore) && next.getTime() / 1000 <= estimatedBefore)});
   }
   return days;
 }
 
-function fameDaysCard(days, stars) {
+function fameDaysCard(days) {
   if (!days.some(d => d.v)) return '';
   const max = Math.max(...days.map(d => d.v)), best = days.reduce((a, b) => (b.v > a.v ? b : a));
-  const today = days.at(-1), crowned = days.filter(d => d.crown).length;
+  const today = days.at(-1);
   const labels = [days[0], days[Math.floor((days.length - 1) / 2)], today].filter((d, i, a) => a.indexOf(d) === i);
   return statCard('Fame per day', h`Best: <b class="fame">${fmt(best.v)}</b> on ${shortDay(best.at)}`, h`
-    <div class="bars fame-bars${crowned ? ' has-crowns' : ''}" role="img" aria-label="Fame earned per day, best ${fmt(best.v)} on ${shortDay(best.at)}${crowned ? `, top of the daily board on ${crowned} day${crowned === 1 ? '' : 's'}` : ''}">
-      ${days.map(d => h`<span class="bar${d.est ? ' est' : ''}${d === best ? ' best' : ''}" data-tip-title="${fmt(d.v)} fame" data-tip-text="${new Date(d.at * 1000).toLocaleDateString(undefined, {weekday: 'long', month: 'short', day: 'numeric'})}${d.est ? ' (estimated)' : ''}${d.crown ? ' · #1 in fame earned' : ''}"><i style="height:${pctH(d.v, max)}">${d.crown ? crownIcon(stars, 20) : ''}</i></span>`)}
+    <div class="bars fame-bars" role="img" aria-label="Fame earned per day, best ${fmt(best.v)} on ${shortDay(best.at)}">
+      ${days.map(d => h`<span class="bar${d.est ? ' est' : ''}${d === best ? ' best' : ''}" data-tip-title="${fmt(d.v)} fame" data-tip-text="${new Date(d.at * 1000).toLocaleDateString(undefined, {weekday: 'long', month: 'short', day: 'numeric'})}${d.est ? ' (estimated)' : ''}"><i style="height:${pctH(d.v, max)}"></i></span>`)}
     </div>
     <div class="bar-axis">${labels.map(d => h`<span>${d === today ? 'Today' : shortDay(d.at)}</span>`)}</div>
-    <p class="stat-foot">Today so far: <b class="fame">${fmt(today.v)}</b> fame${crowned ? ` · the crown marks day${crowned === 1 ? '' : 's'} they were #1 in fame earned` : ''}${days.some(d => d.est && d.v) ? ' · striped days are estimated' : ''}</p>`);
+    <p class="stat-foot">Today so far: <b class="fame">${fmt(today.v)}</b> fame${days.some(d => d.est && d.v) ? ' · striped days are estimated' : ''}</p>`);
+}
+
+const lasted = s => {
+  const d = Math.floor(s / 86400), hr = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
+  return d ? `${d}d ${hr}h` : hr ? `${hr}h ${m}m` : `${Math.max(1, m)}m`;
+};
+/** How long the player has led the daily fame board, and when, on a strip from the start of records to now. */
+function crownCard(crowns, since, stars) {
+  if (!crowns.length) return '';
+  const nowTs = Math.floor(Date.now() / 1000), t0 = Math.min(since, crowns[0][0]);
+  const total = crowns.reduce((n, [a, b]) => n + (b - a), 0);
+  const longest = crowns.reduce((x, c) => (c[1] - c[0] > x[1] - x[0] ? c : x));
+  const holding = crowns.at(-1)[1] >= nowTs - 120;
+  const pos = t => `${((t - t0) / Math.max(1, nowTs - t0)) * 100}%`;
+  return statCard('Time holding the crown', holding ? h`<b>Wearing it now</b>` : h`Last held ${when(crowns.at(-1)[1])}`, h`
+    <div class="crown-total">${crownIcon(stars, 30)}<b>${lasted(total)}</b><span class="muted">as #1 in fame earned (last 24 hours)</span></div>
+    <div class="crown-strip" role="img" aria-label="When they held the crown, from ${shortDay(t0)} to now">
+      ${crowns.map(([a, b]) => h`<span style="left:${pos(a)};width:max(2px, calc(${pos(b)} - ${pos(a)}))" data-tip-title="${lasted(b - a)} as #1" data-tip-text="${date(a)} to ${b >= nowTs - 120 ? 'now' : date(b)}"></span>`)}
+    </div>
+    <div class="bar-axis"><span>${shortDay(t0)}</span><span>Now</span></div>
+    <p class="stat-foot">${fmt(crowns.length)} reign${crowns.length === 1 ? '' : 's'} · longest ${lasted(longest[1] - longest[0])}, from ${date(longest[0])}</p>`);
 }
 
 function profileStats(data, p, estimated, enemies) {
   const cards = [
     [deathClassCard(data.deaths), 'half'],
     [nemesisCard(data.deaths, enemies), 'half'],
-    [fameDaysCard(fameByDay(data.fameGains, estimated ? p.first_seen : null, data.crowns ?? []), p.stars), 'wide']
+    [crownCard(data.crowns ?? [], data.trackedFrom ?? p.first_seen, p.stars), 'half'],
+    [fameDaysCard(fameByDay(data.fameGains, estimated ? p.first_seen : null)), 'wide']
   ].filter(([c]) => c);
   // Half-width cards go in pairs; one left on its own stretches across.
   const halves = cards.filter(([, w]) => w === 'half');
