@@ -905,63 +905,9 @@ async function rankings(board) {
 }
 
 // ---- Profile stats: small charts drawn from the player's own record ----
-const dayKey = ts => { const d = new Date(ts * 1000); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; };
 const shortDay = ts => new Date(ts * 1000).toLocaleDateString(undefined, {month: 'short', day: 'numeric'});
-const hourName = hr => new Date(2000, 0, 1, hr).toLocaleTimeString(undefined, {hour: 'numeric'});
 const statCard = (title, sub, body) => h`<section class="stat-card"><header><h3>${title}</h3>${sub ? h`<span class="muted">${sub}</span>` : ''}</header>${body}</section>`;
 const pctH = (v, max) => `${max ? Math.max(v ? 3 : 0, Math.round((v / max) * 1000) / 10) : 0}%`;
-
-/** Fame earned on each of the last 30 days, oldest first. */
-function fameByDay(gains, estimatedBefore) {
-  if (!gains.length) return [];
-  const sums = new Map();
-  for (const g of gains) {
-    const k = dayKey(g.at), e = sums.get(k) ?? {v: 0, est: true};
-    e.v += g.amount;
-    e.est &&= Boolean(estimatedBefore) && g.at < estimatedBefore;
-    sums.set(k, e);
-  }
-  const end = new Date(); end.setHours(0, 0, 0, 0);
-  const start = new Date(Math.max(gains[0].at * 1000, end.getTime() - 29 * 86400000)); start.setHours(0, 0, 0, 0);
-  const days = [];
-  for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    const at = d.getTime() / 1000, e = sums.get(dayKey(at));
-    days.push({at, v: e?.v ?? 0, est: e?.est ?? (Boolean(estimatedBefore) && at + 86400 <= estimatedBefore)});
-  }
-  return days;
-}
-
-function fameDaysCard(days) {
-  if (!days.some(d => d.v)) return '';
-  const max = Math.max(...days.map(d => d.v)), best = days.reduce((a, b) => (b.v > a.v ? b : a));
-  const today = days.at(-1);
-  const labels = [days[0], days[Math.floor((days.length - 1) / 2)], today].filter((d, i, a) => a.indexOf(d) === i);
-  return statCard('Fame per day', h`Best: <b class="fame">${fmt(best.v)}</b> on ${shortDay(best.at)}`, h`
-    <div class="bars fame-bars" role="img" aria-label="Fame earned per day, best ${fmt(best.v)} on ${shortDay(best.at)}">
-      ${days.map(d => h`<span class="bar${d.est ? ' est' : ''}${d === best ? ' best' : ''}" data-tip-title="${fmt(d.v)} fame" data-tip-text="${new Date(d.at * 1000).toLocaleDateString(undefined, {weekday: 'long', month: 'short', day: 'numeric'})}${d.est ? ' (estimated)' : ''}"><i style="height:${pctH(d.v, max)}"></i>${d === best ? h`<b>${fmtShort(d.v)}</b>` : ''}</span>`)}
-    </div>
-    <div class="bar-axis">${labels.map(d => h`<span>${d === today ? 'Today' : shortDay(d.at)}</span>`)}</div>
-    <p class="stat-foot">Today so far: <b class="fame">${fmt(today.v)}</b> fame${days.some(d => d.est && d.v) ? ' · striped days are estimated' : ''}</p>`);
-}
-
-/** Hours of the day (the viewer's time) the player was seen gaining fame, looting or dying. */
-function playClockCard(data, since) {
-  const times = [
-    ...data.fameGains.filter(g => g.at >= since).map(g => g.at),
-    ...data.deaths.map(d => d.died_at).filter(t => t >= since),
-    ...data.collection.map(c => c.found_at).filter(t => t >= since)
-  ];
-  if (times.length < 6) return '';
-  const hours = Array(24).fill(0);
-  for (const t of times) hours[new Date(t * 1000).getHours()]++;
-  const max = Math.max(...hours), peak = hours.indexOf(max);
-  return statCard('When they play', h`Busiest around <b>${hourName(peak)}</b>`, h`
-    <div class="bars clock-bars" role="img" aria-label="Activity by hour of the day, busiest around ${hourName(peak)}">
-      ${hours.map((n, hr) => h`<span class="bar${hr === peak ? ' best' : ''}" data-tip-title="${hourName(hr)} to ${hourName((hr + 1) % 24)}" data-tip-text="${n ? `${fmt(n)} sign${n === 1 ? '' : 's'} of play` : 'Not seen playing'}"><i style="height:${pctH(n, max)}"></i></span>`)}
-    </div>
-    <div class="bar-axis clock-axis">${[0, 6, 12, 18].map(hr => h`<span>${hourName(hr)}</span>`)}</div>
-    <p class="stat-foot">From fame gains, loot and deaths since ${day(since)}, in your time zone.</p>`);
-}
 
 function deathClassCard(deaths) {
   if (!deaths.length) return '';
@@ -989,7 +935,7 @@ function nemesisCard(deaths, enemies) {
   for (const e of enemies?.list ?? []) { const k = e.name.toLowerCase(); if (!byName.has(k) || (!byName.get(k).sprite && e.sprite)) byName.set(k, e); }
   const rows = [...by.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
   const max = rows[0][1], [top, topN] = rows[0];
-  return statCard('Nemeses', topN > 1 ? h`<b>${top}</b> got them ${topN} times` : 'Killed by', h`
+  return statCard('Nemesis', h`<b>${top}</b>${topN > 1 ? `, ${topN} kills` : ''}`, h`
     <ul class="hbars nemesis">${rows.slice(0, 5).map(([name, n]) => {
       const e = byName.get(name.toLowerCase());
       const label = h`${e ? enemySprite(e, 24) : h`<span class="esprite none" style="width:24px;height:24px"></span>`}<span class="hb-name">${name}</span>`;
@@ -1017,8 +963,6 @@ function livesCard(deaths) {
 
 function profileStats(data, p, estimated, enemies) {
   const cards = [
-    [fameDaysCard(fameByDay(data.fameGains, estimated ? p.first_seen : null)), 'half'],
-    [playClockCard(data, p.first_seen), 'half'],
     [deathClassCard(data.deaths), 'half'],
     [nemesisCard(data.deaths, enemies), 'half'],
     [livesCard(data.deaths), 'wide']
@@ -1114,26 +1058,17 @@ async function player(name) {
   const earnedHistory = data.fameGains.map(g => ({at: g.at, fame_earned: (earned += g.amount)}));
   // The graph starts from 0, where the player's history begins.
   if (earnedHistory.length) earnedHistory.unshift({at: Math.min(data.history[0]?.at ?? Infinity, earnedHistory[0].at - 60), fame_earned: 0});
-  // Players with an estimated past open on what OpenEye saw itself; All time adds the estimate.
-  let chartKey = 'stars', chartRange = estimated ? 'tracked' : 'all';
-  const chartRows = key => {
-    const rows = key === 'fame_earned' ? earnedHistory : data.history;
-    if (chartRange !== 'tracked' || !estimated) return rows;
-    // From the first update OpenEye saw, starting at the value the player had then.
-    const before = rows.filter(r => r.at < p.first_seen).at(-1), after = rows.filter(r => r.at >= p.first_seen);
-    return before && !(after[0]?.at === p.first_seen) ? [{...before, at: p.first_seen}, ...after] : after;
-  };
+  let chartKey = 'stars';
+  const chartRows = key => (key === 'fame_earned' ? earnedHistory : data.history);
   const drawChart = () => {
     const rows = chartRows(chartKey), b = BOARDS[chartKey], fame = chartKey.includes('fame');
     const first = rows[0]?.[chartKey] ?? 0, now = rows.at(-1)?.[chartKey] ?? 0, change = now - first;
     document.getElementById('chart-head').innerHTML = String(h`
       <div class="chart-now"><b class="${fame ? 'fame' : 'hl'}">${fmt(now)}</b> <span>${b.title.toLowerCase()}</span></div>
       ${rows.length ? h`<span class="chart-delta ${change > 0 ? 'up' : change < 0 ? 'down' : ''}">${change ? `${change > 0 ? '+' : '−'}${fmt(Math.abs(change))}` : 'No change'} since ${shortDay(rows[0].at)}</span>` : ''}
-      ${estimated ? h`<div class="tabs mini" role="group" aria-label="Time range">
-        <button type="button" data-range="all" aria-pressed="${chartRange === 'all'}">All time</button>
-        <button type="button" data-range="tracked" aria-pressed="${chartRange === 'tracked'}">Since ${shortDay(p.first_seen)}</button></div>` : ''}`);
+`);
     const box = document.getElementById('chart');
-    box.innerHTML = String(historyChart(rows, chartKey, {estimatedUntil: estimated && chartRange === 'all' ? p.first_seen : null, width: box.clientWidth - 4 || 760}));
+    box.innerHTML = String(historyChart(rows, chartKey, {estimatedUntil: estimated ? p.first_seen : null, width: box.clientWidth - 4 || 760}));
   };
   drawChart();
   main.querySelectorAll('[data-metric]').forEach(b => b.addEventListener('click', () => {
@@ -1141,12 +1076,6 @@ async function player(name) {
     chartKey = b.dataset.metric;
     drawChart();
   }));
-  document.getElementById('chart-head').addEventListener('click', e => {
-    const r = e.target.closest('[data-range]');
-    if (!r) return;
-    chartRange = r.dataset.range;
-    drawChart();
-  });
 
   const drawCollection = () => {
     const sort = document.getElementById('col-sort').value;

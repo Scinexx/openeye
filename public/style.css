@@ -296,8 +296,6 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 .chart-delta { color: var(--muted); font-size: 0.95rem; }
 .chart-delta.up { color: var(--online); }
 .chart-delta.down { color: var(--blood); }
-.tabs.mini { margin: 0 0 0 auto; gap: 4px; }
-.tabs.mini button { padding: 3px 8px; font-size: 0.85rem; }
 .chart-wrap, .bars, .hbars { background: var(--stone-deep); border: 2px solid; border-color: var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark); }
 .chart { width: 100%; height: auto; display: block; color: var(--accent); }
 .chart.chart-fame { color: var(--fame); }
@@ -339,14 +337,11 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 .bars .bar:hover i { opacity: 1; filter: brightness(1.2); }
 .bars .bar.best i { opacity: 1; }
 .bars .bar b { position: absolute; left: 50%; transform: translateX(-50%); top: -17px; font: 700 0.75rem var(--body); color: var(--bone); white-space: nowrap; pointer-events: none; }
-.fame-bars .bar i, .life-bars .bar i { background: var(--fame); }
-.bars .bar.est i { background: repeating-linear-gradient(135deg, var(--fame) 0 3px, transparent 3px 6px); opacity: 0.7; }
+.life-bars .bar i { background: var(--fame); }
 .life-bars .bar.maxed i { background: var(--gold); box-shadow: 0 0 6px rgba(242, 196, 67, 0.6); }
-.clock-bars { height: 90px; padding-top: 6px; }
 .life-bars { justify-content: center; gap: 4px; }
 .life-bars .bar { max-width: 48px; }
 .bar-axis { display: flex; justify-content: space-between; margin-top: 4px; color: var(--muted); font-size: 0.8rem; }
-.clock-axis { display: grid; grid-template-columns: repeat(4, 1fr); }
 /* Horizontal bars: a label, the bar, the count. */
 .hbars { list-style: none; margin: 0; padding: 6px 8px; display: grid; gap: 4px; }
 .hbars li { display: grid; grid-template-columns: minmax(0, 9rem) 1fr 2.5rem; align-items: center; gap: 8px; min-height: 28px; }
