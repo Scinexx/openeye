@@ -1311,28 +1311,21 @@ html.invisible main, html.invisible .footer { opacity: .28; }
 .home-trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
 @media (max-width: 900px) { .home-trio { grid-template-columns: 1fr; } }
 .trio-box { margin: 0; display: flex; flex-direction: column; }
-.trio-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 6px; padding: 18px 16px 20px; }
+/* Compact, like the fame box: a picture on the left, two lines beside it. */
+.trio-body { flex: 1; display: flex; align-items: center; gap: 12px; padding: 10px 16px; min-height: 68px; }
 .trio-body .empty { margin: 0; padding: 0; }
-.trio-name { font: 700 1.15rem var(--display); }
-.trio-line { color: var(--bone-dim); }
-.trio-sub { color: var(--muted); font-size: 0.9rem; }
-.trio-gear { margin-top: 4px; }
-/* Fixed colours of their own, whatever the theme: red for Oryx, blue for the strongest. */
-.loyal-box { border-color: #ff6b5e #7a1010 #7a1010 #ff6b5e; background: #2a0f12; color: #f8e4e2; }
-.loyal-box > header { background: linear-gradient(#6b1416, #4d0e10); border-bottom-color: #7a1010; }
+.trio-pic { flex: none; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; }
+.trio-text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.trio-name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.trio-name .player a { font-weight: 700; }
+.trio-line { color: var(--bone-dim); font-size: 0.9rem; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Oryx's most loyal keeps its own red, whatever the theme. */
+.loyal-box { border-color: #d0544a #6b1416 #6b1416 #d0544a; background: #2a1214; color: #f3e0de; }
+.loyal-box > header { background: linear-gradient(#5a181a, #461214); border-bottom-color: #6b1416; }
 .loyal-box > header h2 { color: #ffb3a8; }
-.loyal-box .trio-line, .loyal-box .trio-sub { color: #e2a9a2; }
-.loyal-box .trio-line strong { color: #ff6b5e; font-size: 1.15rem; }
-.loyal-box a { color: #f8e4e2; }
-.loyal-sprite { min-height: 72px; display: flex; align-items: center; justify-content: center; }
-.strongest-box { border-color: #6fb6ff #12407a #12407a #6fb6ff; background: #0f1d33; color: #e4efff; }
-.strongest-box > header { background: linear-gradient(#173d6e, #102c52); border-bottom-color: #12407a; }
-.strongest-box > header h2 { color: #a8d0ff; }
-.strongest-box .trio-line, .strongest-box .trio-sub { color: #a9c3e6; }
-.strongest-box a { color: #e4efff; }
-.memorial-box .trio-name a { color: inherit; }
-.memorial-grave { display: inline-block; margin-bottom: 4px; }
-.memorial-grave .grave-sprite { filter: drop-shadow(0 0 10px rgb(0 0 0 / .6)); }
+.loyal-box .trio-line { color: #d9a8a2; }
+.loyal-box .trio-line strong { color: #ff7a6e; }
+.loyal-box a { color: #f3e0de; }
 .maxed-count { cursor: help; text-decoration: underline dotted; text-underline-offset: 3px; }
 .maxed-count.hl { color: var(--accent); }
 .grave[data-tip-stats] { cursor: help; }

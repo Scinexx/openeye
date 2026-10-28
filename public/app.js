@@ -605,10 +605,10 @@ const fameTop = (list, days) => (list.length ? h`<ol class="fame-top">${list.map
 function loyalBox(l) {
   return h`<section class="panel trio-box loyal-box" aria-labelledby="loyal-title">
     <header><h2 id="loyal-title">Oryx’s most loyal</h2></header>
-    <div class="trio-body">${l ? h`<span class="loyal-sprite" id="loyal-sprite"></span>
-      <span class="trio-name" id="loyal-name">${l.name}</span>
+    <div class="trio-body">${l ? h`<span class="trio-pic loyal-sprite" id="loyal-sprite"></span>
+      <span class="trio-text"><span class="trio-name" id="loyal-name">${l.name}</span>
       <span class="trio-line"><strong>${fmt(l.kills)}</strong> level 20 player${l.kills === 1 ? '' : 's'} slain</span>
-      <span class="trio-sub">Latest ${when(l.last)}</span>` : h`<p class="empty">No level 20 player has fallen yet.</p>`}</div>
+      <span class="trio-line">Latest ${when(l.last)}</span></span>` : h`<p class="empty">No level 20 player has fallen yet.</p>`}</div>
   </section>`;
 }
 async function fillLoyal(l) {
@@ -618,7 +618,7 @@ async function fillLoyal(l) {
   const e = E.list.filter(x => x.name.toLowerCase() === name).sort((a, b) => Boolean(b.sprite) - Boolean(a.sprite))[0];
   const slot = document.getElementById('loyal-sprite');
   if (!e || !slot) return;
-  slot.innerHTML = String(h`<a href="/enemy/${e.id}" data-link aria-label="${e.name}">${enemySprite(e, 72)}</a>`);
+  slot.innerHTML = String(h`<a href="/enemy/${e.id}" data-link aria-label="${e.name}">${enemySprite(e, 48)}</a>`);
   const n = document.getElementById('loyal-name');
   if (n) n.innerHTML = String(h`<a href="/enemy/${e.id}" data-link>${l.name}</a>`);
 }
@@ -630,10 +630,10 @@ function memorialBox(fallen) {
   const d = strongestOf(fallen, deathMaxed);
   return h`<section class="panel trio-box memorial-box" aria-labelledby="memorial-title">
     <header><h2 id="memorial-title">Daily memorial</h2></header>
-    <div class="trio-body">${d ? h`<a class="memorial-grave" href="/death/${d.account}/${d.char_id}" data-link aria-label="Death of ${d.player}'s ${className(d.class)}">${graveSprite(d, 5)}</a>
-      <span class="trio-name">Here lies ${playerLink(d.player, null, {star: false})}</span>
+    <div class="trio-body">${d ? h`<a class="trio-pic" href="/death/${d.account}/${d.char_id}" data-link aria-label="Death of ${d.player}'s ${className(d.class)}">${graveSprite(d, 3)}</a>
+      <span class="trio-text"><span class="trio-name">Here lies ${playerLink(d.player, null, {star: false})}</span>
       <span class="trio-line">${d.level ? `Level ${d.level} ` : ''}${className(d.class)} · ${statsMaxed(d.class, d.base_stats, deathMaxed(d))}</span>
-      <span class="trio-sub">${d.killed_by ? h`Killed by <span class="killed">${d.killed_by}</span> · ` : ''}${fmt(d.total_fame)} fame · ${when(d.died_at)}</span>`
+      <span class="trio-line">${d.killed_by ? h`Killed by <span class="killed">${d.killed_by}</span> · ` : ''}${when(d.died_at)}</span></span>`
       : h`<p class="empty">No one has fallen in the last 24 hours.</p>`}</div>
   </section>`;
 }
@@ -642,11 +642,10 @@ function strongestBox(living, on) {
   const c = on ? strongestOf(living, charMaxed) : null;
   return h`<section class="panel trio-box strongest-box" aria-labelledby="strongest-title">
     <header><h2 id="strongest-title">Realm’s strongest</h2></header>
-    <div class="trio-body">${c ? h`<a href="/player/${encodeURIComponent(c.name)}" data-link aria-label="${c.name}'s profile">${classSprite(c.class, 72, c)}</a>
-      <span class="trio-name">${playerLink(c.name, c.stars)}</span>
+    <div class="trio-body">${c ? h`<a class="trio-pic" href="/player/${encodeURIComponent(c.name)}" data-link aria-label="${c.name}'s profile">${classSprite(c.class, 48, c)}</a>
+      <span class="trio-text"><span class="trio-name">${playerLink(c.name, c.stars)}</span>
       <span class="trio-line">Level ${c.level} ${className(c.class)} · ${statsMaxed(c.class, c.stats, charMaxed(c))}</span>
-      <span class="trio-sub"><span class="fame">${fmt(c.fame)}</span> fame</span>
-      <span class="trio-gear">${gear(c.equipment, 2)}</span>` : h`<p class="empty">No living characters to show yet.</p>`}</div>
+      <span class="trio-line"><span class="fame">${fmt(c.fame)}</span> fame</span></span>` : h`<p class="empty">No living characters to show yet.</p>`}</div>
   </section>`;
 }
 
