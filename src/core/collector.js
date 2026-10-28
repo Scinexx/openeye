@@ -46,6 +46,15 @@ export class Collector {
       await db.batch([
         db.prepare('INSERT OR REPLACE INTO server_status(at, ok, players, bots, worlds, uptime, revision) VALUES(?,?,?,?,?,?,?)')
           .bind(at, 1, h.players ?? null, h.bots ?? null, h.worlds ?? null, h.uptime_seconds ?? null, h.revision ?? null),
+        // The all-time peak is kept in meta, since the status history only goes back 90 days.
+        // First seeded from that history, then raised whenever a new record is seen.
+        db.prepare(`INSERT OR IGNORE INTO meta(key, value) SELECT 'peak_players_at', at FROM server_status
+          WHERE players IS NOT NULL ORDER BY players DESC, at ASC LIMIT 1`),
+        db.prepare(`INSERT OR IGNORE INTO meta(key, value) SELECT 'peak_players', MAX(players) FROM server_status HAVING MAX(players) IS NOT NULL`),
+        db.prepare(`UPDATE meta SET value = ? WHERE key = 'peak_players_at' AND ? > (SELECT CAST(value AS INTEGER) FROM meta WHERE key = 'peak_players')`)
+          .bind(at, Number.isSafeInteger(h.players) ? h.players : -1),
+        db.prepare(`UPDATE meta SET value = ? WHERE key = 'peak_players' AND ? > CAST(value AS INTEGER)`)
+          .bind(String(Number.isSafeInteger(h.players) ? h.players : -1), Number.isSafeInteger(h.players) ? h.players : -1),
         db.prepare('DELETE FROM server_status WHERE at < ?').bind(at - 90 * 86400)
       ]);
     } catch (e) {

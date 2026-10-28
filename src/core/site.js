@@ -86,11 +86,18 @@ export function makeApi(db, catalog, settings) {
 
   async function status() {
     const since = now() - 86400;
-    const [latest, day, peak] = await Promise.all([
+    const [latest, day, peak, recent, kept, keptAt] = await Promise.all([
       one('SELECT at, ok, players, bots, worlds, uptime FROM server_status ORDER BY at DESC LIMIT 1'),
       q('SELECT at, ok, players FROM server_status WHERE at >= ? ORDER BY at', since),
-      one('SELECT MAX(players) AS peak FROM server_status WHERE at >= ?', since)
+      one('SELECT MAX(players) AS peak FROM server_status WHERE at >= ?', since),
+      // All-time peak: the status history is kept for 90 days, so the record is also kept in meta.
+      one('SELECT players AS peak, at FROM server_status WHERE players IS NOT NULL ORDER BY players DESC, at ASC LIMIT 1'),
+      getMeta(db, 'peak_players'),
+      getMeta(db, 'peak_players_at')
     ]);
+    const allTime = Number(kept ?? -1) >= (recent?.peak ?? -1)
+      ? (kept === null ? null : {players: Number(kept), at: Number(keptAt) || null})
+      : {players: recent.peak, at: recent.at};
     // Features that switch on by themselves once the game server publishes the data
     // (OpenRotMG server PR #624): living characters and the full graveyard.
     const features = {
@@ -106,7 +113,7 @@ export function makeApi(db, catalog, settings) {
       // Public status shows freshness only; error details stay in the logs.
       jobs[job] = {lastOk, delayed: errAt > (lastOk ?? 0)};
     }
-    return {now: now(), apiBase: settings.apiBase, server: latest ?? null, peak24h: peak?.peak ?? null, day, jobs, features};
+    return {now: now(), apiBase: settings.apiBase, server: latest ?? null, peak24h: peak?.peak ?? null, peakAllTime: allTime, day, jobs, features};
   }
 
   /** Notable finds: rare UTs and top-tier drops, minus UTs that most players already own. */
@@ -160,10 +167,22 @@ export function makeApi(db, catalog, settings) {
 
   /** Ranked players who gained the most living fame in the last 24 hours. The starting
    *  fame credited when tracking began is dated a day earlier, so it never counts here. */
-  async function fameToday(limit = 3) {
+  async function fameToday(limit = 3, days = 1) {
+    // Only fame earned while OpenEye was watching (from first_seen): the estimated history
+    // filled in for before that never counts on these boards.
     return q(`SELECT p.name, p.stars, SUM(g.amount) AS fame FROM fame_gains g
       JOIN players p ON p.account = g.account AND ${rankedWhere(settings.minRankedStat, 'p.')}
-      WHERE g.at > ? GROUP BY g.account HAVING fame > 0 ORDER BY fame DESC, MAX(g.at) ASC LIMIT ?`, now() - 86400, limit);
+      WHERE g.at > ? AND g.at >= p.first_seen GROUP BY g.account HAVING fame > 0 ORDER BY fame DESC, MAX(g.at) ASC LIMIT ?`, now() - days * 86400, limit);
+  }
+  /** Most fame earned over 1, 7 or 30 days, for the homepage box. */
+  async function fameEarned(days) {
+    return {days, players: await fameToday(3, days)};
+  }
+  /** Oryx's most loyal: the enemy that has killed the most level 20 players. */
+  async function mostLoyal() {
+    return one(`SELECT d.killed_by AS name, COUNT(*) AS kills, MAX(d.died_at) AS last FROM deaths d
+      WHERE d.level = 20 AND d.killed_by IS NOT NULL AND d.killed_by != '' AND NOT ${IS_BOT}
+      GROUP BY d.killed_by ORDER BY kills DESC, last DESC LIMIT 1`);
   }
   /** The crown goes to whoever leads the last-24-hours fame board. */
   async function crown() {
@@ -184,7 +203,15 @@ export function makeApi(db, catalog, settings) {
     }));
     const recentDeaths = (await q(`SELECT ${DEATH_COLS} FROM deaths d WHERE NOT ${IS_BOT}
       ORDER BY COALESCE(d.died_at, d.discovered_at) DESC LIMIT 8`)).map(parseDeath);
-    return {counts, top, recentDeaths, recentFinds: await notableFinds(10), fameToday: await fameToday(3), status: await status()};
+    // The day's memorial (the most stats maxed among player deaths of the last 24 hours, the
+    // browser picks) and the realm's strongest (the same among living characters).
+    const fallen = (await q(`SELECT ${DEATH_COLS}, p.name AS player FROM deaths d JOIN players p ON p.account = d.account
+      WHERE d.died_at > ? AND NOT ${IS_BOT} ORDER BY d.total_fame DESC LIMIT 200`, now() - 86400)).map(parseDeath);
+    const living = (await q(`SELECT c.char_id, c.account, p.name, p.stars, c.class, c.level, c.fame, c.stats, c.equipment, c.tex1, c.tex2
+      FROM characters c JOIN players p ON p.account = c.account AND ${rankedWhere(settings.minRankedStat, 'p.')}
+      WHERE c.seen_at > ? ORDER BY c.fame DESC LIMIT 500`, now() - 3600)).map(c => ({...c, stats: JSON.parse(c.stats), equipment: JSON.parse(c.equipment)}));
+    return {counts, top, recentDeaths, recentFinds: await notableFinds(10), fameToday: await fameToday(3), status: await status(),
+      loyal: await mostLoyal(), fallen, living};
   }
 
   /** Living characters of ranked players, for the Best characters board; with dead, every
@@ -372,7 +399,7 @@ export function makeApi(db, catalog, settings) {
       since: Number(await getMeta(db, 'guilds_since') ?? 0) || null};
   }
 
-  return {status, summary, crown, fameToday, rankings, characters, search, player, graveyard, death, legends, loot, lootTiers, items, item, guilds, guild};
+  return {status, summary, crown, fameToday, fameEarned, rankings, characters, search, player, graveyard, death, legends, loot, lootTiers, items, item, guilds, guild};
 }
 
 const int = (v, max) => Math.min(max, Math.max(1, Math.floor(Number(v)) || 1));
@@ -387,6 +414,10 @@ export async function routeApi(api, url) {
   if ((m = p.match(/^\/api\/rankings\/([a-z_]+)$/))) return api.rankings(m[1]);
   if (p === '/api/characters') return api.characters({dead: url.searchParams.get('dead') === '1'});
   if (p === '/api/guilds') return api.guilds();
+  if (p === '/api/fame-earned') {
+    const days = Number(url.searchParams.get('days'));
+    return api.fameEarned([1, 7, 30].includes(days) ? days : 1);
+  }
   if ((m = p.match(/^\/api\/guild\/([^/]{1,80})$/))) {
     let name;
     try { name = decodeURIComponent(m[1]); } catch { throw new HttpError(400, 'Bad guild name'); }

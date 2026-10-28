@@ -284,6 +284,18 @@ async function showTip(target, x, y) {
     document.body.append(TIP.el);
   }
   const el = TIP.el;
+  if (target.dataset.tipStats) {
+    const [cls, list] = target.dataset.tipStats.split('|');
+    const stats = list.split(',').map(Number), c = CLASSES.get(Number(cls)), max = c?.max;
+    const n = max ? STAT_KEYS.filter(([k], i) => stats[i] >= max[k]).length : null;
+    el.innerHTML = String(h`<div class="itip-title itip-text">${n === null ? 'Stats' : `${n} of 8 maxed`}</div>
+      <div class="itip-stats">${STAT_KEYS.map(([k, label], i) => {
+        const done = max && stats[i] >= max[k];
+        return h`<span class="${done ? 'maxed' : ''}"><b>${label}</b>${stats[i]}${max ? h`<i>/${max[k]}</i>` : ''}</span>`;
+      })}</div>`);
+    el.hidden = false;
+    return moveTip(x, y);
+  }
   // TextToolTip: a bold white title and a grey line, in the same box (used by the Nexus button).
   if (target.dataset.tipTitle) {
     el.innerHTML = String(h`<div class="itip-title itip-text">${target.dataset.tipTitle}</div><div class="itip-desc itip-text">${target.dataset.tipText ?? ''}</div>`);
@@ -330,8 +342,8 @@ function hideTip() {
   if (TIP.el) TIP.el.hidden = true;
 }
 const tipTarget = node => {
-  const el = node?.closest?.('.slot, [data-tip], [data-tip-title]');
-  return el?.matches('[data-tip], [data-tip-title]') ? el : el?.querySelector('[data-tip]') ?? null;
+  const el = node?.closest?.('.slot, [data-tip], [data-tip-title], [data-tip-stats]');
+  return el?.matches('[data-tip], [data-tip-title], [data-tip-stats]') ? el : el?.querySelector('[data-tip]') ?? null;
 };
 document.addEventListener('pointerover', e => {
   if (e.pointerType === 'touch') return;
@@ -457,7 +469,7 @@ function graveSprite(d, scale = 2) {
 }
 const graveBadge = (d, scale = 2) => {
   const n = deathMaxed(d);
-  return h`<span class="grave${n === 8 ? ' hl' : ''}" title="${n === null ? 'Stats at death unknown' : `${n} of 8 stats maxed`}">${graveSprite(d, scale)}<span>${n === null ? '?' : n}/8</span></span>`;
+  return h`<span class="grave${n === 8 ? ' hl' : ''}"${n === null ? raw(' title="Stats at death unknown"') : statsTipAttr(d.class, d.base_stats)}>${graveSprite(d, scale)}<span>${n === null ? '?' : n}/8</span></span>`;
 };
 
 // ---- Page arrows ----
@@ -522,17 +534,20 @@ async function home() {
     </section>
     ${!hasData ? h`<div class="notice"><strong>Fetching the latest data.</strong> This page fills in within a few minutes.</div>` : ''}
     <section class="panel fame-box" aria-labelledby="fame-box-title">
-      <header><h2 id="fame-box-title"><img class="fame-icon" src="/icons/fame.png" width="24" height="24" alt="">Most fame earned today</h2><span>Last 24 hours</span></header>
-      ${s.fameToday.length ? h`<ol class="fame-top">${s.fameToday.map((f, i) => h`<li>
-        <span class="place">${i + 1}</span>
-        ${playerLink(f.name, f.stars)}
-        <span class="gain">+${fmt(f.fame)}</span>
-      </li>`)}</ol>` : h`<p class="empty">Nobody has earned fame in the last 24 hours yet.</p>`}
+      <header><h2 id="fame-box-title"><img class="fame-icon" src="/icons/fame.png" width="24" height="24" alt="">Most fame earned</h2>
+        <nav class="fame-span" aria-label="Period">${FAME_SPANS.map(([d, label]) => h`<button type="button" data-days="${d}" aria-pressed="${d === 1}">${label}</button>`)}</nav></header>
+      <div id="fame-top">${fameTop(s.fameToday, 1)}</div>
     </section>
+    <div class="home-trio">
+      ${loyalBox(s.loyal)}
+      ${memorialBox(s.fallen)}
+      ${strongestBox(s.living, s.status.features.characters)}
+    </div>
     <section class="panel status-strip" aria-label="Server status">
       ${online}
       <div class="stat"><strong>${st?.ok ? fmt(st.players) : '–'}</strong><span>${st?.ok ? 'playing now' : st ? 'server unreachable' : 'checking server'}</span></div>
       <div class="stat"><strong>${s.status.peak24h ?? '–'}</strong><span>24h peak</span></div>
+      <div class="stat"${s.status.peakAllTime?.at ? raw(` title="Set ${esc(date(s.status.peakAllTime.at))}"`) : ''}><strong>${s.status.peakAllTime ? fmt(s.status.peakAllTime.players) : '–'}</strong><span>all-time peak</span></div>
       <div class="stat"><strong>${fmt(s.counts.players)}</strong><span>registered players</span></div>
       <div class="stat"><strong>${fmt(s.counts.distinctItems)}<span class="muted"> / ${fmt(s.counts.collectible)}</span></strong><span>items discovered</span></div>
       ${sparkline(dayPoints)}
@@ -563,7 +578,83 @@ async function home() {
       </table></div>
     </section>`);
   if (!hasData) setTimeout(() => location.pathname === '/' && route(), 15000);
+  // The fame box's period: today, this week or this month (remembered in this browser).
+  const spanNav = main.querySelector('.fame-span');
+  const pickSpan = async days => {
+    spanNav.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.days) === days)));
+    try { localStorage.setItem('fameSpan', String(days)); } catch { /* storage unavailable */ }
+    const r = days === 1 ? {players: s.fameToday} : await get(`/api/fame-earned?days=${days}`).catch(() => null);
+    const box = document.getElementById('fame-top');
+    if (r && box) box.innerHTML = String(fameTop(r.players, days));
+  };
+  spanNav.addEventListener('click', e => { const b = e.target.closest('button'); if (b) pickSpan(Number(b.dataset.days)); });
+  let saved = 1;
+  try { saved = Number(localStorage.getItem('fameSpan')) || 1; } catch { /* storage unavailable */ }
+  if (saved !== 1 && FAME_SPANS.some(([d]) => d === saved)) pickSpan(saved);
+  fillLoyal(s.loyal);
 }
+
+// ---- Homepage boxes ----
+const FAME_SPANS = [[1, 'Day'], [7, 'Week'], [30, 'Month']];
+const fameTop = (list, days) => (list.length ? h`<ol class="fame-top">${list.map((f, i) => h`<li>
+  <span class="place">${i + 1}</span>
+  ${playerLink(f.name, f.stars)}
+  <span class="gain">+${fmt(f.fame)}</span>
+</li>`)}</ol>` : h`<p class="empty">Nobody has earned fame in the last ${days === 1 ? '24 hours' : days === 7 ? 'week' : 'month'} yet.</p>`);
+// Oryx's most loyal: the enemy with the most level 20 player kills on record.
+function loyalBox(l) {
+  return h`<section class="panel trio-box loyal-box" aria-labelledby="loyal-title">
+    <header><h2 id="loyal-title">Oryx’s most loyal</h2></header>
+    <div class="trio-body">${l ? h`<span class="loyal-sprite" id="loyal-sprite"></span>
+      <span class="trio-name" id="loyal-name">${l.name}</span>
+      <span class="trio-line"><strong>${fmt(l.kills)}</strong> level 20 player${l.kills === 1 ? '' : 's'} slain</span>
+      <span class="trio-sub">Latest ${when(l.last)}</span>` : h`<p class="empty">No level 20 player has fallen yet.</p>`}</div>
+  </section>`;
+}
+async function fillLoyal(l) {
+  if (!l) return;
+  const E = await loadEnemies();
+  const name = l.name.toLowerCase();
+  const e = E.list.filter(x => x.name.toLowerCase() === name).sort((a, b) => Boolean(b.sprite) - Boolean(a.sprite))[0];
+  const slot = document.getElementById('loyal-sprite');
+  if (!e || !slot) return;
+  slot.innerHTML = String(h`<a href="/enemy/${e.id}" data-link aria-label="${e.name}">${enemySprite(e, 72)}</a>`);
+  const n = document.getElementById('loyal-name');
+  if (n) n.innerHTML = String(h`<a href="/enemy/${e.id}" data-link>${l.name}</a>`);
+}
+// The most stats maxed (then fame) among a list of deaths or characters.
+const strongestOf = (list, maxed) => list.map(x => ({x, n: maxed(x) ?? -1})).sort((a, b) => b.n - a.n || (b.x.total_fame ?? b.x.fame ?? 0) - (a.x.total_fame ?? a.x.fame ?? 0))[0]?.x ?? null;
+const charMaxed = c => { const max = CLASSES.get(c.class)?.max; return max && c.stats?.length === 8 ? STAT_KEYS.filter(([k], i) => c.stats[i] >= max[k]).length : null; };
+// Daily memorial: the grave of the most-maxed player death of the last 24 hours.
+function memorialBox(fallen) {
+  const d = strongestOf(fallen, deathMaxed);
+  return h`<section class="panel trio-box memorial-box" aria-labelledby="memorial-title">
+    <header><h2 id="memorial-title">Daily memorial</h2></header>
+    <div class="trio-body">${d ? h`<a class="memorial-grave" href="/death/${d.account}/${d.char_id}" data-link aria-label="Death of ${d.player}'s ${className(d.class)}">${graveSprite(d, 5)}</a>
+      <span class="trio-name">Here lies ${playerLink(d.player, null, {star: false})}</span>
+      <span class="trio-line">${d.level ? `Level ${d.level} ` : ''}${className(d.class)} · ${statsMaxed(d.class, d.base_stats, deathMaxed(d))}</span>
+      <span class="trio-sub">${d.killed_by ? h`Killed by <span class="killed">${d.killed_by}</span> · ` : ''}${fmt(d.total_fame)} fame · ${when(d.died_at)}</span>`
+      : h`<p class="empty">No one has fallen in the last 24 hours.</p>`}</div>
+  </section>`;
+}
+// Realm's strongest: the living character with the most stats maxed (then fame).
+function strongestBox(living, on) {
+  const c = on ? strongestOf(living, charMaxed) : null;
+  return h`<section class="panel trio-box strongest-box" aria-labelledby="strongest-title">
+    <header><h2 id="strongest-title">Realm’s strongest</h2></header>
+    <div class="trio-body">${c ? h`<a href="/player/${encodeURIComponent(c.name)}" data-link aria-label="${c.name}'s profile">${classSprite(c.class, 72, c)}</a>
+      <span class="trio-name">${playerLink(c.name, c.stars)}</span>
+      <span class="trio-line">Level ${c.level} ${className(c.class)} · ${statsMaxed(c.class, c.stats, charMaxed(c))}</span>
+      <span class="trio-sub"><span class="fame">${fmt(c.fame)}</span> fame</span>
+      <span class="trio-gear">${gear(c.equipment, 2)}</span>` : h`<p class="empty">No living characters to show yet.</p>`}</div>
+  </section>`;
+}
+
+// ---- x/8 maxed, with the stats behind it on hover ----
+// data-tip-stats carries the class and its 8 base stats; the tooltip lists them with the
+// maxed ones in gold, so what is maxed shows at a glance.
+const statsTipAttr = (cls, stats) => (Array.isArray(stats) && stats.length === 8 ? raw(` data-tip-stats="${Number(cls)}|${stats.map(Number).join(',')}"`) : '');
+const statsMaxed = (cls, stats, n) => h`<span class="maxed-count${n === 8 ? ' hl' : ''}"${statsTipAttr(cls, stats)}>${n === null || n === undefined ? '?' : n}/8</span>`;
 
 // Ranking tabs: the player boards, then Best characters.
 const boardTabs = current => h`<nav class="tabs" aria-label="Ranking boards">${Object.entries(BOARDS).map(([k, b]) => h`<a href="/rankings/${k}" data-link ${k === current ? raw('aria-current="page"') : ''}>${b.title}</a>`)}<a href="/rankings/characters" data-link ${current === 'characters' ? raw('aria-current="page"') : ''}>Best characters</a></nav>`;
@@ -608,7 +699,7 @@ async function bestCharacters() {
       <td>${playerLink(c.name, c.stars)}</td>
       <td class="n">${c.level ?? '–'}</td>
       <td class="n fame${sort === 'fame' ? ' main-metric' : ''}">${fmt(c.fame)}</td>
-      <td class="n${sort === 'maxed' ? ' main-metric' : ''}${c.maxed === 8 ? ' hl' : ''}">${dead ? graveBadge({...c, base_stats: c.stats}, 1) : `${c.maxed ?? '?'}/8`}</td>
+      <td class="n${sort === 'maxed' ? ' main-metric' : ''}${c.maxed === 8 ? ' hl' : ''}">${dead ? graveBadge({...c, base_stats: c.stats}, 1) : statsMaxed(c.class, c.stats, c.maxed)}</td>
       <td class="n${sort === 'gear' ? ' main-metric' : ''}">${c.bonus ? `+${c.bonus}%` : '0%'}</td>
       <td>${gear(c.equipment, 2)}</td>
       ${dead ? h`<td>${c.died_at ? when(c.died_at) : ''}</td>` : ''}
@@ -816,7 +907,7 @@ function characterPanel(chars, p) {
           <td class="n c-level" data-label="Level">${c.level}</td>
           <td class="n fame main-metric c-fame" data-label="Fame">${fmt(c.fame)}</td>
           <td class="c-gear">${gear(c.equipment, 2)}</td>
-          <td class="n c-maxed${maxed === 8 ? ' hl' : ''}" data-label="Maxed">${maxed === null ? '–' : `${maxed}/8`}</td>
+          <td class="n c-maxed${maxed === 8 ? ' hl' : ''}" data-label="Maxed">${maxed === null ? '–' : statsMaxed(c.class, c.stats, maxed)}</td>
           <td class="c-stats"><span class="char-stats">${STAT_KEYS.map(([k, label], i) => {
             // As in the client's StatView: total with the gear bonus in brackets, gold when the
             // base stat is maxed, else green for a bonus and red for a penalty.

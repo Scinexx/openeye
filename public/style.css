@@ -1302,3 +1302,44 @@ html.invisible main, html.invisible .footer { opacity: .28; }
 .guild-progress > span { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #9c4a00, var(--fame)); }
 .guild-progress > em { position: relative; display: block; text-align: center; line-height: 24px; font-style: normal; font-size: 0.9rem; color: #fff; text-shadow: 0 1px 2px #000; }
 [data-nav][hidden] { display: none; }
+
+/* ---------- Homepage: fame period toggle and the three boxes under it ---------- */
+.fame-span { display: flex; gap: 4px; }
+.fame-span button { font: 0.9rem var(--display); color: #f0b46a; background: rgb(0 0 0 / .25); border: 2px solid #6b3a0a; padding: 2px 10px; cursor: pointer; }
+.fame-span button:hover { color: #ffd38a; }
+.fame-span button[aria-pressed="true"] { color: #1c1309; background: #ffb13b; border-color: #ffd38a #9c4a00 #9c4a00 #ffd38a; }
+.home-trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
+@media (max-width: 900px) { .home-trio { grid-template-columns: 1fr; } }
+.trio-box { margin: 0; display: flex; flex-direction: column; }
+.trio-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 6px; padding: 18px 16px 20px; }
+.trio-body .empty { margin: 0; padding: 0; }
+.trio-name { font: 700 1.15rem var(--display); }
+.trio-line { color: var(--bone-dim); }
+.trio-sub { color: var(--muted); font-size: 0.9rem; }
+.trio-gear { margin-top: 4px; }
+/* Fixed colours of their own, whatever the theme: red for Oryx, blue for the strongest. */
+.loyal-box { border-color: #ff6b5e #7a1010 #7a1010 #ff6b5e; background: #2a0f12; color: #f8e4e2; }
+.loyal-box > header { background: linear-gradient(#6b1416, #4d0e10); border-bottom-color: #7a1010; }
+.loyal-box > header h2 { color: #ffb3a8; }
+.loyal-box .trio-line, .loyal-box .trio-sub { color: #e2a9a2; }
+.loyal-box .trio-line strong { color: #ff6b5e; font-size: 1.15rem; }
+.loyal-box a { color: #f8e4e2; }
+.loyal-sprite { min-height: 72px; display: flex; align-items: center; justify-content: center; }
+.strongest-box { border-color: #6fb6ff #12407a #12407a #6fb6ff; background: #0f1d33; color: #e4efff; }
+.strongest-box > header { background: linear-gradient(#173d6e, #102c52); border-bottom-color: #12407a; }
+.strongest-box > header h2 { color: #a8d0ff; }
+.strongest-box .trio-line, .strongest-box .trio-sub { color: #a9c3e6; }
+.strongest-box a { color: #e4efff; }
+.memorial-box .trio-name a { color: inherit; }
+.memorial-grave { display: inline-block; margin-bottom: 4px; }
+.memorial-grave .grave-sprite { filter: drop-shadow(0 0 10px rgb(0 0 0 / .6)); }
+.maxed-count { cursor: help; text-decoration: underline dotted; text-underline-offset: 3px; }
+.maxed-count.hl { color: var(--accent); }
+.grave[data-tip-stats] { cursor: help; }
+/* Stats tooltip: the 8 base stats, maxed ones in gold. */
+.itip-stats { display: grid; grid-template-columns: repeat(2, auto); gap: 2px 14px; margin: 6px 4px 2px; font: 12px "Tooltip Sans", sans-serif; color: #b3b3b3; }
+.itip-stats b { display: inline-block; width: 30px; color: #fff; }
+.itip-stats i { font-style: normal; color: #777; }
+.itip-stats .maxed { color: #fcdf00; }
+.itip-stats .maxed b { color: #fcdf00; }
+.itip:has(.itip-stats) { width: auto; }

@@ -58,6 +58,8 @@ test('fame earned is a ranking board and is charted on the profile', async () =>
 test('the last-24-hours board and crown count only recent gains', async () => {
   const now = Math.floor(Date.now() / 1000);
   const [a, b] = t.mock.players.slice(1, 3);
+  // Both have been watched for days (only gains made while watched count).
+  await t.db.prepare('UPDATE players SET first_seen = ? WHERE account IN (?, ?)').bind(now - 200000, a.account, b.account).run();
   // Old gains (more than a day ago) never count, however large.
   await t.db.prepare('INSERT INTO fame_gains(account, at, amount) VALUES(?, ?, 99999)').bind(a.account, now - 90000).run();
   await t.db.prepare('INSERT INTO fame_gains(account, at, amount) VALUES(?, ?, 5000), (?, ?, 4000)').bind(b.account, now - 60, a.account, now - 120).run();
@@ -68,4 +70,18 @@ test('the last-24-hours board and crown count only recent gains', async () => {
   assert.ok(top.find(r => r.name === a.name).fame < 99999, 'the old gain is not counted');
   assert.deepEqual(await t.api.crown(), {name: b.name});
   assert.deepEqual((await t.api.summary()).fameToday, top);
+});
+
+test('the week and month boards add up gains made while watched, never estimated history', async () => {
+  const now = Math.floor(Date.now() / 1000);
+  const c = t.mock.players[4];
+  await t.db.prepare('UPDATE players SET first_seen = ? WHERE account = ?').bind(now - 25 * 86400, c.account).run();
+  await t.db.prepare('INSERT INTO fame_gains(account, at, amount) VALUES(?, ?, 70000), (?, ?, 600000), (?, ?, 9000000)')
+    .bind(c.account, now - 5 * 86400, c.account, now - 20 * 86400, c.account, now - 28 * 86400).run();
+  const week = await t.api.fameEarned(7), month = await t.api.fameEarned(30);
+  assert.equal(week.days, 7);
+  const w = week.players.find(r => r.name === c.name), m = month.players.find(r => r.name === c.name);
+  assert.ok(w && w.fame >= 70000 && w.fame < 600000);
+  // The 20-day-old gain counts for the month; the one from before tracking began never does.
+  assert.ok(m && m.fame >= 670000 && m.fame < 9000000);
 });
