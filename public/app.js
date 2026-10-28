@@ -508,9 +508,43 @@ function mountPager(el, {pages, page = 1, onPage}) {
   draw();
 }
 
-function deathRows(rows, {showPlayer = true} = {}) {
+// Low-level deaths in a row: when the same player loses several characters under level 10
+// one after another, the run is folded into one line ("5 low-level deaths by Pyx") that opens
+// to show them, so a burst of quick deaths does not push everyone else off the list.
+const LOW_LEVEL = 10;
+const lowLevel = d => Number.isFinite(d.level) && d.level < LOW_LEVEL;
+function foldDeaths(rows) {
+  const out = [];
+  for (const d of rows) {
+    const last = out.at(-1);
+    if (lowLevel(d) && last && last.low && last.account === d.account) { last.rows.push(d); continue; }
+    out.push({low: lowLevel(d), account: d.account, rows: [d]});
+  }
+  return out.map(g => (g.rows.length > 1 ? {group: g.rows} : {death: g.rows[0]}));
+}
+function foldSummary(rows) {
+  const levels = rows.map(d => d.level), times = rows.map(d => d.died_at).filter(Boolean);
+  const lo = Math.min(...levels), hi = Math.max(...levels);
+  const span = times.length > 1 ? Math.max(...times) - Math.min(...times) : 0;
+  const over = span < 60 ? 'within a minute' : span < 3600 ? `over ${Math.round(span / 60)} minutes` : span < 86400 ? `over ${Math.round(span / 3600)} hour${Math.round(span / 3600) === 1 ? '' : 's'}` : `over ${Math.round(span / 86400)} days`;
+  return `Level${lo === hi ? ` ${lo}` : `s ${lo}–${hi}`}, ${over}`;
+}
+
+function deathRows(rows, {showPlayer = true, limit = Infinity} = {}) {
   if (!rows.length) return h`<p class="empty">No deaths recorded yet.</p>`;
-  return h`<ul class="rows">${rows.map(d => h`<li>
+  const entries = (showPlayer ? foldDeaths(rows) : rows.map(d => ({death: d}))).slice(0, limit);
+  return h`<ul class="rows">${entries.map(e => (e.group ? h`<li class="death-fold"><details>
+    <summary>
+      <span class="fold-sprites">${e.group.slice(0, 3).map(d => classSprite(d.class, 24, d))}</span>
+      <span class="grow"><span class="title"><strong>${e.group.length} low-level deaths</strong> by ${e.group[0].is_bot ? e.group[0].name : playerLink(e.group[0].player ?? e.group[0].name, e.group[0].player_stars)}</span>
+      <span class="sub">${foldSummary(e.group)}${e.group[0].died_at ? raw(` · latest ${when(e.group[0].died_at)}`) : ''}</span></span>
+      <span class="fold-toggle muted">Show</span>
+    </summary>
+    ${deathRows(e.group, {showPlayer: false})}
+  </details></li>` : deathRow(e.death, showPlayer)))}</ul>`;
+}
+function deathRow(d, showPlayer) {
+  return h`<li>
     ${classSprite(d.class, 32, d)}
     <span class="grow">
       <a class="title" href="/death/${d.account}/${d.char_id}" data-link>${showPlayer ? h`${d.is_bot ? starIcon(d.player_stars) : rankIcon(d.name, d.player_stars)}${d.name}` : `${d.level ? `Level ${d.level} ` : ''}${className(d.class)}`}</a>
@@ -519,7 +553,7 @@ function deathRows(rows, {showPlayer = true} = {}) {
     ${gear(d.equipment, 1)}
     ${graveBadge(d, 1)}
     <span class="num fame">${fmt(d.total_fame)}</span>
-  </li>`)}</ul>`;
+  </li>`;
 }
 
 async function home() {
@@ -555,7 +589,7 @@ async function home() {
     <div class="grid-2">
       <section class="panel">
         <header><h2>Latest player deaths</h2><a href="/graveyard" data-link>Graveyard</a></header>
-        ${deathRows(s.recentDeaths)}
+        ${deathRows(s.recentDeaths, {limit: 8})}
       </section>
       <section class="panel">
         <header><h2>Latest loot</h2><a href="/items" data-link>All items</a></header>
@@ -999,7 +1033,7 @@ async function graveyard() {
         <a href="${link({cls: 0, page: 1})}" data-link ${!st.cls ? raw('aria-current="page"') : ''}>All</a>
         ${[...CLASSES.values()].map(c => h`<a href="${link({cls: c.id, page: 1})}" data-link ${st.cls === c.id ? raw('aria-current="page"') : ''} title="${c.name}: ${counts.get(c.id) ?? 0} deaths" style="padding:4px 6px;line-height:0">${classSprite(c.id, 24)}</a>`)}
       </div>`);
-    document.getElementById('gy-body').innerHTML = String(g.rows.length ? h`${g.rows.map(d => h`<tr>
+    const row = (d, member = null) => h`<tr${member !== null ? raw(` class="gy-member" data-fold="${member}" hidden`) : ''}>
       <td><a class="who" href="/death/${d.account}/${d.char_id}" data-link>${classSprite(d.class, 32, d)} <span>${d.level ? `Level ${d.level} ` : ''}${className(d.class)}</span>${d.in_legends ? h`<span class="badge gold legend-tag" data-tip-title="Legend" data-tip-text="On a Legends board right now">Legend</span>` : ''}</a></td>
       <td>${ownerLink(d)}</td>
       <td class="n main-metric fame">${fmt(d.total_fame)}</td>
@@ -1007,7 +1041,17 @@ async function graveyard() {
       <td>${gear(d.equipment, 1)}</td>
       <td class="killed">${d.killed_by ?? ''}</td>
       <td>${d.died_at ? when(d.died_at) : h`<span class="muted">Loading</span>`}</td>
-    </tr>`)}` : h`<tr><td colspan="7" class="empty">${st.q ? `No deaths match “${st.q}”${st.cls ? ` for ${className(st.cls)}` : ''}.` : `No deaths recorded${st.cls ? ` for ${className(st.cls)}` : ''} yet.`}</td></tr>`);
+    </tr>`;
+    // Newest first, a player's run of low-level deaths folds into one row that opens in place.
+    const entries = st.sort === 'recent' ? foldDeaths(g.rows) : g.rows.map(d => ({death: d}));
+    document.getElementById('gy-body').innerHTML = String(g.rows.length ? h`${entries.map((e, i) => (e.group ? h`<tr class="gy-fold">
+      <td colspan="7"><button type="button" class="fold-row" data-fold="${i}" aria-expanded="false">
+        <span class="fold-sprites">${e.group.slice(0, 3).map(d => classSprite(d.class, 24, d))}</span>
+        <span class="grow"><strong>${e.group.length} low-level deaths</strong> by ${e.group[0].player ?? e.group[0].name}
+          <span class="muted">· ${foldSummary(e.group)}${e.group[0].died_at ? ` · latest ${ago(e.group[0].died_at)}` : ''}</span></span>
+        <span class="fold-toggle muted">Show</span>
+      </button></td>
+    </tr>${e.group.map(d => row(d, i))}` : row(e.death)))}` : h`<tr><td colspan="7" class="empty">${st.q ? `No deaths match “${st.q}”${st.cls ? ` for ${className(st.cls)}` : ''}.` : `No deaths recorded${st.cls ? ` for ${className(st.cls)}` : ''} yet.`}</td></tr>`);
     // The same page arrows as on profiles: click the page number to type one.
     const host = document.getElementById('gy-pager');
     host.innerHTML = String(h`<span class="muted">${fmt(g.total)} death${g.total === 1 ? '' : 's'}</span><div class="page-arrows inline-arrows"></div>`);
@@ -1030,6 +1074,14 @@ async function graveyard() {
       <div class="pager" id="gy-pager"></div>
     </section>`);
   draw(first);
+  document.getElementById('gy-body').addEventListener('click', e => {
+    const b = e.target.closest('.fold-row');
+    if (!b) return;
+    const open = b.getAttribute('aria-expanded') !== 'true';
+    b.setAttribute('aria-expanded', String(open));
+    b.querySelector('.fold-toggle').textContent = open ? 'Hide' : 'Show';
+    document.querySelectorAll(`#gy-body .gy-member[data-fold="${b.dataset.fold}"]`).forEach(r => { r.hidden = !open; });
+  });
 
   // Typing refreshes the list in place, keeping the URL shareable.
   let seq = 0, timer = null;

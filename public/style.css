@@ -1337,3 +1337,21 @@ html.invisible main, html.invisible .footer { opacity: .28; }
 .itip-stats .maxed b { color: #fcdf00; }
 .itip:has(.itip-stats) { width: auto; }
 .inline-arrows { display: inline-flex; align-items: center; }
+
+/* ---------- Folded runs of low-level deaths ---------- */
+.death-fold { display: block !important; padding: 0 !important; }
+.death-fold summary { display: flex; align-items: center; gap: 12px; padding: 10px 16px; cursor: pointer; list-style: none; }
+.death-fold summary::-webkit-details-marker { display: none; }
+.death-fold summary:hover .fold-toggle, .fold-row:hover .fold-toggle { color: var(--accent); }
+.death-fold details[open] .fold-toggle { font-size: 0; }
+.death-fold details[open] .fold-toggle::after { content: "Hide"; font-size: 0.9rem; }
+.death-fold .rows { border-top: 2px solid var(--stone-deep); background: rgb(0 0 0 / .12); }
+.death-fold .rows > li { padding-left: 32px; }
+.fold-sprites { display: inline-flex; width: 32px; flex: none; position: relative; height: 32px; }
+.fold-sprites .cls { position: absolute; }
+.fold-sprites .cls:nth-child(1) { left: 0; top: 0; }
+.fold-sprites .cls:nth-child(2) { left: 6px; top: 5px; }
+.fold-sprites .cls:nth-child(3) { left: 12px; top: 10px; }
+.fold-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 2px 0; text-align: left; font: inherit; color: var(--bone); background: none; border: 0; cursor: pointer; }
+.gy-member td:first-child { padding-left: 28px; }
+.gy-member { background: rgb(0 0 0 / .12); }

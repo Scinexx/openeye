@@ -210,7 +210,7 @@ export function makeApi(db, catalog, settings) {
       top[board] = await q(`${rankedSql(board)} AND ${board} > 0 ORDER BY ${board} DESC, account LIMIT 5`);
     }));
     const recentDeaths = (await q(`SELECT ${DEATH_COLS} FROM deaths d WHERE NOT ${IS_BOT}
-      ORDER BY COALESCE(d.died_at, d.discovered_at) DESC LIMIT 8`)).map(parseDeath);
+      ORDER BY COALESCE(d.died_at, d.discovered_at) DESC LIMIT 40`)).map(parseDeath);
     // The day's memorial (the most stats maxed among player deaths of the last 24 hours, the
     // browser picks) and the realm's strongest (the same among living characters).
     const fallen = (await q(`SELECT ${DEATH_COLS}, p.name AS player FROM deaths d JOIN players p ON p.account = d.account
