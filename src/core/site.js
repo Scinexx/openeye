@@ -168,11 +168,12 @@ export function makeApi(db, catalog, settings) {
   /** Ranked players who gained the most living fame in the last 24 hours. The starting
    *  fame credited when tracking began is dated a day earlier, so it never counts here. */
   async function fameToday(limit = 3, days = 1) {
-    // Only fame earned while OpenEye was watching (from first_seen): the estimated history
-    // filled in for before that never counts on these boards.
+    // Fame a player already had on a living character when OpenEye first saw them is spread
+    // over the days it was most likely earned (src/core/backfill.js), so it counts in the
+    // period it fell in, the same as on their fame graph.
     return q(`SELECT p.name, p.stars, SUM(g.amount) AS fame FROM fame_gains g
       JOIN players p ON p.account = g.account AND ${rankedWhere(settings.minRankedStat, 'p.')}
-      WHERE g.at > ? AND g.at >= p.first_seen GROUP BY g.account HAVING fame > 0 ORDER BY fame DESC, MAX(g.at) ASC LIMIT ?`, now() - days * 86400, limit);
+      WHERE g.at > ? GROUP BY g.account HAVING fame > 0 ORDER BY fame DESC, MAX(g.at) ASC LIMIT ?`, now() - days * 86400, limit);
   }
   /** Most fame earned over 1, 7 or 30 days, for the homepage box. */
   async function fameEarned(days) {

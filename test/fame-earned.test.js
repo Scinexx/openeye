@@ -72,16 +72,16 @@ test('the last-24-hours board and crown count only recent gains', async () => {
   assert.deepEqual((await t.api.summary()).fameToday, top);
 });
 
-test('the week and month boards add up gains made while watched, never estimated history', async () => {
+test('the week and month boards add up every gain in the period', async () => {
   const now = Math.floor(Date.now() / 1000);
   const c = t.mock.players[4];
-  await t.db.prepare('UPDATE players SET first_seen = ? WHERE account = ?').bind(now - 25 * 86400, c.account).run();
   await t.db.prepare('INSERT INTO fame_gains(account, at, amount) VALUES(?, ?, 70000), (?, ?, 600000), (?, ?, 9000000)')
-    .bind(c.account, now - 5 * 86400, c.account, now - 20 * 86400, c.account, now - 28 * 86400).run();
+    .bind(c.account, now - 5 * 86400, c.account, now - 20 * 86400, c.account, now - 40 * 86400).run();
   const week = await t.api.fameEarned(7), month = await t.api.fameEarned(30);
   assert.equal(week.days, 7);
   const w = week.players.find(r => r.name === c.name), m = month.players.find(r => r.name === c.name);
   assert.ok(w && w.fame >= 70000 && w.fame < 600000);
-  // The 20-day-old gain counts for the month; the one from before tracking began never does.
+  // The 20-day-old gain counts for the month; the 40-day-old one for neither.
   assert.ok(m && m.fame >= 670000 && m.fame < 9000000);
+  assert.equal(month.players[0].name, c.name);
 });
