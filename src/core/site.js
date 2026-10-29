@@ -92,14 +92,16 @@ export function makeApi(db, catalog, settings) {
 
   async function status() {
     const since = now() - 86400;
-    const [latest, day, peak, recent, kept, keptAt] = await Promise.all([
+    const [latest, day, peak, recent, kept, keptAt, lastUp] = await Promise.all([
       one('SELECT at, ok, players, bots, worlds, uptime FROM server_status ORDER BY at DESC LIMIT 1'),
       q('SELECT at, ok, players FROM server_status WHERE at >= ? ORDER BY at', since),
       one('SELECT MAX(players) AS peak FROM server_status WHERE at >= ?', since),
       // All-time peak: the status history is kept for 90 days, so the record is also kept in meta.
       one('SELECT players AS peak, at FROM server_status WHERE players IS NOT NULL ORDER BY players DESC, at ASC LIMIT 1'),
       getMeta(db, 'peak_players'),
-      getMeta(db, 'peak_players_at')
+      getMeta(db, 'peak_players_at'),
+      // The last time the game server answered, for how long it has been unreachable.
+      one('SELECT at FROM server_status WHERE ok = 1 ORDER BY at DESC LIMIT 1')
     ]);
     const allTime = Number(kept ?? -1) >= (recent?.peak ?? -1)
       ? (kept === null ? null : {players: Number(kept), at: Number(keptAt) || null})
@@ -119,7 +121,7 @@ export function makeApi(db, catalog, settings) {
       // Public status shows freshness only; error details stay in the logs.
       jobs[job] = {lastOk, delayed: errAt > (lastOk ?? 0)};
     }
-    return {now: now(), apiBase: settings.apiBase, server: latest ?? null, peak24h: peak?.peak ?? null, peakAllTime: allTime, day, jobs, features};
+    return {now: now(), apiBase: settings.apiBase, server: latest ?? null, lastUp: lastUp?.at ?? null, peak24h: peak?.peak ?? null, peakAllTime: allTime, day, jobs, features};
   }
 
   /** Notable finds: rare UTs and top-tier drops, minus UTs that most players already own. */

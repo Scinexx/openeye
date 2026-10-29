@@ -660,7 +660,8 @@ async function home() {
     </div>
     <section class="panel status-strip" aria-label="Server status">
       ${online}
-      <div class="stat"><strong>${st?.ok ? fmt(st.players) : '–'}</strong><span>${st?.ok ? 'playing now' : st ? 'server unreachable' : 'checking server'}</span></div>
+      ${st && !st.ok && s.status.lastUp ? h`<div class="stat down" title="Last answered ${date(s.status.lastUp)}"><strong data-down-since="${s.status.lastUp}">${downFor(s.status.lastUp)}</strong><span>server unreachable</span></div>`
+        : h`<div class="stat"><strong>${st?.ok ? fmt(st.players) : '–'}</strong><span>${st?.ok ? 'playing now' : st ? 'server unreachable' : 'checking server'}</span></div>`}
       <div class="stat"><strong>${s.status.peak24h ?? '–'}</strong><span>24h peak</span></div>
       <div class="stat"${s.status.peakAllTime?.at ? raw(` title="Set ${esc(date(s.status.peakAllTime.at))}"`) : ''}><strong>${s.status.peakAllTime ? fmt(s.status.peakAllTime.players) : '–'}</strong><span>all-time peak</span></div>
       <div class="stat"><strong>${fmt(s.counts.players)}</strong><span>registered players</span></div>
@@ -693,6 +694,14 @@ async function home() {
       </table></div>
     </section>`);
   if (!hasData) setTimeout(() => location.pathname === '/' && route(), 15000);
+  // While the server is unreachable, count up the time since it last answered.
+  const down = main.querySelector('[data-down-since]');
+  if (down) {
+    const timer = setInterval(() => {
+      if (!down.isConnected) return clearInterval(timer);
+      down.textContent = downFor(Number(down.dataset.downSince));
+    }, 1000);
+  }
   // The fame box's period: today, this week or this month (remembered in this browser).
   const spanNav = main.querySelector('.fame-span');
   const pickSpan = async days => {
@@ -711,6 +720,12 @@ async function home() {
 }
 
 // ---- Homepage boxes ----
+// How long since the game server last answered: 45s, 12m 34s, 2h 05m, 1d 3h.
+function downFor(since) {
+  const s = Math.max(0, Math.floor(Date.now() / 1000) - since);
+  const d = Math.floor(s / 86400), hr = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  return d ? `${d}d ${hr}h` : hr ? `${hr}h ${String(m).padStart(2, '0')}m` : m ? `${m}m ${String(sec).padStart(2, '0')}s` : `${sec}s`;
+}
 const FAME_SPANS = [[1, 'Day'], [7, 'Week'], [30, 'Month']];
 const fameTop = (list, days) => (list.length ? h`<ol class="fame-top">${list.map((f, i) => h`<li>
   <span class="place">${i + 1}</span>
