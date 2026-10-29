@@ -763,7 +763,7 @@ function crownLine(reigns, days) {
     color.set(acc, shade(base, n));
   }
   // Just the strip: hovering a stretch names who held the crown and for how long.
-  return h`<div class="crown-line">${crownStrip(reigns, reigns[0][0], r => ({cls: 'held', color: color.get(r[2])}), {times: false})}</div>`;
+  return h`<div class="crown-line"><span>Crown · ${days === 1 ? '24h' : `${days}d`}</span>${crownStrip(reigns, reigns[0][0], r => ({cls: 'held', color: color.get(r[2])}), {times: false})}<span>now</span></div>`;
 }
 // Oryx's most loyal: the enemy with the most level 20 player kills on record.
 function loyalBox(l) {

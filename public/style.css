@@ -350,8 +350,8 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 .crown-strip .mine:hover, .crown-strip .held:hover { filter: brightness(1.2); }
 .crown-strip .other:hover, .crown-strip .none:hover { background: rgba(255, 255, 255, 0.12); }
 /* The homepage's crown line, under the fame leaders. */
-.crown-line { padding: 12px 16px; border-top: 2px solid var(--bevel-dark); }
-.crown-line .crown-strip { height: 16px; background: #1c1309; }
+.crown-line { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 10px 16px; border-top: 2px solid var(--bevel-dark); font-size: 0.8rem; color: var(--muted); }
+.crown-line .crown-strip { height: 8px; border-width: 1px; background: #1c1309; }
 .bar-axis { display: flex; justify-content: space-between; margin-top: 4px; color: var(--muted); font-size: 0.8rem; }
 /* Horizontal bars: a label, the bar, the count. */
 .hbars { list-style: none; margin: 0; padding: 6px 8px; display: grid; gap: 4px; }
