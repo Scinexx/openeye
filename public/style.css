@@ -349,12 +349,7 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 .crown-strip .mine:hover, .crown-strip .held:hover { filter: brightness(1.2); }
 .crown-strip .other:hover, .crown-strip .none:hover { background: rgba(255, 255, 255, 0.12); }
 /* The homepage's crown line, under the fame leaders. */
-.crown-line { padding: 10px 16px 12px; border-top: 2px solid var(--bevel-dark); }
-.crown-head { display: flex; align-items: center; gap: 6px 16px; flex-wrap: wrap; margin-bottom: 8px; }
-.crown-label { display: inline-flex; align-items: center; gap: 6px; font: 700 0.95rem var(--display); color: #ffc24a; }
-.crown-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.9rem; }
-.crown-legend li { display: inline-flex; align-items: center; gap: 6px; }
-.crown-legend i { width: 10px; height: 10px; flex: none; }
+.crown-line { padding: 0 16px 12px; }
 .crown-line .crown-strip { height: 16px; background: #1c1309; }
 .bar-axis { display: flex; justify-content: space-between; margin-top: 4px; color: var(--muted); font-size: 0.8rem; }
 /* Horizontal bars: a label, the bar, the count. */

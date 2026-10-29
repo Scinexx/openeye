@@ -745,13 +745,8 @@ function crownLine(reigns, days) {
     seen.set(base, n + 1);
     color.set(acc, shade(base, n));
   }
-  const t0 = reigns[0][0], period = days === 1 ? 'the last 24 hours' : days === 7 ? 'the last week' : 'the last month';
-  return h`<div class="crown-line">
-    <div class="crown-head"><span class="crown-label">${crownIcon(0, 18, '#ffc24a')} Crown holders</span>
-      <ul class="crown-legend">${ranked.slice(0, 5).map(([acc, e]) => h`<li><i style="background:${color.get(acc)}"></i>${playerLink(e.name, e.stars)} <span class="muted">${lasted(e.t)}</span></li>`)}${ranked.length > 5 ? h`<li class="muted">+${ranked.length - 5} more</li>` : ''}</ul></div>
-    ${crownStrip(reigns, t0, r => ({cls: 'held', color: color.get(r[2])}))}
-    <div class="bar-axis"><span>${days === 1 ? new Date(t0 * 1000).toLocaleTimeString(undefined, {hour: 'numeric', minute: '2-digit'}) : shortDay(t0)}</span><span class="muted">Who was #1 over ${period}</span><span>Now</span></div>
-  </div>`;
+  // Just the strip: hovering a stretch names who held the crown and for how long.
+  return h`<div class="crown-line">${crownStrip(reigns, reigns[0][0], r => ({cls: 'held', color: color.get(r[2])}))}</div>`;
 }
 // Oryx's most loyal: the enemy with the most level 20 player kills on record.
 function loyalBox(l) {
