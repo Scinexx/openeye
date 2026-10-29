@@ -33,7 +33,15 @@ test('a profile knows when the player wore the daily fame crown', async () => {
     await gain(b.account, t0 + 3600, 150);   // ...until b passes them an hour later
     await gain(a.account, t0 + 7200, 10);    // a still behind (110 < 150)
     // b's gain leaves the 24-hour window at t0 + 3600 + 86400; a's 10 is still in it then.
-    const ca = (await t.api.player(a.name)).crowns, cb = (await t.api.player(b.name)).crowns;
+    const reigns = (await t.api.player(a.name)).crowns;
+    const of = acc => reigns.filter(r => r[2] === acc).map(r => r.slice(0, 2));
+    const ca = of(a.account), cb = of(b.account);
+    assert.deepEqual(reigns[0].slice(0, 3), [at - 3 * 86400, t0, null], 'nobody held it before any fame was earned');
+    assert.equal(reigns.find(r => r[2] === b.account)[3], b.name);
+    // The homepage gets the same reigns, cut to the period shown.
+    const week = (await t.api.fameEarned(7)).crowns;
+    assert.equal(week[0][0] >= at - 7 * 86400, true);
+    assert.deepEqual(week.filter(r => r[2] === b.account).map(r => r.slice(0, 2)), cb);
     assert.deepEqual(ca, [[t0, t0 + 3600], [t0 + 3600 + 86400, t0 + 7200 + 86400]]);
     assert.deepEqual(cb, [[t0 + 3600, t0 + 3600 + 86400]]);
   } finally { t.close(); }

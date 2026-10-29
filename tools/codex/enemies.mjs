@@ -56,8 +56,10 @@ export function buildEnemies({objects, loot, sheets, isItem, warn = console.warn
         effects: kids(p, 'ConditionEffect').map(c => ({name: c.text, duration: num(c.attrs.duration)}))
       };
     });
-    // First texture listed is the one the client shows by default.
-    const tex = el.children.find(c => c.tag === 'Texture' || c.tag === 'AnimatedTexture');
+    // First texture listed is the one the client shows by default. Enemies that start in
+    // disguise (a RandomTexture, like Kage Kami's bushes) are shown as their portrait instead.
+    const own = node => node?.children.find(c => c.tag === 'Texture' || c.tag === 'AnimatedTexture');
+    const tex = own(el) ?? own(first(el, 'Portrait')) ?? own(first(el, 'RandomTexture'));
     let sprite = null;
     if (tex) {
       const file = text(tex, 'File'), index = Number(text(tex, 'Index'));

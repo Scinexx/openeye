@@ -19,6 +19,8 @@ OpenEye is a RealmEye-style tracker for Open RotMG, the open-source recreation o
 - **Rankings** across stars, living fame, fame earned, collection and quests, with rank stars coloured exactly as in the 2012 client; empty guest accounts are left out
 - **Fame earned**: every rise in a player's living fame, added up from each 5-minute check. Living fame players already had when tracking began is counted as earned the day before
 - **Most fame earned in the last 24 hours** on the home page; the leader wears a crown next to their name across the site
+- **Crown timeline**: who held the crown and for how long over the last day, week or month on the home page, and each player's own time holding it on their profile (replayed from every fame gain since records began)
+- **Killers as the game names them**: the server records some killers by object id, so deaths are renamed to what the client shows ("Rock Bot" is a Rock Construct, "Lava Blend" is Lava), damaging floors get their tile as an icon, and the Mad Lab's gas traps and turrets are credited to Dr Terrible. The names are generated with the catalog (`tools/codex/killers.mjs` → `src/core/killer-names.js`)
 - **Player profiles** with ranks, a progress graph for every stat, Legends placements, and a full item collection that can be filtered by tier
 - **Living characters** on each profile: class, level, fame, equipment and base stats against the class maximum
 - **Graveyard** of every player death, searchable by name, with complete death records: killer, equipment, fame bonuses, accuracy, kills and dungeons cleared

@@ -182,49 +182,54 @@ export function makeApi(db, catalog, settings) {
       WHERE g.at > ? GROUP BY g.account HAVING fame > 0 ORDER BY fame DESC, MAX(g.at) ASC LIMIT ?`, now() - days * 86400, limit);
   }
   /**
-   * When `account` wore the crown (most fame earned in the last 24 hours, the homepage's
-   * daily board) since OpenEye began keeping records: [start, end] spells, found by replaying every
-   * gain into and out of the rolling 24-hour window. Only times the site was keeping
-   * records count; ties go to whoever reached the total first, as on the board.
+   * Who wore the crown (most fame earned in the last 24 hours, the homepage's daily board)
+   * and when, since OpenEye began keeping records: [start, end, account, name, stars] reigns,
+   * with account null while nobody had earned anything. Found by replaying every gain into
+   * and out of the rolling 24-hour window; ties go to whoever reached the total first, as on
+   * the board. Kept for a minute, since every profile and the homepage ask for it.
    */
-  async function crownSpells(account) {
-    const t = now(), live = Number(await getMeta(db, 'fame_earned_since') ?? t);
-    const from = live;
+  let reignCache = null;
+  async function crownReigns() {
+    const t = now();
+    if (reignCache && t - reignCache.at < 60) return reignCache.list;
+    const from = Number(await getMeta(db, 'fame_earned_since') ?? t);
     const gains = await q(`SELECT g.account, g.at, g.amount FROM fame_gains g
       JOIN players p ON p.account = g.account AND ${rankedWhere(settings.minRankedStat, 'p.')}
       WHERE g.at > ? AND g.amount > 0 ORDER BY g.at`, from - 86400);
-    if (!gains.some(g => g.account === account)) return [];
     // Events: a gain counts from its time until 24 hours later.
-    const times = [...new Set([...gains.map(g => g.at), ...gains.map(g => g.at + 86400)])].filter(x => x <= t).sort((a, b) => a - b);
-    const sums = new Map(), last = new Map();
+    const times = [...new Set([from, ...gains.map(g => g.at), ...gains.map(g => g.at + 86400)])].filter(x => x >= from && x <= t).sort((x, y) => x - y);
+    const sums = new Map(), last = new Map(), reigns = [];
     let i = 0, j = 0;
-    const spells = [];
-    let open = null;
-    for (let k = 0; k < times.length; k++) {
-      const at = times[k];
+    for (const at of times) {
       for (; i < gains.length && gains[i].at <= at; i++) {
         const g = gains[i];
         sums.set(g.account, (sums.get(g.account) ?? 0) + g.amount);
         last.set(g.account, g.at);
       }
-      for (; j < gains.length && gains[j].at + 86400 <= at; j++) {
-        const g = gains[j];
-        sums.set(g.account, sums.get(g.account) - g.amount);
-      }
+      for (; j < gains.length && gains[j].at + 86400 <= at; j++) sums.set(gains[j].account, sums.get(gains[j].account) - gains[j].amount);
       let lead = null, best = 0;
       for (const [a, v] of sums) {
         if (v > best || (v === best && v > 0 && lead !== null && last.get(a) < last.get(lead))) { lead = a; best = v; }
       }
-      const mine = lead === account && at >= from;
-      if (mine && !open) open = [Math.max(at, from)];
-      if (!mine && open) { open.push(at); spells.push(open); open = null; }
+      const cur = reigns.at(-1);
+      if (cur && cur[2] === lead) continue;
+      if (cur) cur[1] = at;
+      reigns.push([at, t, lead]);
     }
-    if (open) { open.push(t); spells.push(open); }
-    return spells;
+    const ids = [...new Set(reigns.map(r => r[2]).filter(a => a !== null))];
+    const who = new Map(ids.length ? (await q(`SELECT account, name, stars FROM players WHERE account IN (${ids.map(() => '?').join(',')})`, ...ids)).map(p => [p.account, p]) : []);
+    const list = reigns.filter(r => r[1] > r[0]).map(([a, b, acc]) => [a, b, acc, who.get(acc)?.name ?? null, who.get(acc)?.stars ?? 0]);
+    reignCache = {at: t, list};
+    return list;
+  }
+  /** Reigns overlapping the last `days` days, clipped to them. */
+  async function crownsSince(days) {
+    const from = now() - days * 86400;
+    return (await crownReigns()).filter(r => r[1] > from).map(r => [Math.max(r[0], from), ...r.slice(1)]);
   }
   /** Most fame earned over 1, 7 or 30 days, for the homepage box. */
   async function fameEarned(days) {
-    return {days, players: await fameToday(3, days)};
+    return {days, players: await fameToday(3, days), crowns: await crownsSince(days), crownsFrom: Number(await getMeta(db, 'fame_earned_since') ?? now())};
   }
   /** Deadliest enemies: player deaths by killer (bots never), optionally level 20 only. */
   async function deadliest(level20 = false) {
@@ -267,7 +272,7 @@ export function makeApi(db, catalog, settings) {
       FROM characters c JOIN players p ON p.account = c.account AND ${rankedWhere(settings.minRankedStat, 'p.')}
       WHERE c.seen_at > ? ORDER BY c.fame DESC LIMIT 500`, now() - 3600)).map(c => ({...c, stats: JSON.parse(c.stats), equipment: JSON.parse(c.equipment)}));
     return {counts, top, recentDeaths, recentFinds: await notableFinds(10), fameToday: await fameToday(3), status: await status(),
-      loyal: await mostLoyal(), fallen, living};
+      loyal: await mostLoyal(), fallen, living, crowns: await crownsSince(1), crownsFrom: Number(await getMeta(db, 'fame_earned_since') ?? now())};
   }
 
   /** Living characters of ranked players, for the Best characters board; with dead, every
@@ -332,7 +337,7 @@ export function makeApi(db, catalog, settings) {
     const features = {characters: Number(await getMeta(db, 'characters_at') ?? 0) > now() - 86400, graveyard: (await getMeta(db, 'graveyard_ok')) !== null};
     // When OpenEye began keeping records: history from before then is estimated (src/core/backfill.js).
     const trackedFrom = (await one('SELECT MIN(first_seen) AS t FROM players'))?.t ?? p.first_seen;
-    const crowns = await crownSpells(p.account);
+    const crowns = await crownReigns();
     const guild = p.guild_id === null || p.guild_id === undefined ? null
       : await one('SELECT id, name, level FROM guilds WHERE id = ? AND listed = 1', p.guild_id);
     return {player: p, ranks, rankedPlayers, names, history, collection, deaths: deaths.map(parseDeath), legends, fameGains, features, trackedFrom, crowns,

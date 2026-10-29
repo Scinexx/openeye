@@ -176,6 +176,7 @@ const className = id => CLASSES.get(id)?.name ?? 'Unknown class';
 // Star colours and thresholds from the 2012 client (FameUtil.as): the colour steps up
 // every <class count> stars, and a player with every star gets a plain white one.
 const STAR_COLORS = ['#8a98de', '#314ddb', '#c1272d', '#f7931e', '#ffff00', '#ffffff'];
+const STAR_COLOR_LIST = STAR_COLORS;
 function starIcon(stars, size = 16) {
   if (stars === null || stars === undefined) return '';
   const tier = Math.min(5, Math.floor(stars / Math.max(1, CLASSES.size)));
@@ -189,9 +190,10 @@ async function loadCrown() {
   try { CROWN = (await get('/api/crown')).name?.toLowerCase() ?? null; } catch { /* keep the last holder */ }
 }
 const crowned = name => !!CROWN && String(name ?? '').toLowerCase() === CROWN;
-function crownIcon(stars, size = 16) {
-  // Our own crown, filled with the same colour as the player's rank star.
+function crownIcon(stars, size = 16, fill = null) {
+  // Our own crown, filled with the same colour as the player's rank star (or `fill`).
   const tier = Math.min(5, Math.floor((stars ?? 0) / Math.max(1, CLASSES.size)));
+  const STAR_COLORS = fill ? Array(6).fill(fill) : STAR_COLOR_LIST;
   const label = 'Most fame earned in the last 24 hours';
   return h`<svg class="crown" width="${size}" height="${size}" viewBox="0 0 24 24" role="img" aria-label="${label}"><title>${label}</title><path fill="${STAR_COLORS[tier]}" stroke="#1b1e26" stroke-width="1.6" stroke-linejoin="round" d="M2.5 7.5l5 4.5 4.5-8 4.5 8 5-4.5-1.8 12.5H4.3z"/><path fill="#1b1e26" fill-opacity=".28" d="M4 17.2h16l-.3 2.3H4.3z"/><circle cx="2.5" cy="7.2" r="1.5" fill="${STAR_COLORS[tier]}" stroke="#1b1e26" stroke-width="1.2"/><circle cx="12" cy="3.4" r="1.5" fill="${STAR_COLORS[tier]}" stroke="#1b1e26" stroke-width="1.2"/><circle cx="21.5" cy="7.2" r="1.5" fill="${STAR_COLORS[tier]}" stroke="#1b1e26" stroke-width="1.2"/></svg>`;
 }
@@ -647,6 +649,7 @@ async function home() {
       <header><h2 id="fame-box-title"><img class="fame-icon" src="/icons/fame.png" width="24" height="24" alt="">Most fame earned</h2>
         <nav class="fame-span" aria-label="Period">${FAME_SPANS.map(([d, label]) => h`<button type="button" data-days="${d}" aria-pressed="${d === 1}">${label}</button>`)}</nav></header>
       <div id="fame-top">${fameTop(s.fameToday, 1)}</div>
+      <div id="crown-line">${crownLine(s.crowns ?? [], 1)}</div>
     </section>
     <div class="home-trio">
       ${loyalBox(s.loyal)}
@@ -693,9 +696,10 @@ async function home() {
   const pickSpan = async days => {
     spanNav.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.days) === days)));
     try { localStorage.setItem('fameSpan', String(days)); } catch { /* storage unavailable */ }
-    const r = days === 1 ? {players: s.fameToday} : await get(`/api/fame-earned?days=${days}`).catch(() => null);
-    const box = document.getElementById('fame-top');
+    const r = days === 1 ? {players: s.fameToday, crowns: s.crowns} : await get(`/api/fame-earned?days=${days}`).catch(() => null);
+    const box = document.getElementById('fame-top'), line = document.getElementById('crown-line');
     if (r && box) box.innerHTML = String(fameTop(r.players, days));
+    if (r && line) line.innerHTML = String(crownLine(r.crowns ?? [], days));
   };
   spanNav.addEventListener('click', e => { const b = e.target.closest('button'); if (b) pickSpan(Number(b.dataset.days)); });
   let saved = 1;
@@ -711,6 +715,44 @@ const fameTop = (list, days) => (list.length ? h`<ol class="fame-top">${list.map
   ${playerLink(f.name, f.stars)}
   <span class="gain">+${fmt(f.fame)}</span>
 </li>`)}</ol>` : h`<p class="empty">Nobody has earned fame in the last ${days === 1 ? '24 hours' : days === 7 ? 'week' : 'month'} yet.</p>`);
+// Who wore the crown over the same period, each holder in the colour of their rank star. Holders
+// whose stars share a colour get darker shades of it in turn (the most time first), and lighter
+// ones once a shade would be too dark to see on the strip.
+const starColor = stars => STAR_COLOR_LIST[Math.min(5, Math.floor((stars ?? 0) / Math.max(1, CLASSES.size)))];
+function shade(hex, step) {
+  const rgb = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+  const lum = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  const mix = (to, f) => rgb.map(c => Math.round(c + (to - c) * f));
+  // Darker first while still visible, then lighter; skipping any too close to one already used.
+  const shades = [rgb];
+  for (const c of [...[0.18, 0.36, 0.54, 0.72].map(f => mix(0, f)).filter(c => lum(c) >= 55), ...[0.3, 0.55, 0.8].map(f => mix(255, f))]) {
+    if (shades.every(o => Math.hypot(o[0] - c[0], o[1] - c[1], o[2] - c[2]) > 30)) shades.push(c);
+  }
+  return `#${shades[step % shades.length].map(c => c.toString(16).padStart(2, '0')).join('')}`;
+}
+function crownLine(reigns, days) {
+  const held = new Map();
+  for (const [a, b, acc, name, stars] of reigns) if (acc !== null) {
+    const e = held.get(acc) ?? {name, stars, t: 0};
+    e.t += b - a;
+    held.set(acc, e);
+  }
+  if (!held.size) return '';
+  const ranked = [...held.entries()].sort((x, y) => y[1].t - x[1].t);
+  const seen = new Map(), color = new Map();
+  for (const [acc, e] of ranked) {
+    const base = starColor(e.stars), n = seen.get(base) ?? 0;
+    seen.set(base, n + 1);
+    color.set(acc, shade(base, n));
+  }
+  const t0 = reigns[0][0], period = days === 1 ? 'the last 24 hours' : days === 7 ? 'the last week' : 'the last month';
+  return h`<div class="crown-line">
+    <div class="crown-head"><span class="crown-label">${crownIcon(0, 18, '#ffc24a')} Crown holders</span>
+      <ul class="crown-legend">${ranked.slice(0, 5).map(([acc, e]) => h`<li><i style="background:${color.get(acc)}"></i>${playerLink(e.name, e.stars)} <span class="muted">${lasted(e.t)}</span></li>`)}${ranked.length > 5 ? h`<li class="muted">+${ranked.length - 5} more</li>` : ''}</ul></div>
+    ${crownStrip(reigns, t0, r => ({cls: 'held', color: color.get(r[2])}))}
+    <div class="bar-axis"><span>${days === 1 ? new Date(t0 * 1000).toLocaleTimeString(undefined, {hour: 'numeric', minute: '2-digit'}) : shortDay(t0)}</span><span class="muted">Who was #1 over ${period}</span><span>Now</span></div>
+  </div>`;
+}
 // Oryx's most loyal: the enemy with the most level 20 player kills on record.
 function loyalBox(l) {
   return h`<section class="panel trio-box loyal-box" aria-labelledby="loyal-title">
@@ -723,14 +765,11 @@ function loyalBox(l) {
 }
 async function fillLoyal(l) {
   if (!l) return;
-  const E = await loadEnemies();
-  const name = l.name.toLowerCase();
-  const e = E.list.filter(x => x.name.toLowerCase() === name).sort((a, b) => Boolean(b.sprite) - Boolean(a.sprite))[0];
-  const slot = document.getElementById('loyal-sprite');
-  if (!e || !slot) return;
-  slot.innerHTML = String(h`<a href="/enemy/${e.id}" data-link aria-label="${e.name}">${enemySprite(e, 48)}</a>`);
-  const n = document.getElementById('loyal-name');
-  if (n) n.innerHTML = String(h`<a href="/enemy/${e.id}" data-link>${l.name}</a>`);
+  const k = (await loadKillers())(l.name), e = k.enemy;
+  const slot = document.getElementById('loyal-sprite'), n = document.getElementById('loyal-name');
+  if (!slot) return;
+  slot.innerHTML = String(e ? h`<a href="/enemy/${e.id}" data-link aria-label="${k.name}">${k.icon(48)}</a>` : k.icon(48));
+  if (n) n.innerHTML = String(e ? h`<a href="/enemy/${e.id}" data-link>${k.name}</a>` : k.name);
 }
 // The most stats maxed (then fame) among a list of deaths or characters.
 const strongestOf = (list, maxed) => list.map(x => ({x, n: maxed(x) ?? -1})).sort((a, b) => b.n - a.n || (b.x.total_fame ?? b.x.fame ?? 0) - (a.x.total_fame ?? a.x.fame ?? 0))[0]?.x ?? null;
@@ -841,18 +880,16 @@ async function bestCharacters() {
 // level 20 players.
 async function deadliestEnemies() {
   const max20 = new URLSearchParams(location.search).get('level') === '20';
-  const [{enemies: rows}, E] = await Promise.all([get(`/api/deadliest${max20 ? '?level=20' : ''}`), loadEnemies()]);
-  const byName = new Map();
-  for (const e of E.list) { const k = e.name.toLowerCase(); if (!byName.has(k) || (!byName.get(k).sprite && e.sprite)) byName.set(k, e); }
+  const [{enemies: rows}, killer] = await Promise.all([get(`/api/deadliest${max20 ? '?level=20' : ''}`), loadKillers()]);
   document.title = 'Deadliest enemies | OpenEye';
   const draw = (filter = '') => {
     const f = filter.toLowerCase();
     const shown = rows.filter(r => r.name.toLowerCase().includes(f));
     document.getElementById('enemy-body').innerHTML = String(shown.length ? h`${shown.map(r => {
-      const e = byName.get(r.name.toLowerCase());
+      const k = killer(r.name), e = k.enemy;
       return h`<tr class="${r.rank === 1 ? 'top1' : ''}">
         <td class="rank">${r.rank}</td>
-        <td>${e ? h`<a class="who" href="/enemy/${e.id}" data-link>${enemySprite(e, 32)} <span>${r.name}</span></a>` : h`<span class="who"><span class="esprite none" style="width:32px;height:32px"></span> <span>${r.name}</span></span>`}</td>
+        <td>${e ? h`<a class="who" href="/enemy/${e.id}" data-link>${k.icon(32)} <span>${k.name}</span></a>` : h`<span class="who">${k.icon(32)} <span>${k.name}</span></span>`}</td>
         <td class="n main-metric">${fmt(max20 ? r.kills20 : r.kills)}</td>
         ${max20 ? '' : h`<td class="n">${fmt(r.kills20)}</td>`}
         <td>${r.last ? when(r.last) : ''}</td>
@@ -927,18 +964,16 @@ function deathClassCard(deaths) {
     ${rows.length > 6 ? h`<p class="stat-foot">And ${rows.length - 6} more class${rows.length - 6 === 1 ? '' : 'es'}.</p>` : ''}`);
 }
 
-function nemesisCard(deaths, enemies) {
+function nemesisCard(deaths, killer) {
   const by = new Map();
   for (const d of deaths) if (d.killed_by) by.set(d.killed_by, (by.get(d.killed_by) ?? 0) + 1);
   if (!by.size) return '';
-  const byName = new Map();
-  for (const e of enemies?.list ?? []) { const k = e.name.toLowerCase(); if (!byName.has(k) || (!byName.get(k).sprite && e.sprite)) byName.set(k, e); }
   const rows = [...by.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
   const max = rows[0][1], [top, topN] = rows[0];
   return statCard('Nemesis', h`<b>${top}</b>${topN > 1 ? `, ${topN} kills` : ''}`, h`
     <ul class="hbars nemesis">${rows.slice(0, 5).map(([name, n]) => {
-      const e = byName.get(name.toLowerCase());
-      const label = h`${e ? enemySprite(e, 24) : h`<span class="esprite none" style="width:24px;height:24px"></span>`}<span class="hb-name">${name}</span>`;
+      const k = killer(name), e = k.enemy;
+      const label = h`${k.icon(24)}<span class="hb-name">${k.name}</span>`;
       return h`<li>${e ? h`<a class="hb-who" href="/enemy/${e.id}" data-link>${label}</a>` : h`<span class="hb-who">${label}</span>`}
         <span class="hb-track"><i style="width:${pctH(n, max)}"></i></span><span class="hb-n">${fmt(n)}</span></li>`;
     })}</ul>`);
@@ -983,28 +1018,42 @@ const lasted = s => {
   const d = Math.floor(s / 86400), hr = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
   return d ? `${d}d ${hr}h` : hr ? `${hr}h ${m}m` : `${Math.max(1, m)}m`;
 };
-/** How long the player has led the daily fame board, and when, on a strip from the start of records to now. */
-function crownCard(crowns, since, stars) {
-  if (!crowns.length) return '';
-  const nowTs = Math.floor(Date.now() / 1000), t0 = Math.min(since, crowns[0][0]);
-  const total = crowns.reduce((n, [a, b]) => n + (b - a), 0);
-  const longest = crowns.reduce((x, c) => (c[1] - c[0] > x[1] - x[0] ? c : x));
-  const holding = crowns.at(-1)[1] >= nowTs - 120;
-  const pos = t => `${((t - t0) / Math.max(1, nowTs - t0)) * 100}%`;
-  return statCard('Time holding the crown', holding ? h`<b>Wearing it now</b>` : h`Last held ${when(crowns.at(-1)[1])}`, h`
-    <div class="crown-total">${crownIcon(stars, 30)}<b>${lasted(total)}</b><span class="muted">as #1 in fame earned (last 24 hours)</span></div>
-    <div class="crown-strip" role="img" aria-label="When they held the crown, from ${shortDay(t0)} to now">
-      ${crowns.map(([a, b]) => h`<span style="left:${pos(a)};width:max(2px, calc(${pos(b)} - ${pos(a)}))" data-tip-title="${lasted(b - a)} as #1" data-tip-text="${date(a)} to ${b >= nowTs - 120 ? 'now' : date(b)}"></span>`)}
-    </div>
-    <div class="bar-axis"><span>${shortDay(t0)}</span><span>Now</span></div>
-    <p class="stat-foot">${fmt(crowns.length)} reign${crowns.length === 1 ? '' : 's'} · longest ${lasted(longest[1] - longest[0])}, from ${date(longest[0])}</p>`);
+/**
+ * A strip of crown reigns from t0 to now. `paint` gives each reign its class and colour;
+ * every reign, gaps included, says on hover who held the crown and for how long, and a
+ * reign with a holder links to their profile.
+ */
+function crownStrip(reigns, t0, paint) {
+  const nowTs = Math.floor(Date.now() / 1000);
+  const pos = t => Math.max(0, Math.min(100, ((t - t0) / Math.max(1, nowTs - t0)) * 100));
+  return h`<div class="crown-strip" role="img" aria-label="Who held the crown, ${shortDay(t0)} to now">${reigns.map(r => {
+    const [a, b, , name] = r, {cls = '', color = ''} = paint(r);
+    const tip = raw(`data-tip-title="${esc(name ? `${name} wore the crown` : 'Nobody wore the crown')}" data-tip-text="${esc(`${lasted(b - a)} · ${date(a)} to ${b >= nowTs - 120 ? 'now' : date(b)}`)}"`);
+    const style = `left:${pos(a)}%;width:${pos(b) - pos(a)}%${color ? `;background:${color}` : ''}`;
+    return name ? h`<a class="${cls}" href="/player/${encodeURIComponent(name)}" data-link style="${style}" ${tip}></a>` : h`<span class="none" style="${style}" ${tip}></span>`;
+  })}</div>`;
 }
 
-function profileStats(data, p, estimated, enemies) {
+/** How long the player has led the daily fame board, and when, on a strip from the start of records to now. */
+function crownCard(reigns, account, stars) {
+  const mine = reigns.filter(r => r[2] === account);
+  if (!mine.length) return '';
+  const nowTs = Math.floor(Date.now() / 1000), t0 = reigns[0][0];
+  const total = mine.reduce((n, [a, b]) => n + (b - a), 0);
+  const longest = mine.reduce((x, c) => (c[1] - c[0] > x[1] - x[0] ? c : x));
+  const holding = mine.at(-1)[1] >= nowTs - 120;
+  return statCard('Time holding the crown', holding ? h`<b>Wearing it now</b>` : h`Last held ${when(mine.at(-1)[1])}`, h`
+    <div class="crown-total">${crownIcon(stars, 30)}<b>${lasted(total)}</b><span class="muted">as #1 in fame earned (last 24 hours)</span></div>
+    ${crownStrip(reigns, t0, r => (r[2] === account ? {cls: 'mine'} : {cls: 'other'}))}
+    <div class="bar-axis"><span>${shortDay(t0)}</span><span>Now</span></div>
+    <p class="stat-foot">${fmt(mine.length)} reign${mine.length === 1 ? '' : 's'} · longest ${lasted(longest[1] - longest[0])}, from ${date(longest[0])} · hover the dark parts to see who had it</p>`);
+}
+
+function profileStats(data, p, estimated, killer) {
   const cards = [
     [deathClassCard(data.deaths), 'half'],
-    [nemesisCard(data.deaths, enemies), 'half'],
-    [crownCard(data.crowns ?? [], data.trackedFrom ?? p.first_seen, p.stars), 'half'],
+    [nemesisCard(data.deaths, killer), 'half'],
+    [crownCard(data.crowns ?? [], p.account, p.stars), 'half'],
     [fameDaysCard(fameByDay(data.fameGains, estimated ? p.first_seen : null)), 'wide']
   ].filter(([c]) => c);
   // Half-width cards go in pairs; one left on its own stretches across.
@@ -1018,7 +1067,7 @@ async function player(name) {
   try { data = await get(`/api/player/${encodeURIComponent(name)}`); }
   catch (e) { if (e.status === 404) return notFound(e.message); throw e; }
   if (data.redirect) return navigate(`/player/${encodeURIComponent(data.redirect)}`, true);
-  const [{collectible}, enemies] = await Promise.all([get('/api/items'), loadEnemies().catch(() => null)]);
+  const [{collectible}, killer] = await Promise.all([get('/api/items'), loadKillers()]);
   const p = data.player;
   // Estimated history only for players who were around before OpenEye began keeping records;
   // anyone who first showed up since then has been tracked from the start.
@@ -1070,7 +1119,7 @@ async function player(name) {
         <div class="pager page-arrows" id="death-pager"></div>
       </section>
     </div>
-    ${profileStats(data, p, estimated, enemies)}
+    ${profileStats(data, p, estimated, killer)}
     <section class="panel" style="margin-top:24px">
       <header><h2>Collection</h2><span class="muted">${found.size} of ${collectible.length} items</span></header>
       <div class="panel-body">
@@ -1610,6 +1659,29 @@ function enemySprite(e, box = 40) {
   const s = Math.max(1, Math.floor(box / Math.max(w, ht)));
   return h`<span class="esprite-box" style="width:${box}px;height:${box}px"><span class="esprite" role="img" aria-label="${e.name}" style="width:${w * s}px;height:${ht * s}px;background-size:${ENEMIES.sheetWidth * s}px auto;background-position:-${x * s}px -${y * s}px"></span></span>`;
 }
+// Killers: the enemy (or damaging floor) behind a name in the graveyard. The server records
+// some killers by object id, so names are first mapped to what the game shows (killers.json,
+// built by tools/codex/killers.mjs); floors like lava get their tile as an icon and no page.
+let KILLERS = null;
+async function loadKillers() {
+  if (!KILLERS) {
+    const [E, k] = await Promise.all([loadEnemies(), staticJson('/catalog/killers.json').catch(() => ({}))]);
+    const K = {names: k.names ?? {}, hazards: k.hazards ?? {}, sheet: k.sheet ?? {width: 0}};
+    const byName = new Map();
+    for (const e of E.list) { const k = e.name.toLowerCase(); if (!byName.has(k) || (!byName.get(k).sprite && e.sprite)) byName.set(k, e); }
+    KILLERS = name => {
+      const shown = K.names[name] ?? name ?? '';
+      const enemy = byName.get(shown.toLowerCase()) ?? null, tile = K.hazards[shown] ?? null;
+      const icon = box => {
+        if (enemy?.sprite || !tile) return enemySprite(enemy, box);
+        const sc = Math.max(1, Math.floor(box / Math.max(tile.w, tile.h)));
+        return h`<span class="esprite-box" style="width:${box}px;height:${box}px"><span class="esprite hazard" role="img" aria-label="${shown}" style="width:${tile.w * sc}px;height:${tile.h * sc}px;background-size:${K.sheet.width * sc}px auto;background-position:-${tile.x * sc}px -${tile.y * sc}px"></span></span>`;
+      };
+      return {name: shown, enemy, icon};
+    };
+  }
+  return KILLERS;
+}
 const dropOrder = (a, b) => {
   // Consumables (potions first) at the top, then untiered items, then tiers from highest down.
   const rank = it => (!it ? 4 : it.slot === 10 ? (/^Potion of /.test(it.name) ? 0 : 1) : it.untiered ? 2 : 3);
@@ -1921,7 +1993,7 @@ async function route() {
     document.title = TITLES[nav] ? `${TITLES[nav]} | OpenEye` : 'OpenEye';
     if (!main.innerHTML) loading();
     try { await fn(m); }
-    catch (e) { view(h`<div class="notice error"><strong>This page could not load.</strong> ${e.status === 429 ? 'Too many requests. Wait a minute and try again.' : 'Try refreshing the page in a moment.'}</div>`); }
+    catch (e) { console.error(e); view(h`<div class="notice error"><strong>This page could not load.</strong> ${e.status === 429 ? 'Too many requests. Wait a minute and try again.' : 'Try refreshing the page in a moment.'}</div>`); }
     return;
   }
   notFound();

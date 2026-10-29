@@ -4,6 +4,12 @@
 import {createGameApi} from './gameapi.js';
 import {getMeta, setMetaStmt, now} from './schema.js';
 import {backfillHistory} from './backfill.js';
+import {KILLER_NAMES} from './killer-names.js';
+
+/** The name the game shows for a killer the server records by object id. */
+export const killerName = k => (typeof k === 'string' ? KILLER_NAMES[k] ?? k : null);
+// Changes whenever the generated names do, so deaths already on record are renamed once.
+const KILLER_NAMES_VERSION = String(Object.entries(KILLER_NAMES).flat().join('|').split('').reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7));
 
 const sleep = ms => (ms > 0 ? new Promise(r => setTimeout(r, ms)) : Promise.resolve());
 const TIMESPANS = ['week', 'month', 'all'];
@@ -272,7 +278,7 @@ export class Collector {
         const r = await this.api.deathDetail(d.account, d.char_id);
         await db.prepare(`UPDATE deaths SET name=?, class=?, tex1=?, tex2=?, level=?, died_at=?, killed_by=?, total_fame=?, base_fame=?,
           stats=?, bonuses=?, detail_status='ok', detail_error=NULL, detail_tries=detail_tries+1 WHERE account=? AND char_id=?`)
-          .bind(r.name ?? '', r.class ?? 0, r.tex1, r.tex2, r.level, r.diedAt, r.killedBy, r.totalFame ?? 0, r.baseFame,
+          .bind(r.name ?? '', r.class ?? 0, r.tex1, r.tex2, r.level, r.diedAt, killerName(r.killedBy), r.totalFame ?? 0, r.baseFame,
             JSON.stringify(r.stats), JSON.stringify(r.bonuses), d.account, d.char_id).run();
       } catch (e) {
         const tries = d.detail_tries + 1;
@@ -324,7 +330,7 @@ export class Collector {
       const keep = deaths.filter(d => listed.has(d.account)).map(d => ({
         account: d.account, id: d.id, name: d.name, class: d.class, level: Number.isSafeInteger(d.level) ? d.level : null,
         base_fame: Number.isSafeInteger(d.base_fame) ? d.base_fame : null, total_fame: d.total_fame, died_at: d.died_at,
-        killed_by: typeof d.killed_by === 'string' ? d.killed_by : null, equipment: JSON.stringify(d.equipment.slice(0, 4)),
+        killed_by: killerName(d.killed_by), equipment: JSON.stringify(d.equipment.slice(0, 4)),
         tex1: Number.isSafeInteger(d.tex1) ? d.tex1 : 0, tex2: Number.isSafeInteger(d.tex2) ? d.tex2 : 0,
         base_stats: Array.isArray(d.stats) && d.stats.length === 8 && d.stats.every(Number.isSafeInteger) ? JSON.stringify(d.stats) : null
       }));
@@ -356,6 +362,16 @@ export class Collector {
     if (added) this.log.info(`graveyard: ${added} death(s) recorded`);
   }
 
+  /** Deaths recorded under a killer's object id get the name the game shows. No requests. */
+  async syncKillerNames() {
+    if ((await getMeta(this.db, 'killer_names')) === KILLER_NAMES_VERSION) return;
+    const used = (await this.all('SELECT DISTINCT killed_by AS k FROM deaths WHERE killed_by IS NOT NULL')).map(r => r.k).filter(k => KILLER_NAMES[k]);
+    const stmts = used.map(k => this.db.prepare('UPDATE deaths SET killed_by = ? WHERE killed_by = ?').bind(KILLER_NAMES[k], k));
+    stmts.push(setMetaStmt(this.db, 'killer_names', KILLER_NAMES_VERSION));
+    await this.db.batch(stmts);
+    if (used.length) this.log.info(`killers: renamed ${used.join(', ')}`);
+  }
+
   /** History before tracking, filled in once every player death is on record. No requests. */
   async syncBackfill() {
     if ((await getMeta(this.db, 'graveyard_caught_up')) === null) return;
@@ -372,6 +388,7 @@ export class Collector {
       {name: 'hiscores', every: this.s.hiscoresMinutes * 60, run: () => this.syncHiscores()},
       {name: 'graveyard', every: this.s.graveyardMinutes * 60, run: () => this.syncGraveyard()},
       {name: 'backfill', every: this.s.graveyardMinutes * 60, run: () => this.syncBackfill()},
+      {name: 'killers', every: this.s.graveyardMinutes * 60, run: () => this.syncKillerNames()},
       {name: 'deaths', every: this.s.deathsMinutes * 60, run: () => this.syncDeathDetails()}
     ];
   }
