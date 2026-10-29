@@ -117,7 +117,7 @@ const imagePixels = src => new Promise((resolve, reject) => {
 });
 async function loadDyes() {
   try {
-    const [meta, chars, textiles] = await Promise.all([staticJson('/catalog/dyes.json'), imagePixels('/catalog/dyes.png'), imagePixels('/catalog/textiles.png')]);
+    const [meta, chars, textiles] = await Promise.all([staticJson('/catalog/dyes.json'), imagePixels('/catalog/dyes.png?v=2'), imagePixels('/catalog/textiles.png?v=2')]);
     DYES = {meta, chars, textiles, cache: new Map()};
   } catch { DYES = null; }
 }
@@ -258,7 +258,7 @@ function gameTexture(img, sx, sy, w, h, scale) {
   return out;
 }
 const sheetReady = () => new Promise(resolve => {
-  if (!TIP.sheet) { TIP.sheet = new Image(); TIP.sheet.src = '/catalog/items.png'; }
+  if (!TIP.sheet) { TIP.sheet = new Image(); TIP.sheet.src = '/catalog/items.png?v=2'; }
   if (TIP.sheet.complete && TIP.sheet.naturalWidth) resolve(TIP.sheet); else TIP.sheet.addEventListener('load', () => resolve(TIP.sheet), {once: true});
 });
 // An item drawn the way the client does: tooltips use size 60 (3x, cropped by 4px), inventory slots size 80 (4x).
@@ -302,7 +302,9 @@ async function showTip(target, x, y) {
   }
   // TextToolTip: a bold white title and a grey line, in the same box (used by the Nexus button).
   if (target.dataset.tipTitle) {
-    el.innerHTML = String(h`<div class="itip-title itip-text">${target.dataset.tipTitle}</div><div class="itip-desc itip-text">${target.dataset.tipText ?? ''}</div>`);
+    // data-tip-crown: the title is a crown holder, drawn with their crown (its value is their stars).
+    const crown = target.dataset.tipCrown !== undefined ? h`${crownIcon(Number(target.dataset.tipCrown), 16)} ` : '';
+    el.innerHTML = String(h`<div class="itip-title itip-text${crown ? ' itip-crowned' : ''}">${crown}${target.dataset.tipTitle}</div><div class="itip-desc itip-text">${target.dataset.tipText ?? ''}</div>`);
     el.hidden = false;
     return moveTip(x, y);
   }
@@ -1022,8 +1024,8 @@ function crownStrip(reigns, t0, paint, {times = true} = {}) {
   const nowTs = Math.floor(Date.now() / 1000);
   const pos = t => Math.max(0, Math.min(100, ((t - t0) / Math.max(1, nowTs - t0)) * 100));
   return h`<div class="crown-strip" role="img" aria-label="Who held the crown, ${shortDay(t0)} to now">${reigns.map(r => {
-    const [a, b, , name] = r, {cls = '', color = ''} = paint(r);
-    const tip = raw(`data-tip-title="${esc(!times ? name ?? 'Nobody' : name ? `${name} wore the crown` : 'Nobody wore the crown')}" data-tip-text="${esc(times ? `${lasted(b - a)} · ${date(a)} to ${b >= nowTs - 120 ? 'now' : date(b)}` : lasted(b - a))}"`);
+    const [a, b, , name, stars] = r, {cls = '', color = ''} = paint(r);
+    const tip = raw(`${name ? `data-tip-crown="${Number(stars) || 0}" ` : ''}data-tip-title="${esc(!times ? name ?? 'Nobody' : name ? `${name} wore the crown` : 'Nobody wore the crown')}" data-tip-text="${esc(times ? `${lasted(b - a)} · ${date(a)} to ${b >= nowTs - 120 ? 'now' : date(b)}` : lasted(b - a))}"`);
     const style = `left:${pos(a)}%;width:${pos(b) - pos(a)}%${color ? `;background:${color}` : ''}`;
     return name ? h`<a class="${cls}" href="/player/${encodeURIComponent(name)}" data-link style="${style}" ${tip}></a>` : h`<span class="none" style="${style}" ${tip}></span>`;
   })}</div>`;
@@ -2309,7 +2311,7 @@ function drawBrand() {
   const el = document.getElementById('brand-potion');
   if (!it?.sprite) { el.removeAttribute('style'); return; }
   const s = 4; // 8px sprite at 4x, 32px tall like the logo
-  el.style.cssText = `background-image:url(/catalog/items.png);background-size:${320 * s}px auto;background-position:-${(it.sprite.x + 4) * s}px -${(it.sprite.y + 4) * s}px`;
+  el.style.cssText = `background-image:url(/catalog/items.png?v=2);background-size:${320 * s}px auto;background-position:-${(it.sprite.x + 4) * s}px -${(it.sprite.y + 4) * s}px`;
 }
 function setTheme(key, {intro = false} = {}) {
   if (key) document.documentElement.dataset.theme = key; else delete document.documentElement.dataset.theme;

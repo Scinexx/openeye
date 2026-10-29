@@ -215,7 +215,7 @@ main { flex: 1; width: 100%; max-width: var(--max); margin: 0 auto; padding: 32p
   display: inline-block; flex: none; vertical-align: middle;
   image-rendering: pixelated; image-rendering: crisp-edges;
 }
-.sprite { background-image: url(/catalog/items.png); background-repeat: no-repeat; }
+.sprite { background-image: url(/catalog/items.png?v=2); background-repeat: no-repeat; }
 .sprite.none { background: var(--stone-deep); box-shadow: inset 0 0 0 2px var(--bevel-dark); }
 .sprite.missing { filter: brightness(0) opacity(0.55); }
 .slot { display: inline-flex; padding: 2px; background: var(--stone-deep); border: 2px solid var(--bevel-dark); }
@@ -524,6 +524,8 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
   --cut: polygon(4px 0, calc(100% - 4px) 0, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 0 calc(100% - 4px), 0 4px);
 }
 .itip[hidden] { display: none; }
+.itip-crowned { display: flex; align-items: center; gap: 4px; }
+.itip-crowned .crown { flex: none; }
 .itip-title, .itip-tier, .itip-desc, .itip-fx, .itip-req { white-space: pre-wrap; }
 .itip::before, .itip::after { content: ""; position: absolute; z-index: -1; clip-path: var(--cut); }
 .itip::before { inset: 0; background: #9b9b9b; }
@@ -579,8 +581,8 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
   filter: drop-shadow(1px 0 0 #000) drop-shadow(-1px 0 0 #000) drop-shadow(0 1px 0 #000) drop-shadow(0 -1px 0 #000) drop-shadow(0 0 3px rgba(0, 0, 0, .45));
 }
 .esprite-box { display: inline-flex; align-items: center; justify-content: center; flex: none; }
-.esprite { display: block; background: url(/catalog/enemies.png) no-repeat; image-rendering: pixelated; image-rendering: crisp-edges; }
-.esprite.hazard { background-image: url(/catalog/killers.png); }
+.esprite { display: block; background: url(/catalog/enemies.png?v=2) no-repeat; image-rendering: pixelated; image-rendering: crisp-edges; }
+.esprite.hazard { background-image: url(/catalog/killers.png?v=2); }
 .esprite.none { background: var(--stone-deep); box-shadow: inset 0 0 0 2px var(--bevel-dark); filter: none; }
 .enemy-frame { display: inline-flex; padding: 12px; background: var(--stone-deep); border: 2px solid var(--bevel-dark); }
 .enemy-flags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
@@ -617,7 +619,7 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 .grave { display: inline-flex; align-items: flex-end; gap: 6px; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--bone-dim); }
 .grave.hl { color: var(--accent); }
 .grave > span:last-child { line-height: 1; }
-.grave-sprite { display: block; flex: none; background: url(/catalog/graves.png) no-repeat; image-rendering: pixelated; image-rendering: crisp-edges;
+.grave-sprite { display: block; flex: none; background: url(/catalog/graves.png?v=2) no-repeat; image-rendering: pixelated; image-rendering: crisp-edges;
   filter: drop-shadow(1px 0 0 #000) drop-shadow(-1px 0 0 #000) drop-shadow(0 1px 0 #000) drop-shadow(0 -1px 0 #000) drop-shadow(0 0 3px rgba(0, 0, 0, .45)); }
 .rows .grave { font-size: 0.9rem; min-width: 3.4em; }
 .death-head-line { display: flex; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
@@ -881,7 +883,7 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
    the stage centre; y from charContainer (245.85) with the resized bitmap's 12px padding
    (TextureRedrawer.resize) = 48.65 above the stage centre. Two frames, 200 ms each. */
 .map-loading .ml-char { position: absolute; left: calc(50% + 4.5px); top: calc(50% - 48.65px); width: 40px; height: 40px;
-  transform: translate(-50%, -50%); background: url(/catalog/walk.png) no-repeat 0 var(--walk-y, 0);
+  transform: translate(-50%, -50%); background: url(/catalog/walk.png?v=2) no-repeat 0 var(--walk-y, 0);
   image-rendering: pixelated; image-rendering: crisp-edges; animation: ml-walk .4s steps(1, end) infinite; }
 @keyframes ml-walk { 0% { background-position: 0 var(--walk-y, 0); } 50% { background-position: -40px var(--walk-y, 0); } }
 .map-loading .ml-name { position: absolute; left: calc(50% - 0.5px); top: calc(50% - 9.5px); transform: translateX(-50%);
@@ -982,7 +984,7 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 :root[data-theme="cellar"] { --stone: #120e16; --stone-deep: #0c090f; --panel: #221c29; --panel-raised: #2b2333; --bevel-light: #7a4a24; --bevel-dark: #070509; --muted: #aca2b8; --bone: #f3eef8; --bone-dim: #cec4da; --accent: #ff4d4d; --accent-line: #7a1c1c; --accent-wash: #2c1720; }
 :root[data-theme="cellar"] body::before { background: #050407; }
 #theme-fx .fx-cellar { left: 50%; top: 50%; width: 2240px; height: 2112px; margin: -1024px 0 0 -1344px; will-change: transform;
-  background: url(/catalog/cellar.png) 0 0 / 100% 100% no-repeat; image-rendering: pixelated; image-rendering: crisp-edges;
+  background: url(/catalog/cellar.png?v=2) 0 0 / 100% 100% no-repeat; image-rendering: pixelated; image-rendering: crisp-edges;
   animation: fx-pan 90s ease-in-out infinite alternate; }
 @keyframes fx-pan { from { transform: translate(120px, 40px); } to { transform: translate(-300px, -90px); } }
 #theme-fx .fx-gloom { inset: 0; background:
@@ -991,7 +993,7 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
   rgb(12 8 16 / .35); }
 #theme-fx .fx-oryx { right: max(2vw, 12px); bottom: 0; width: min(256px, 42vw); aspect-ratio: 1; will-change: transform; animation: fx-loom 6s ease-in-out infinite alternate; }
 #theme-fx .fx-oryx::before { content: ""; position: absolute; inset: 0; opacity: .92;
-  background: url(/catalog/oryx.png) 0 0 / 100% 100% no-repeat; image-rendering: pixelated; image-rendering: crisp-edges;
+  background: url(/catalog/oryx.png?v=2) 0 0 / 100% 100% no-repeat; image-rendering: pixelated; image-rendering: crisp-edges;
   filter: drop-shadow(0 0 24px rgb(0 0 0 / .9)) drop-shadow(0 0 2px rgb(255 60 60 / .3)); }
 @keyframes fx-loom { from { transform: translateY(6px); } to { transform: translateY(-6px); } }
 /* The eyes are the sprite's red pixels (6,4) and (9,4) of 16. */
