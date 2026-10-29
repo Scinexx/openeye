@@ -746,7 +746,7 @@ function crownLine(reigns, days) {
     color.set(acc, shade(base, n));
   }
   // Just the strip: hovering a stretch names who held the crown and for how long.
-  return h`<div class="crown-line">${crownStrip(reigns, reigns[0][0], r => ({cls: 'held', color: color.get(r[2])}))}</div>`;
+  return h`<div class="crown-line">${crownStrip(reigns, reigns[0][0], r => ({cls: 'held', color: color.get(r[2])}), {times: false})}</div>`;
 }
 // Oryx's most loyal: the enemy with the most level 20 player kills on record.
 function loyalBox(l) {
@@ -1018,12 +1018,12 @@ const lasted = s => {
  * every reign, gaps included, says on hover who held the crown and for how long, and a
  * reign with a holder links to their profile.
  */
-function crownStrip(reigns, t0, paint) {
+function crownStrip(reigns, t0, paint, {times = true} = {}) {
   const nowTs = Math.floor(Date.now() / 1000);
   const pos = t => Math.max(0, Math.min(100, ((t - t0) / Math.max(1, nowTs - t0)) * 100));
   return h`<div class="crown-strip" role="img" aria-label="Who held the crown, ${shortDay(t0)} to now">${reigns.map(r => {
     const [a, b, , name] = r, {cls = '', color = ''} = paint(r);
-    const tip = raw(`data-tip-title="${esc(name ? `${name} wore the crown` : 'Nobody wore the crown')}" data-tip-text="${esc(`${lasted(b - a)} · ${date(a)} to ${b >= nowTs - 120 ? 'now' : date(b)}`)}"`);
+    const tip = raw(`data-tip-title="${esc(!times ? name ?? 'Nobody' : name ? `${name} wore the crown` : 'Nobody wore the crown')}" data-tip-text="${esc(times ? `${lasted(b - a)} · ${date(a)} to ${b >= nowTs - 120 ? 'now' : date(b)}` : lasted(b - a))}"`);
     const style = `left:${pos(a)}%;width:${pos(b) - pos(a)}%${color ? `;background:${color}` : ''}`;
     return name ? h`<a class="${cls}" href="/player/${encodeURIComponent(name)}" data-link style="${style}" ${tip}></a>` : h`<span class="none" style="${style}" ${tip}></span>`;
   })}</div>`;
