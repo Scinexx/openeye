@@ -251,6 +251,41 @@ export function makeApi(db, catalog, settings) {
     return {name: (await fameToday(1))[0]?.name ?? null};
   }
 
+  /**
+   * If nobody earns any more fame, when does the crown change hands, and to whom? Gains only
+   * leave the 24-hour window from here on, so replay their expiry until the leader changes.
+   */
+  async function crownForecast() {
+    const t = now();
+    const gains = await q(`SELECT g.account, g.at, g.amount FROM fame_gains g
+      JOIN players p ON p.account = g.account AND ${rankedWhere(settings.minRankedStat, 'p.')}
+      WHERE g.at > ? AND g.amount > 0 ORDER BY g.at`, t - 86400);
+    const sums = new Map(), last = new Map();
+    for (const g of gains) { sums.set(g.account, (sums.get(g.account) ?? 0) + g.amount); last.set(g.account, g.at); }
+    const leader = () => {
+      let lead = null, best = 0;
+      for (const [a, v] of sums) if (v > best || (v === best && v > 0 && lead !== null && last.get(a) < last.get(lead))) { lead = a; best = v; }
+      return lead;
+    };
+    const holder = leader();
+    if (holder === null) return null;
+    for (let i = 0; i < gains.length; ) {
+      const at = gains[i].at + 86400;
+      for (; i < gains.length && gains[i].at + 86400 === at; i++) sums.set(gains[i].account, sums.get(gains[i].account) - gains[i].amount);
+      const next = leader();
+      if (next !== holder) {
+        const who = next === null ? null : await one('SELECT name, stars FROM players WHERE account = ?', next);
+        return {until: at, next: who && {name: who.name, stars: who.stars}};
+      }
+    }
+    return null;
+  }
+  /** The crown page: every reign since records began, the race for it now, and the forecast. */
+  async function crownHistory() {
+    const [reigns, board, forecast, from] = await Promise.all([crownReigns(), fameToday(5), crownForecast(), getMeta(db, 'fame_earned_since')]);
+    return {now: now(), from: Number(from ?? now()), reigns, board, forecast};
+  }
+
   async function summary() {
     const counts = await one(`SELECT
       (SELECT COUNT(*) FROM players WHERE ${RANKED}) AS players,
@@ -465,7 +500,7 @@ export function makeApi(db, catalog, settings) {
       since: Number(await getMeta(db, 'guilds_since') ?? 0) || null};
   }
 
-  return {status, summary, crown, fameToday, fameEarned, deadliest, rankings, characters, search, player, graveyard, death, legends, loot, lootTiers, items, item, guilds, guild};
+  return {status, summary, crown, crownHistory, fameToday, fameEarned, deadliest, rankings, characters, search, player, graveyard, death, legends, loot, lootTiers, items, item, guilds, guild};
 }
 
 const int = (v, max) => Math.min(max, Math.max(1, Math.floor(Number(v)) || 1));
@@ -476,6 +511,7 @@ export async function routeApi(api, url) {
   let m;
   if (p === '/api/status') return api.status();
   if (p === '/api/crown') return api.crown();
+  if (p === '/api/crown-history') return api.crownHistory();
   if (p === '/api/summary') return api.summary();
   if ((m = p.match(/^\/api\/rankings\/([a-z_]+)$/))) return api.rankings(m[1]);
   if (p === '/api/characters') return api.characters({dead: url.searchParams.get('dead') === '1'});

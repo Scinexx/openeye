@@ -46,3 +46,21 @@ test('a profile knows when the player wore the daily fame crown', async () => {
     assert.deepEqual(cb, [[t0 + 3600, t0 + 3600 + 86400]]);
   } finally { t.close(); }
 });
+
+test('the crown page knows who is next if nobody earns more', async () => {
+  const t = await setup({ticking: false});
+  try {
+    await t.collector().syncHiscores();
+    const at = Math.floor(Date.now() / 1000);
+    const {results: [a, b]} = await t.db.prepare('SELECT account, name FROM players ORDER BY account LIMIT 2').all();
+    await t.db.prepare('DELETE FROM fame_gains').run();
+    await t.db.prepare("UPDATE meta SET value = ? WHERE key = 'fame_earned_since'").bind(String(at - 86400)).run();
+    const gain = (account, when, amount) => t.db.prepare('INSERT INTO fame_gains(account, at, amount) VALUES(?, ?, ?)').bind(account, when, amount).run();
+    await gain(a.account, at - 20 * 3600, 100);
+    await gain(b.account, at - 10 * 3600, 80);
+    const d = await t.api.crownHistory();
+    assert.equal(d.reigns.at(-1)[2], a.account, 'a wears it now');
+    assert.equal(d.board[0].name, a.name);
+    assert.deepEqual(d.forecast, {until: at - 20 * 3600 + 86400, next: {name: b.name, stars: d.board[1].stars}});
+  } finally { t.close(); }
+});

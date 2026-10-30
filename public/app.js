@@ -747,23 +747,32 @@ function shade(hex, step) {
   }
   return `#${shades[step % shades.length].map(c => c.toString(16).padStart(2, '0')).join('')}`;
 }
-function crownLine(reigns, days) {
+/** Everyone who wore the crown in a list of reigns, most time first. */
+function crownHolders(reigns) {
   const held = new Map();
   for (const [a, b, acc, name, stars] of reigns) if (acc !== null) {
-    const e = held.get(acc) ?? {name, stars, t: 0};
-    e.t += b - a;
+    const e = held.get(acc) ?? {acc, name, stars, t: 0, n: 0, longest: null};
+    e.t += b - a; e.n++;
+    if (!e.longest || b - a > e.longest[1] - e.longest[0]) e.longest = [a, b];
     held.set(acc, e);
   }
-  if (!held.size) return '';
-  const ranked = [...held.entries()].sort((x, y) => y[1].t - x[1].t);
+  return [...held.values()].sort((x, y) => y.t - x.t);
+}
+function crownColors(holders) {
   const seen = new Map(), color = new Map();
-  for (const [acc, e] of ranked) {
+  for (const e of holders) {
     const base = starColor(e.stars), n = seen.get(base) ?? 0;
     seen.set(base, n + 1);
-    color.set(acc, shade(base, n));
+    color.set(e.acc, shade(base, n));
   }
+  return color;
+}
+function crownLine(reigns, days) {
+  const holders = crownHolders(reigns);
+  if (!holders.length) return '';
+  const color = crownColors(holders);
   // Just the strip: hovering a stretch names who held the crown and for how long.
-  return h`<div class="crown-line"><span>Crown · ${days === 1 ? '24h' : `${days}d`}</span>${crownStrip(reigns, reigns[0][0], r => ({cls: 'held', color: color.get(r[2])}), {times: false})}<span>now</span></div>`;
+  return h`<div class="crown-line"><a href="/crown" data-link>Crown · ${days === 1 ? '24h' : `${days}d`}</a>${crownStrip(reigns, reigns[0][0], r => ({cls: 'held', color: color.get(r[2])}), {times: false})}<span>now</span></div>`;
 }
 // Oryx's most loyal: the enemy with the most level 20 player kills on record.
 function loyalBox(l) {
@@ -1072,6 +1081,161 @@ function profileStats(data, p, estimated, killer) {
   const halves = cards.filter(([, w]) => w === 'half');
   if (halves.length % 2) halves.at(-1)[1] = 'wide';
   return cards.length ? h`<section class="panel" style="margin-top:24px"><header><h2>Stats</h2></header><div class="panel-body stat-grid">${cards.map(([c, w]) => h`<div class="stat-cell${w === 'wide' ? ' wide' : ''}">${c}</div>`)}</div></section>` : '';
+}
+
+// ---- The Crown: every reign since records began ----
+const CROWN_SPANS = [[1, '24 hours'], [7, '7 days'], [30, '30 days'], [0, 'All time']];
+const ordinal = n => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`;
+const crownWho = (name, stars, size = 16) => h`<span class="player">${crownIcon(stars, size)}<a href="/player/${encodeURIComponent(name)}" data-link>${name}</a></span>`;
+
+async function crownPage() {
+  const d = await get('/api/crown-history');
+  document.title = 'The Crown | OpenEye';
+  const reigns = d.reigns, all = crownHolders(reigns), allColors = crownColors(all);
+  const last = reigns.at(-1), cur = last && last[2] !== null ? last : null;
+  const lengths = reigns.map(r => r[1] - r[0]).sort((a, b) => b - a);
+  const leader = d.board[0], second = d.board[1];
+
+  // Handovers: each reign that began by taking the crown from someone (or from nobody).
+  const handovers = [], pairs = new Map(), days = new Map();
+  reigns.forEach((r, i) => {
+    if (!i || r[2] === null) return;
+    const prev = reigns[i - 1];
+    handovers.push({at: r[0], to: r, from: prev[2] === null ? null : prev});
+    const k = new Date(r[0] * 1000).toDateString();
+    days.set(k, (days.get(k) ?? 0) + 1);
+    if (prev[2] === null) return;
+    const [x, y] = [prev, r].sort((p, q) => p[2] - q[2]), key = `${x[2]}:${y[2]}`;
+    const e = pairs.get(key) ?? {a: x, b: y, n: 0, took: new Map()};
+    e.n++; e.took.set(r[2], (e.took.get(r[2]) ?? 0) + 1);
+    pairs.set(key, e);
+  });
+  const rivals = [...pairs.values()].sort((p, q) => q.n - p.n).slice(0, 5);
+  const ended = reigns.filter(r => r[2] !== null && r !== cur);
+  const briefest = ended.filter(r => r[1] - r[0] >= 60).sort((p, q) => (p[1] - p[0]) - (q[1] - q[0]))[0];
+  const longest = reigns.filter(r => r[2] !== null).sort((p, q) => (q[1] - q[0]) - (p[1] - p[0]))[0];
+  const mostReigns = [...all].sort((p, q) => q.n - p.n || q.t - p.t)[0];
+  const busiest = [...days.entries()].sort((p, q) => q[1] - p[1])[0];
+  const totalTime = Math.max(1, d.now - d.from);
+
+  const raceMax = Math.max(1, ...d.board.map(b => b.fame));
+  const hero = cur ? h`
+    <div class="crown-hero-main">
+      <div class="crown-hero-icon" aria-hidden="true">${crownIcon(cur[4], 76)}</div>
+      <div class="crown-hero-text">
+        <p class="crown-eyebrow">Wearing the crown</p>
+        <h1 class="crown-holder"><a href="/player/${encodeURIComponent(cur[3])}" data-link>${cur[3]}</a></h1>
+        <dl class="crown-facts">
+          <div><dt>Reign</dt><dd class="gold" data-reign-since="${cur[0]}">${downFor(cur[0])}</dd>
+            <span>${lengths.indexOf(cur[1] - cur[0]) >= 0 ? `${ordinal(lengths.indexOf(cur[1] - cur[0]) + 1)} longest of ${fmt(lengths.length)}` : ''}</span></div>
+          <div><dt>Fame in 24h</dt><dd class="fame">+${fmt(leader?.fame ?? 0)}</dd><span>most of anyone</span></div>
+          <div><dt>Lead</dt><dd>${second ? `+${fmt(leader.fame - second.fame)}` : '—'}</dd><span>${second ? h`over ${second.name}` : 'unchallenged'}</span></div>
+          <div data-tip-title="If nobody earns more fame" data-tip-text="${d.forecast ? `Fame earned over 24 hours ago stops counting, so ${d.forecast.next ? `${d.forecast.next.name} would take the crown` : 'the crown would be left empty'} at ${date(d.forecast.until)}.` : 'Nothing is due to change.'}">
+            <dt>Safe until</dt><dd>${d.forecast ? new Date(d.forecast.until * 1000).toLocaleTimeString(undefined, {hour: 'numeric', minute: '2-digit'}) : '—'}</dd>
+            <span>${d.forecast?.next ? h`then ${d.forecast.next.name}` : 'if nobody earns more'}</span></div>
+        </dl>
+      </div>
+    </div>` : h`<div class="crown-hero-main"><div class="crown-hero-icon empty" aria-hidden="true">${crownIcon(0, 76, '#5a4630')}</div>
+      <div class="crown-hero-text"><p class="crown-eyebrow">The crown</p><h1 class="crown-holder">Unclaimed</h1><p class="muted">Nobody has earned fame in the last 24 hours. The first to earn any takes it.</p></div></div>`;
+
+  view(h`
+    <section class="crown-hero" aria-label="Current crown holder">
+      ${hero}
+      <div class="crown-race">
+        <h2>The race <span>fame earned, last 24 hours</span></h2>
+        ${d.board.length ? h`<ol>${d.board.map((b, i) => h`<li class="${i ? '' : 'lead'}">
+          <span class="place">${i + 1}</span>
+          <span class="who">${i ? playerLink(b.name, b.stars) : crownWho(b.name, b.stars)}</span>
+          <span class="race-bar"><i style="width:${(b.fame / raceMax) * 100}%"></i></span>
+          <span class="race-n">+${fmt(b.fame)}</span>
+        </li>`)}</ol>` : h`<p class="muted">No fame earned in the last 24 hours.</p>`}
+      </div>
+    </section>
+
+    <section class="panel crown-timeline">
+      <header><h2>Timeline</h2><nav class="tabs mini-tabs" aria-label="Period">${CROWN_SPANS.map(([n, label]) => h`<button type="button" data-crown-span="${n}">${label}</button>`)}</nav></header>
+      <div class="panel-body" id="crown-timeline"></div>
+    </section>
+
+    <div class="grid-2 crown-grid">
+      <section class="panel">
+        <header><h2>Most time crowned</h2><span class="muted">since ${day(d.from)}</span></header>
+        ${all.length ? h`<div class="table-wrap"><table class="crown-table">
+          <thead><tr><th>#</th><th>Player</th><th>Time crowned</th><th class="n">Reigns</th><th class="n">Longest</th></tr></thead>
+          <tbody>${all.slice(0, 15).map((e, i) => h`<tr class="${i ? '' : 'top1'}">
+            <td class="rank">${i + 1}</td>
+            <td>${crownWho(e.name, e.stars)}</td>
+            <td><span class="share"><i style="width:${(e.t / totalTime) * 100}%;background:${allColors.get(e.acc)}"></i></span><b>${lasted(e.t)}</b> <span class="muted">${Math.round((e.t / totalTime) * 100)}%</span></td>
+            <td class="n">${fmt(e.n)}</td>
+            <td class="n">${lasted(e.longest[1] - e.longest[0])}</td>
+          </tr>`)}</tbody></table></div>` : h`<p class="empty">Nobody has worn the crown yet.</p>`}
+      </section>
+      <section class="panel">
+        <header><h2>Records</h2></header>
+        <div class="panel-body crown-records">
+          ${[
+            longest && ['Longest reign', lasted(longest[1] - longest[0]), longest, `from ${date(longest[0])}`],
+            mostReigns && ['Most reigns', `${fmt(mostReigns.n)} reigns`, [0, 0, mostReigns.acc, mostReigns.name, mostReigns.stars], `${lasted(mostReigns.t)} in all`],
+            briefest && ['Briefest reign', lasted(briefest[1] - briefest[0]), briefest, `on ${date(briefest[0])}`],
+            busiest && ['Busiest day', `${fmt(busiest[1])} handover${busiest[1] === 1 ? '' : 's'}`, null, new Date(busiest[0]).toLocaleDateString(undefined, {weekday: 'long', month: 'short', day: 'numeric'})]
+          ].filter(Boolean).map(([label, big, r, sub]) => h`<div class="record">
+            <span class="record-label">${label}</span>
+            <b class="record-big">${big}</b>
+            ${r ? crownWho(r[3], r[4]) : ''}
+            <span class="muted">${sub}</span>
+          </div>`)}
+        </div>
+      </section>
+      <section class="panel">
+        <header><h2>Handovers</h2><span class="muted">${fmt(handovers.length)} in all</span></header>
+        ${handovers.length ? h`<ul class="rows crown-feed">${handovers.slice(-8).reverse().map(x => h`<li>
+          <span class="feed-crown">${crownIcon(x.to[4], 22)}</span>
+          <span class="grow"><span class="title">${playerLink(x.to[3], x.to[4], {star: false})} ${x.from ? h`took the crown from ${playerLink(x.from[3], x.from[4], {star: false})}` : 'claimed the empty crown'}</span>
+          <span class="sub">${x.from ? `${x.from[3]} had worn it ${lasted(x.from[1] - x.from[0])} · ` : ''}${when(x.at)}</span></span>
+          <span class="muted">${x.to === cur ? 'still wearing it' : `kept it ${lasted(x.to[1] - x.to[0])}`}</span>
+        </li>`)}</ul>` : h`<p class="empty">No handovers yet.</p>`}
+      </section>
+      <section class="panel">
+        <header><h2>Rivalries</h2><span class="muted">most handovers between two players</span></header>
+        ${rivals.length ? h`<ul class="rows crown-rivals">${rivals.map(r => h`<li>
+          <span class="rival">${crownWho(r.a[3], r.a[4])} <b class="took">${r.took.get(r.a[2]) ?? 0}</b></span>
+          <span class="versus"><i style="width:${((r.took.get(r.a[2]) ?? 0) / r.n) * 100}%;background:${allColors.get(r.a[2])}"></i><i style="width:${((r.took.get(r.b[2]) ?? 0) / r.n) * 100}%;background:${allColors.get(r.b[2])}"></i></span>
+          <span class="rival right"><b class="took">${r.took.get(r.b[2]) ?? 0}</b> ${crownWho(r.b[3], r.b[4])}</span>
+        </li>`)}</ul><p class="stat-foot" style="padding:0 16px 14px">The numbers are how many times each took the crown from the other.</p>` : h`<p class="empty">No rivalries yet: the crown has not changed hands between two players.</p>`}
+      </section>
+    </div>`);
+
+  // Timeline: the strip with dates, then a lane for each holder in the period.
+  const drawTimeline = n => {
+    main.querySelectorAll('[data-crown-span]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.crownSpan) === n)));
+    try { localStorage.setItem('crownSpan', String(n)); } catch { /* storage unavailable */ }
+    const t0 = n ? Math.max(d.from, d.now - n * 86400) : d.from;
+    const cut = reigns.filter(r => r[1] > t0).map(r => [Math.max(r[0], t0), ...r.slice(1)]);
+    const holders = crownHolders(cut), color = crownColors(holders), span = Math.max(1, d.now - t0);
+    const pct = t => `${((t - t0) / span) * 100}%`;
+    const ticks = timeTicks(t0, d.now, 7).filter(k => (k.t - t0) / span > 0.06 && (k.t - t0) / span < 0.94);
+    document.getElementById('crown-timeline').innerHTML = String(holders.length ? h`
+      <div class="crown-main">${crownStrip(cut, t0, r => ({cls: 'held', color: color.get(r[2])}))}</div>
+      <div class="crown-axis"><span class="first">${n === 1 ? new Date(t0 * 1000).toLocaleTimeString(undefined, {hour: 'numeric', minute: '2-digit'}) : shortDay(t0)}</span>${ticks.map(k => h`<span style="left:${pct(k.t)}">${k.label}</span>`)}<span class="last">Now</span></div>
+      <div class="crown-lanes">${holders.slice(0, 10).map(e => h`<div class="lane">
+        <span class="lane-who">${crownWho(e.name, e.stars, 14)}</span>
+        ${crownStrip(cut.filter(r => r[2] === e.acc), t0, () => ({cls: 'held', color: color.get(e.acc)}))}
+        <span class="lane-t"><b>${lasted(e.t)}</b> <span class="muted">${Math.round((e.t / span) * 100)}%</span></span>
+      </div>`)}${holders.length > 10 ? h`<p class="muted">And ${holders.length - 10} more.</p>` : ''}</div>` : h`<p class="empty">Nobody wore the crown in this period.</p>`);
+  };
+  main.querySelector('.crown-timeline nav').addEventListener('click', e => { const b = e.target.closest('[data-crown-span]'); if (b) drawTimeline(Number(b.dataset.crownSpan)); });
+  let saved = 1;
+  try { const v = localStorage.getItem('crownSpan'); if (v !== null && CROWN_SPANS.some(([n]) => n === Number(v))) saved = Number(v); } catch { /* storage unavailable */ }
+  drawTimeline(saved);
+
+  // The current reign's clock keeps running.
+  const clock = main.querySelector('[data-reign-since]');
+  if (clock) {
+    const timer = setInterval(() => {
+      if (!clock.isConnected) return clearInterval(timer);
+      clock.textContent = downFor(Number(clock.dataset.reignSince));
+    }, 1000);
+  }
 }
 
 async function player(name) {
@@ -1989,6 +2153,7 @@ const routes = [
   [/^\/about$/, () => about(), 'about'],
   [/^\/auras\/?$/, () => auras(), ''],
   [/^\/vault\/?$/, () => vault(), ''],
+  [/^\/crown\/?$/, () => crownPage(), ''],
   [/^\/guilds\/?$/, () => guildsPage(), 'guilds'],
   [/^\/guild\/([^/]+)$/, m => guildPage(decodeURIComponent(m[1])), 'guilds']
 ];
