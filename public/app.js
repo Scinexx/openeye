@@ -1997,8 +1997,8 @@ function auras() {
 }
 
 // ---------- the Vault (unlisted: /vault) ----------
-// Every theme in one place, kept in vault chests like the game's: click an item to wear its
-// theme, double-click to use it as in the game (loading screens, sounds and effects included).
+// Every theme in one place, kept in vault chests like the game's: click an item to use it
+// as in the game (loading screens, sounds and effects included).
 const THEME_NOTES = {
   '': 'The Nexus: the default stone theme.',
   life: 'Healing light: soft green crosses rise like the game’s heal effect.',
@@ -2054,7 +2054,7 @@ function vaultChests(scale) {
   </section>`);
 }
 const vaultNexus = size => h`<button type="button" class="vault-nexus" data-vault="" aria-pressed="${currentTheme() === ''}"><img src="/icons/nexus.png" width="${size}" height="${size}" alt=""><span>Nexus</span></button>`;
-// Click an item to wear its theme, double-click to use it. Returns the function that redraws
+// Click an item to use it. Returns the function that redraws
 // which slot is worn; it also runs whenever the theme changes some other way (the header menu).
 function bindVault(box) {
   const sync = () => {
@@ -2073,20 +2073,10 @@ function bindVault(box) {
     const b = e.target.closest('[data-vault]');
     if (!b || mapLoading) return;
     const key = b.dataset.vault;
-    if (e.detail > 1) return; // the double-click handler takes it from here
-    // Consumables are used straight away, like in the theme menu.
-    if (BREWS.some(t => t[0] === key)) { hideTip(); useItem(key, fxAt(b)); setTimeout(sync, 1100); return sync(); }
-    if (key === currentTheme() && key) return;
-    sober();
-    playSound(ALL_KEYS.some(k => k[0] === key) || key === 'cellar' ? '/sfx/use_key.mp3' : '/sfx/use_potion.mp3');
-    setTheme(key, {intro: true});
-    sync();
-  });
-  box.addEventListener('dblclick', e => {
-    const b = e.target.closest('[data-vault]');
-    if (!b || !b.dataset.vault || mapLoading || BREWS.some(t => t[0] === b.dataset.vault)) return;
+    // One click uses an item, like in the theme menu; the Nexus goes back to the default.
+    if (!key) { sober(); setTheme(''); return sync(); }
     hideTip();
-    useItem(b.dataset.vault, fxAt(b));
+    useItem(key, fxAt(b));
     setTimeout(sync, 1100);
     sync();
   });
@@ -2095,7 +2085,7 @@ function bindVault(box) {
 function vault() {
   document.title = 'Vault | OpenEye';
   view(h`
-    <div class="page-head"><div><h1>Vault</h1><p>Every theme in one place. Click a potion or key to wear its theme, double-click to use it like in the game. Consumables are used with one click.</p></div></div>
+    <div class="page-head"><div><h1>Vault</h1><p>Every theme in one place. Click an item to use it like in the game.</p></div></div>
     <div class="vault">
       <div class="vault-top">
         ${vaultNexus(48)}
@@ -2434,7 +2424,7 @@ const themeMenu = document.getElementById('theme-menu');
 // corner cuts on the grid's outside corners, hotkey numbers 1-8 behind the items) holding the
 // eight stat potions, on the HUD's #363636, with the HUD's Nexus button to go back to the default.
 const SLOT_CUTS = {0: 'tl', 3: 'tr', 4: 'bl', 7: 'br'};
-// Drinking: double-click a potion to drink it, as in the game. It plays the game's own
+// Drinking: click a potion to drink it. It plays the game's own
 // use_potion sound, switches the site to that theme and leaves the slot empty until the
 // next Nexus, which refills every potion and resets the theme.
 let drunk = new Set();
@@ -2560,7 +2550,7 @@ function drawThemeMenu() {
       const gone = drunk.has(key);
       const kind = invKind(key);
       const what = kind === 'key' ? `${label} key` : kind === 'brew' ? potion : `${label} potion`;
-      return h`<button type="button" class="inv-slot ${SLOT_CUTS[i] ?? ''}${gone ? ' drunk' : ''}" role="menuitemradio" aria-checked="${key === current}" aria-label="${gone ? `${what}, used` : `${verb ?? (kind === 'key' ? 'Use' : 'Drink')} the ${what} (${kind === 'brew' ? 'click' : 'double-click'})`}" data-theme-key="${key}"${!gone && it ? raw(` data-tip="${it.id}"`) : ''}><span class="inv-num" aria-hidden="true">${i + 1}</span>${gone ? '' : h`<canvas width="56" height="56" data-potion="${it?.id ?? ''}"></canvas>`}</button>`;
+      return h`<button type="button" class="inv-slot ${SLOT_CUTS[i] ?? ''}${gone ? ' drunk' : ''}" role="menuitemradio" aria-checked="${key === current}" aria-label="${gone ? `${what}, used` : `${verb ?? (kind === 'key' ? 'Use' : 'Drink')} the ${what} (click)`}" data-theme-key="${key}"${!gone && it ? raw(` data-tip="${it.id}"`) : ''}><span class="inv-num" aria-hidden="true">${i + 1}</span>${gone ? '' : h`<canvas width="56" height="56" data-potion="${it?.id ?? ''}"></canvas>`}</button>`;
     })}</div></div>`);
   themeMenu.querySelectorAll('canvas[data-potion]').forEach(async c => {
     const it = ITEMS.get(Number(c.dataset.potion));
@@ -2957,9 +2947,8 @@ themeButton.addEventListener('click', e => {
   themeMenu.hidden = false;
   themeButton.setAttribute('aria-expanded', 'true');
 });
-// Potions and keys are used with a double-click (or Enter); consumables, the Nexus and the sound
-// button with a single click. The menu stays open, so items can be used one after another.
-const isBrew = key => BREWS.some(b => b[0] === key);
+// Everything is a single click (or Enter): items, the Nexus and the sound button. The menu stays
+// open, so items can be used one after another.
 themeMenu.addEventListener('click', e => {
   e.stopPropagation();
   if (e.target.closest('.inv-nexus')) return nexus();
@@ -2970,12 +2959,7 @@ themeMenu.addEventListener('click', e => {
     return drawSoundIcon();
   }
   const b = e.target.closest('.inv-slot');
-  if (b && isBrew(b.dataset.themeKey)) drink(b.dataset.themeKey);
-});
-themeMenu.addEventListener('dblclick', e => {
-  e.stopPropagation();
-  const b = e.target.closest('.inv-slot');
-  if (b && !isBrew(b.dataset.themeKey)) drink(b.dataset.themeKey);
+  if (b) drink(b.dataset.themeKey);
 });
 themeMenu.addEventListener('keydown', e => {
   const b = e.target.closest('.inv-slot');
