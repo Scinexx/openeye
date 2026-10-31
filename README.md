@@ -20,7 +20,7 @@ OpenEye is a RealmEye-style tracker for Open RotMG, the open-source recreation o
 - **Fame earned**: every rise in a player's living fame, added up from each 5-minute check. Living fame players already had when tracking began is counted as earned the day before
 - **Most fame earned in the last 24 hours** on the home page; the leader wears a crown next to their name across the site
 - **Crown timeline**: who held the crown and for how long over the last day, week or month on the home page, and each player's own time holding it on their profile (replayed from every fame gain since records began)
-- **Themes** (the gear menu, and every one at `/vault`): stat potions, endgame and dungeon keys, and consumables, each doing what the item does in the game. Every Nexus brings two keys or consumables among the potions. The five dungeon keys (Pirate Cave, Spider Den, Snake Pit, Forbidden Jungle, Beachzone) put their boss in a corner of the page: click to fight it with its own sounds, and it drops something from its real loot table. Oryx's most loyal on the home page is dressed for each theme
+- **Themes** (the gear menu, and every one at `/vault`; `/homevault` shows them beside the home page): stat potions, endgame and dungeon keys, and consumables, each doing what the item does in the game. Every Nexus brings two keys or consumables among the potions. The five dungeon keys (Pirate Cave, Spider Den, Snake Pit, Forbidden Jungle, Beachzone) put their boss in a corner of the page: click to fight it with its own sounds, and it drops something from its real loot table. Oryx's most loyal on the home page is dressed for each theme
 - **The Crown page** (`/crown`): the current holder with a live reign clock, their lead and when the crown would pass if nobody earned more; the race for it; a timeline with a lane per holder; most time crowned; records; every handover; and rivalries
 - **Killers as the game names them**: the server records some killers by object id, so deaths are renamed to what the client shows ("Rock Bot" is a Rock Construct, "Lava Blend" is Lava), damaging floors get their tile as an icon, and the Mad Lab's gas traps and turrets are credited to Dr Terrible. The names are generated with the catalog (`tools/codex/killers.mjs` → `src/core/killer-names.js`)
 - **Player profiles** with ranks, a progress graph for every stat, Legends placements, and a full item collection that can be filtered by tier
@@ -33,8 +33,9 @@ OpenEye is a RealmEye-style tracker for Open RotMG, the open-source recreation o
 - **Enemies**: every enemy in the current game code with its HP, defense, projectiles (damage, range, effects) and every item it can drop, read from the server's own loot code; item pages list what drops them
 - **In-game item tooltips**: hover any item icon to see the same tooltip the game shows, built by the same rules as the 2012 client
 - **Bot separation**: the server's bots are kept out of rankings, loot and the player graveyard
-- **Themes**: a settings cog with nine colour themes, the default plus one for each stat potion, remembered per browser
-- **Live server status** with current and 24-hour peak player counts
+- **Live server status** with current and 24-hour peak player counts, a count of how long the server has been unreachable, and a note on every page if the data stops updating
+- **Sound**: the game's own sound button in the theme menu mutes every sound on the site
+- **Last active** on profiles: the latest change, loot or death OpenEye saw from that player
 
 ## How it works
 
@@ -140,8 +141,8 @@ test/              Test suite and fake game server
 
 Item and class sprites and game data come from the [Open RotMG](https://github.com/OpenRotMG) project. Fonts are [Pixelify Sans](https://fonts.google.com/specimen/Pixelify+Sans), [Atkinson Hyperlegible](https://fonts.google.com/specimen/Atkinson+Hyperlegible) and [Source Sans 3](https://fonts.google.com/specimen/Source+Sans+3), all under the SIL Open Font License. See [`THIRD_PARTY.md`](THIRD_PARTY.md) for details.
 
-OpenEye is a fan project by spankmaster. It is not run by or affiliated with the Open RotMG developers.
+OpenEye is a fan project. It is not run by or affiliated with the Open RotMG developers.
 
-## Reuse
+## Hosting your own
 
-OpenEye is open source. Feel free to reuse, copy or build on it, for example for your own Open RotMG fan site.
+OpenEye is open source, and can track any Open RotMG server. [`SELF_HOSTING.md`](SELF_HOSTING.md) covers running it locally, deploying it on Cloudflare's free plan, pointing it at your own game server, keeping the game data current, and what to update when Open RotMG changes.

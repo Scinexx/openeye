@@ -103,6 +103,10 @@ p { margin: 0; }
 }
 .search { margin-left: auto; position: relative; display: flex; align-items: stretch; }
 .settings { position: relative; }
+/* Shown under the header when the data has not been updated for a while. */
+.stale-note { width: calc(100% - 2 * var(--gutter)); max-width: calc(var(--max) - 2 * var(--gutter)); margin: 12px auto 0; padding: 8px 14px; background: var(--panel); color: var(--bone);
+  border-left: 4px solid var(--accent); box-shadow: 0 2px 0 var(--bevel-dark); }
+.stale-note[hidden] { display: none; }
 .cog {
   display: grid; place-items: center; width: 40px; height: 40px; padding: 0; cursor: pointer; color: var(--bone-dim); background: var(--panel);
   border: 2px solid; border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
@@ -118,8 +122,10 @@ p { margin: 0; }
 .inv-panel canvas { position: absolute; image-rendering: pixelated; pointer-events: none; }
 .inv-nexus { left: 160px; top: -4px; width: 40px; height: 40px; }
 .inv-nexus canvas { left: 0; top: 0; }
+.inv-sound { left: 120px; top: -4px; width: 40px; height: 40px; }
+.inv-sound canvas { left: 0; top: 0; }
 /* IconButton mouseOverCT: ColorTransform(1, 220/255, 133/255). */
-.inv-nexus:hover canvas, .inv-nexus:focus-visible canvas { filter: url(#nexus-hover); }
+.inv-nexus:hover canvas, .inv-nexus:focus-visible canvas, .inv-sound:hover canvas, .inv-sound:focus-visible canvas { filter: url(#nexus-hover); }
 .inv-grid { position: absolute; left: 14px; top: 44px; width: 172px; height: 84px; }
 .inv-slot { position: absolute !important; width: 40px; height: 40px; }
 .inv-slot:nth-child(4n+2) { left: 44px; } .inv-slot:nth-child(4n+3) { left: 88px; } .inv-slot:nth-child(4n) { left: 132px; } .inv-slot:nth-child(4n+1) { left: 0; }
@@ -893,7 +899,7 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
   font: 700 30px "Tooltip Sans", sans-serif; color: #fff; white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) { .map-loading { transition: none; } .map-loading .ml-char { animation: none; } }
 
-/* ---------- Dungeon themes (keys, from the Nexus on cramshon's profile) ----------
+/* ---------- Endgame key themes ----------
    Eight palettes after the hardest dungeons, each with a fixed, static backdrop (no animation,
    so they cost nothing while idle) and a glow on titles. Fame stays orange everywhere. */
 :root[data-theme="tomb"] { --stone: #131d36; --stone-deep: #0e162a; --panel: #1c2a4d; --panel-raised: #223260; --bevel-light: #c9a24a; --bevel-dark: #0a1020; --muted: #a8997a; --bone: #f6e8c6; --bone-dim: #d9c69c; --accent: #f2c14e; --accent-line: #8a6a1f; --accent-wash: #2a2b3a; }
@@ -1195,16 +1201,12 @@ html.hallucinating #theme-fx .fx-trip { opacity: .42; }
   animation: fx-heal .9s ease-out forwards; }
 @keyframes fx-heal { from { transform: translateY(10px); opacity: 1; } to { transform: translateY(-36px); opacity: 0; } }
 
-/* Drunk: the page sways (the count of swings fits the effect's length); invisible: the page
-   fades to a ghost; both end on their own. */
+/* Invisible: the page fades to a ghost, then comes back on its own. */
 main, .footer { transition: opacity .3s; }
-html.drunk main, html.drunk .footer { transform-origin: 50% 0; animation: fx-drunk 3s ease-in-out infinite; }
-@keyframes fx-drunk { 0%, 100% { transform: none; } 25% { transform: translateX(-7px) rotate(-.7deg); } 75% { transform: translateX(7px) rotate(.7deg); } }
 html.invisible main, html.invisible .footer { opacity: .28; }
 
 @media (prefers-reduced-motion: reduce) {
   #theme-fx *, #theme-fx *::before, :root[data-theme] h1, :root[data-theme] h1::after { animation: none !important; }
-  html.drunk main, html.drunk .footer { animation: none; }
 }
 
 /* ---------- The Vault (unlisted: /vault): every theme in chests like the game's ----------

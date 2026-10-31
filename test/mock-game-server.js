@@ -17,7 +17,7 @@ let seed = 7;
 const rand = () => ((seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31);
 const pick = a => a[Math.floor(rand() * a.length)];
 
-const NAMES = ['RedBracket', 'Majstr', 'typ', 'Oryxbane', 'Tishy', 'Mulch', 'Petrichor', 'Vexil', 'Zakk', 'Brindle',
+const NAMES = ['Bracken', 'Marlow', 'Tyde', 'Oryxbane', 'Tishy', 'Mulch', 'Petrichor', 'Vexil', 'Zakk', 'Brindle',
   'Quillon', 'Sorrel', 'Hexen', 'Lumen', 'Fennick', 'Grue', 'Ashlar', 'Kestrel', 'Nim', 'Ombra', 'Pyx', 'Rook', 'Sable', 'Tamsin', 'Wren'];
 const KILLERS = ['Pirate', 'Snake', 'Lich', 'Ent Ancient', 'Red Demon', 'Cyclops God', 'Medusa', 'Oryx the Mad God', 'Ghost King', 'Sprite God', 'Beholder', 'Septavius the Ghost God'];
 const collectible = catalog.filter(i => i.sprite && !i.soulbound).map(i => i.id);

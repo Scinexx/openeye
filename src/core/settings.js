@@ -3,6 +3,9 @@
 export const DEFAULTS = {
   // Public game API of the hosted Open RotMG server.
   apiBase: 'https://game.openrotmg.org',
+  // This site's address, named in the collector's user-agent so the game server's operator
+  // can see who is calling. Empty leaves it out.
+  siteUrl: '',
   // How often each collection job runs, in minutes.
   healthMinutes: 2,
   hiscoresMinutes: 5,

@@ -31,7 +31,7 @@ export class Collector {
   constructor(db, settings, log = console) {
     this.db = db;
     this.s = settings;
-    this.api = createGameApi(settings.apiBase);
+    this.api = createGameApi(settings.apiBase, settings.siteUrl);
     this.log = log;
     this.lastError = null;
   }

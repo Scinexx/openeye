@@ -1260,6 +1260,11 @@ async function player(name) {
   const formerNames = data.names.filter(n => n.name !== p.name);
   const legendsBySpan = data.legends;
 
+  // Last active: the latest thing the player did that OpenEye saw (a change to their stars, fame,
+  // quests or collection, fame earned, an item looted, a death). Being listed is not activity.
+  const lastActive = Math.max(0,
+    ...data.history.filter(r => r.at > p.first_seen).map(r => r.at),
+    ...data.fameGains.map(g => g.at), ...data.collection.map(c => c.found_at), ...data.deaths.map(d => d.died_at ?? 0)) || null;
   view(h`
     <div class="player-head">
       ${crowned(p.name) ? crownIcon(p.stars, 34) : ''}${starIcon(p.stars, 34)}
@@ -1269,7 +1274,7 @@ async function player(name) {
     </div>
     <div class="player-meta">
       <span>Tracked since ${day(p.first_seen)}</span>
-      <span>Last updated ${when(p.last_seen)}</span>
+      ${lastActive ? h`<span>Last active ${when(lastActive)}</span>` : ''}
       ${formerNames.length ? h`<span>Formerly ${formerNames.map(n => n.name).join(', ')}</span>` : ''}
       ${data.guild ? h`<span>${GUILD_RANKS[data.guild.rank] ?? 'Member'} of <a href="/guild/${encodeURIComponent(data.guild.name)}" data-link>${data.guild.name}</a></span>` : ''}
     </div>
@@ -1956,7 +1961,7 @@ async function about() {
   view(h`
     <div class="page-head"><div><h1>About</h1></div></div>
     <section class="panel" style="margin-bottom:24px">
-      <div class="panel-body"><p style="margin:0">OpenEye is made by spankmaster. It is open source and free to reuse, copy and change. It is not run by or associated with RedBracket or any other Open RotMG devs. Data comes from the game's public API.</p></div>
+      <div class="panel-body"><p style="margin:0">OpenEye is a fan-made, open-source tracker for Open RotMG. It is not run by or affiliated with the Open RotMG developers. Data comes from the game server's public API.</p></div>
     </section>
     <div class="grid-2" style="align-items:start">
       <section class="panel">
@@ -2027,9 +2032,9 @@ const THEME_NOTES = {
   beach: 'The Masked Party God’s beach: surf, palms, a beach ball and confetti. Click him to fight.',
   hp: 'Plain crimson; drinking it restores 100 HP.',
   mp: 'Plain deep blue; drinking it restores 100 MP.',
-  pirum: 'Below decks on a pirate ship: planking, lanterns swinging, barrels and crates. Drinking it makes you drunk for 30 seconds.',
+  pirum: 'Below decks on a pirate ship: planking, lanterns swinging, barrels and crates.',
   ichor: 'Veins of glowing ichor beating in the dark, beads of it rising like a lava lamp. Heals 150 HP.',
-  holy: 'Light through a high window, dust turning in the beams. Heals 100 HP and cures drunk, Hexed and hallucinating.',
+  holy: 'Light through a high window, dust turning in the beams. Heals 100 HP and cures Hexed, hallucinating and invisible.',
   coral: 'A clean pale page patterned with Thessal’s coral. Restores 100 HP and 100 MP.',
   pollen: 'Golden clouds of Forbidden Jungle pollen drifting over its flowers. Restores 100 MP to everyone within 10 tiles.',
   hexed: 'The Mad Lab’s floor and its two vats: the green that Hexes and the blue that cures. Drinking it Hexes you: everyone on the page turns into a pet for 30 seconds.'
@@ -2069,6 +2074,8 @@ function bindVault(box) {
     if (!b || mapLoading) return;
     const key = b.dataset.vault;
     if (e.detail > 1) return; // the double-click handler takes it from here
+    // Consumables are used straight away, like in the theme menu.
+    if (BREWS.some(t => t[0] === key)) { hideTip(); useItem(key, fxAt(b)); setTimeout(sync, 1100); return sync(); }
     if (key === currentTheme() && key) return;
     sober();
     playSound(ALL_KEYS.some(k => k[0] === key) || key === 'cellar' ? '/sfx/use_key.mp3' : '/sfx/use_potion.mp3');
@@ -2077,7 +2084,7 @@ function bindVault(box) {
   });
   box.addEventListener('dblclick', e => {
     const b = e.target.closest('[data-vault]');
-    if (!b || !b.dataset.vault || mapLoading) return;
+    if (!b || !b.dataset.vault || mapLoading || BREWS.some(t => t[0] === b.dataset.vault)) return;
     hideTip();
     useItem(b.dataset.vault, fxAt(b));
     setTimeout(sync, 1100);
@@ -2088,7 +2095,7 @@ function bindVault(box) {
 function vault() {
   document.title = 'Vault | OpenEye';
   view(h`
-    <div class="page-head"><div><h1>Vault</h1><p>Every theme in one place. Click an item to wear its theme, double-click to use it like in the game.</p></div></div>
+    <div class="page-head"><div><h1>Vault</h1><p>Every theme in one place. Click a potion or key to wear its theme, double-click to use it like in the game. Consumables are used with one click.</p></div></div>
     <div class="vault">
       <div class="vault-top">
         ${vaultNexus(48)}
@@ -2346,16 +2353,14 @@ const THEMES = [
   ['attack', 'Attack', 'Potion of Attack'], ['defense', 'Defense', 'Potion of Defense'], ['speed', 'Speed', 'Potion of Speed'],
   ['dexterity', 'Dexterity', 'Potion of Dexterity'], ['vitality', 'Vitality', 'Potion of Vitality'], ['wisdom', 'Wisdom', 'Potion of Wisdom']
 ];
-// A secret: pressing the Nexus on cramshon's or RedBracket's profile fills the inventory with the keys to the
-// eight hardest dungeons instead. Using a key loads into its dungeon (the client's loading
-// screen with the dungeon's name) and dresses the site in that dungeon's colours.
+// The keys to the eight hardest dungeons. Using a key loads into its dungeon (the client's
+// loading screen with the dungeon's name) and dresses the site in that dungeon's colours.
 const KEYS = [
   ['tomb', 'Tomb of the Ancients', 'Tomb of the Ancients Key'], ['trench', 'Ocean Trench', 'Ocean Trench Key'],
   ['manor', 'Manor of the Immortals', 'Manor Key'], ['locker', "Davy Jones' Locker", "Davy's Key"],
   ['madlab', 'Mad Lab', 'Lab Key'], ['abyss', 'Abyss of Demons', 'Abyss of Demons Key'],
   ['undead', 'Undead Lair', 'Undead Lair Key'], ['sprite', 'Sprite World', 'Sprite World Key']
 ];
-const KEY_PROFILES = ['/player/cramshon', '/player/redbracket'];
 // The other dungeons' keys. Each theme is that dungeon, and its boss waits in a corner of the
 // page to be fought: [key, dungeon, item, verb, boss].
 const DUNGEON_KEYS = [
@@ -2376,20 +2381,20 @@ const ALL_KEYS = [...KEYS, ...DUNGEON_KEYS];
 // its own theme with moving effects, and using it does what the item does in the game
 // (objects.xml): the incantation opens the Wine Cellar with the key sound, Snake Oil heals 100 HP
 // in a 10-tile nova, the mushroom makes you hallucinate for 30 s, and the rum and the Masked
-// Party God's drinks make you drunk (6 s and 15 s; the rum also turns you invisible for 4 s).
+// Party God's drinks give a burst of healing light (the ghost rum also turns you invisible for 4 s).
 // [key, label, item, verb, effects]
 const BREWS = [
   ['cellar', 'Wine Cellar', 'Wine Cellar Incantation', 'Use', {portal: 'Wine Cellar'}],
-  ['rum', 'Ghost Pirate Rum', 'Ghost Pirate Rum', 'Drink', {drunk: 6, invisible: 4}],
+  ['rum', 'Ghost Pirate Rum', 'Ghost Pirate Rum', 'Drink', {invisible: 4}],
   ['snakeoil', 'Snake Oil', 'Snake Oil', 'Drink', {heal: 100, range: 10}],
   ['mushroom', 'Magic Mushroom', 'Magic Mushroom', 'Eat', {hallucinating: 30}],
-  ['sunrise', 'Bahama Sunrise', 'Bahama Sunrise', 'Drink', {boost: true, drunk: 15}],
-  ['paradise', 'Blue Paradise', 'Blue Paradise', 'Drink', {boost: true, drunk: 15}],
-  ['passion', 'Pink Passion Breeze', 'Pink Passion Breeze', 'Drink', {boost: true, drunk: 15}],
-  ['jungle', 'Lime Jungle Bay', 'Lime Jungle Bay', 'Drink', {boost: true, drunk: 15}],
+  ['sunrise', 'Bahama Sunrise', 'Bahama Sunrise', 'Drink', {boost: true}],
+  ['paradise', 'Blue Paradise', 'Blue Paradise', 'Drink', {boost: true}],
+  ['passion', 'Pink Passion Breeze', 'Pink Passion Breeze', 'Drink', {boost: true}],
+  ['jungle', 'Lime Jungle Bay', 'Lime Jungle Bay', 'Drink', {boost: true}],
   ['hp', 'Health Potion', 'Health Potion', 'Drink', {heal: 100, basic: true}],
   ['mp', 'Magic Potion', 'Magic Potion', 'Drink', {magic: 100, basic: true}],
-  ['pirum', 'Pirate Rum', 'Pirate Rum', 'Drink', {drunk: 30}],
+  ['pirum', 'Pirate Rum', 'Pirate Rum', 'Drink', {}],
   ['ichor', 'Healing Ichor', 'Healing Ichor', 'Drink', {heal: 150}],
   ['holy', 'Holy Water', 'Holy Water', 'Drink', {heal: 100, cleanse: true}],
   ['coral', 'Coral Juice', 'Coral Juice', 'Drink', {heal: 100, magic: 100}],
@@ -2403,8 +2408,7 @@ const INV_ALL = [...POTIONS, ...ALL_KEYS, ...BREWS];
 let inventory = POTIONS.map(t => t[0]);
 try {
   const saved = localStorage.getItem('inventory');
-  if (saved === 'keys') inventory = KEYS.map(k => k[0]);
-  else if (saved?.startsWith('[')) {
+  if (saved?.startsWith('[')) {
     const list = JSON.parse(saved);
     if (Array.isArray(list) && list.length === 8 && list.every(k => INV_ALL.some(t => t[0] === k))) inventory = list;
   }
@@ -2437,7 +2441,11 @@ let drunk = new Set();
 try { drunk = new Set(JSON.parse(localStorage.getItem('drunkPotions') ?? '[]')); } catch { /* storage unavailable */ }
 const saveDrunk = () => { try { localStorage.setItem('drunkPotions', JSON.stringify([...drunk])); } catch { /* storage unavailable */ } };
 const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+// Every sound on the site goes through here, so the menu's sound button mutes them all.
+let muted = false;
+try { muted = localStorage.getItem('muted') === '1'; } catch { /* storage unavailable */ }
 function playSound(src, volume = 0.5) {
+  if (muted) return;
   try { const a = new Audio(src); a.volume = volume; a.play().catch(() => {}); } catch { /* no audio */ }
 }
 // A short cooldown between drinks.
@@ -2485,22 +2493,16 @@ async function loadWalk() { WALK = await staticJson('/catalog/walk.json').catch(
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function nexus() {
   closeThemes();
-  // On cramshon's or RedBracket's profile the Nexus hands out dungeon keys instead of potions;
-  // anywhere else, a rare consumable may turn up among the potions.
-  let here = '';
-  try { here = decodeURIComponent(location.pathname).toLowerCase(); } catch { /* malformed address */ }
-  if (KEY_PROFILES.includes(here)) inventory = KEYS.map(k => k[0]);
-  else {
-    // On the page of an enemy that drops one of the rare consumables, it is certain to be there.
-    const enemy = /^\/enemy\/(\d+)$/.exec(here);
-    const forced = new Set();
-    if (enemy) {
-      const E = await loadEnemies();
-      const names = new Set((E.byId.get(Number(enemy[1]))?.drops ?? []).map(id => ITEMS.get(id)?.name));
-      for (const b of BREWS) if (names.has(b[2])) forced.add(b[2]);
-    }
-    inventory = rollInventory(forced);
+  // Two keys or consumables turn up among the potions. On the page of an enemy that drops one
+  // of the consumables, it is certain to be there.
+  const enemy = /^\/enemy\/(\d+)$/.exec(location.pathname);
+  const forced = new Set();
+  if (enemy) {
+    const E = await loadEnemies();
+    const names = new Set((E.byId.get(Number(enemy[1]))?.drops ?? []).map(id => ITEMS.get(id)?.name));
+    for (const b of BREWS) if (names.has(b[2])) forced.add(b[2]);
   }
+  inventory = rollInventory(forced);
   try { localStorage.setItem('inventory', JSON.stringify(inventory)); } catch { /* storage unavailable */ }
   await loadingScreen('Nexus', () => {
     drunk.clear();
@@ -2540,7 +2542,7 @@ function syncThemeMenu() {
       b.classList.add('drunk');
       b.querySelector('canvas')?.remove();
       b.removeAttribute('data-tip');
-      b.setAttribute('aria-label', `${b.getAttribute('aria-label').replace(/^(Drink|Use|Eat) the | \(double-click\)$/g, '')}, used`);
+      b.setAttribute('aria-label', `${b.getAttribute('aria-label').replace(/^(Drink|Use|Eat) the | \((double-)?click\)$/g, '')}, used`);
     }
   });
 }
@@ -2551,25 +2553,41 @@ function drawThemeMenu() {
   const potions = invItems();
   themeMenu.innerHTML = String(h`<div class="inv-panel">
     <span class="inv-title">Themes</span>
+    <button type="button" class="inv-sound" aria-pressed="${!muted}" aria-label="Sound" data-tip-title="Sound" data-tip-text="${muted ? 'Off: click to turn sounds on' : 'On: click to mute every sound'}"><canvas width="40" height="40"></canvas></button>
     <button type="button" class="inv-nexus" role="menuitemradio" aria-checked="${current === ''}" aria-label="Nexus: default theme" data-theme-key="" data-tip-title="Nexus" data-tip-text="Default theme"><canvas width="40" height="40"></canvas></button>
     <div class="inv-grid">${potions.map(([key, label, potion, verb], i) => {
       const it = byName.get(potion);
       const gone = drunk.has(key);
       const kind = invKind(key);
       const what = kind === 'key' ? `${label} key` : kind === 'brew' ? potion : `${label} potion`;
-      return h`<button type="button" class="inv-slot ${SLOT_CUTS[i] ?? ''}${gone ? ' drunk' : ''}" role="menuitemradio" aria-checked="${key === current}" aria-label="${gone ? `${what}, used` : `${verb ?? (kind === 'key' ? 'Use' : 'Drink')} the ${what} (double-click)`}" data-theme-key="${key}"${!gone && it ? raw(` data-tip="${it.id}"`) : ''}><span class="inv-num" aria-hidden="true">${i + 1}</span>${gone ? '' : h`<canvas width="56" height="56" data-potion="${it?.id ?? ''}"></canvas>`}</button>`;
+      return h`<button type="button" class="inv-slot ${SLOT_CUTS[i] ?? ''}${gone ? ' drunk' : ''}" role="menuitemradio" aria-checked="${key === current}" aria-label="${gone ? `${what}, used` : `${verb ?? (kind === 'key' ? 'Use' : 'Drink')} the ${what} (${kind === 'brew' ? 'click' : 'double-click'})`}" data-theme-key="${key}"${!gone && it ? raw(` data-tip="${it.id}"`) : ''}><span class="inv-num" aria-hidden="true">${i + 1}</span>${gone ? '' : h`<canvas width="56" height="56" data-potion="${it?.id ?? ''}"></canvas>`}</button>`;
     })}</div></div>`);
   themeMenu.querySelectorAll('canvas[data-potion]').forEach(async c => {
     const it = ITEMS.get(Number(c.dataset.potion));
     if (it?.sprite) c.getContext('2d').drawImage(await itemTexture(it, 4), 0, 0);
   });
-  // IconButton: the Nexus icon (lofiInterfaceBig 6) redrawn at its own size, tinted gold on hover.
-  const nexus = new Image();
-  nexus.src = '/icons/nexus.png';
-  nexus.onload = () => {
-    const c = themeMenu.querySelector('.inv-nexus canvas');
-    if (c) c.getContext('2d').drawImage(gameTexture(nexus, 0, 0, 16, 16, 1), 0, 0);
+  // IconButtons: the Nexus icon (lofiInterfaceBig 6) redrawn at its own size, tinted gold on hover.
+  drawIcon('.inv-nexus', '/icons/nexus.png');
+  drawSoundIcon();
+}
+function drawIcon(sel, src) {
+  const img = new Image();
+  img.src = src;
+  img.onload = () => {
+    const c = themeMenu.querySelector(`${sel} canvas`);
+    if (!c) return;
+    const g = c.getContext('2d');
+    g.clearRect(0, 0, c.width, c.height);
+    g.drawImage(gameTexture(img, 0, 0, 16, 16, 1), 0, 0);
   };
+}
+// The game's sound button (lofiInterfaceBig 3 and 4: the speaker with and without its waves).
+function drawSoundIcon() {
+  const b = themeMenu.querySelector('.inv-sound');
+  if (!b) return;
+  b.setAttribute('aria-pressed', String(!muted));
+  b.dataset.tipText = muted ? 'Off: click to turn sounds on' : 'On: click to mute every sound';
+  drawIcon('.inv-sound', muted ? '/icons/sound-off.png' : '/icons/sound-on.png');
 }
 // With a potion theme, the logo becomes that potion (sprite positions come from the item catalog).
 function drawBrand() {
@@ -2689,7 +2707,7 @@ const FX = {
   hp: () => `<i class="fx-halo fx-redhalo"></i>${many(10, () => `<i class="fx-mote fx-plus fx-redplus" style="left:${pct(2, 98)};--s:${rand(7, 12).toFixed(0)}px;--dx:${rand(-30, 30).toFixed(0)}px;--t:${rand(9, 16).toFixed(1)}s;--d:-${rand(0, 16).toFixed(1)}s"></i>`)}`,
   mp: () => `<i class="fx-halo fx-bluehalo"></i>${many(16, () => `<i class="fx-fly fx-blue" style="left:${pct(2, 98)};top:${pct(10, 98)};--t:${rand(5, 10).toFixed(1)}s;--d:-${rand(0, 10).toFixed(1)}s;--dx:${rand(-60, 60).toFixed(0)}px;--dy:${rand(-80, 20).toFixed(0)}px"></i>`)}`,
   // Pirate Rum: below decks on a pirate ship: the game's dark planking, a rope along the beams,
-  // lanterns swinging, barrels and crates of stores. Drinking it makes you drunk for 30 s.
+  // lanterns swinging, barrels and crates of stores.
   pirum: () => `<i class="fx-rope"></i><i class="fx-lantern l"><b></b></i><i class="fx-lantern r"><b></b></i>`
     + `<i class="fx-stores l"><i class="fx-stack">${art('Wine Barrel', 9)}${art('Wine Barrel', 9)}</i>${art('Wine Barrel', 9)}${art('Treasure Chest', 7)}</i>`
     + `<i class="fx-stores r">${art('Treasure Chest', 7)}<i class="fx-stack">${art('Wine Barrel', 9)}${art('Wine Barrel', 9)}</i></i>`,
@@ -2697,7 +2715,7 @@ const FX = {
   // swelling like a lava lamp. Heals 150 HP.
   ichor: () => `<i class="fx-veins"></i>${many(7, i => `<i class="fx-orb" style="left:${[3, 9, 15, 83, 88, 94, 50][i] + rand(-2, 2)}%;--s:${rand(26, 64).toFixed(0)}px;--t:${rand(16, 26).toFixed(1)}s;--d:-${rand(0, 26).toFixed(1)}s"></i>`)}`,
   // Holy Water: light through a high window. Shafts of gold light, dust motes turning in them,
-  // a halo breathing behind the page title. It heals and washes away drunk, Hexed and visions.
+  // a halo breathing behind the page title. It heals and washes away Hexed, visions and invisibility.
   holy: () => `<i class="fx-window"></i>${many(4, i => `<i class="fx-ray fx-holyray" style="left:${84 + i * 2.5 + rand(-1, 1)}%;--a:${rand(22, 40).toFixed(1)}deg;--t:${rand(8, 13).toFixed(1)}s;--d:-${rand(0, 13).toFixed(1)}s"></i>`)}`
     + many(18, () => `<i class="fx-fly fx-dust" style="left:${pct(10, 90)};top:${pct(10, 95)};--t:${rand(8, 14).toFixed(1)}s;--d:-${rand(0, 14).toFixed(1)}s;--dx:${rand(-40, 40).toFixed(0)}px;--dy:${rand(-40, 40).toFixed(0)}px"></i>`),
   // Coral Juice: like Snake Oil, a light page with a repeating coral motif; a few pearly bubbles.
@@ -2874,8 +2892,8 @@ function brewEffects(fx, at) {
   if (fx.magic) setTimeout(() => burst('fx-status fx-status-mp', {x: at.x, y: at.y - (fx.heal ? 48 : 24)}, '', `+${fx.magic}`), fx.heal ? 200 : 0);
   if (fx.boost) burst('fx-heal', at);
   if (fx.cleanse) {
-    // RemoveNegativeConditionsSelf: drunk, hallucinating and Hexed all end.
-    const cured = ['drunk', 'hallucinating', 'hexed'].filter(n => document.documentElement.classList.contains(n));
+    // RemoveNegativeConditionsSelf: hallucinating, invisible and Hexed all end.
+    const cured = ['invisible', 'hallucinating', 'hexed'].filter(n => document.documentElement.classList.contains(n));
     for (const n of cured) { clearTimeout(effectTimers.get(n)); effectTimers.delete(n); document.documentElement.classList.remove(n); }
     if (cured.includes('hallucinating')) hallucinate(false);
     if (cured.includes('hexed')) hex(false);
@@ -2887,7 +2905,7 @@ function brewEffects(fx, at) {
     setTimeout(() => burst('fx-status fx-status-hex', {x: at.x, y: at.y - 24}, '', 'Hexed'), 150);
     condition('hexed', fx.hexed);
   }
-  for (const name of ['drunk', 'invisible', 'hallucinating']) {
+  for (const name of ['invisible', 'hallucinating']) {
     if (!fx[name]) continue;
     burst('fx-nova', at, `--r:${TILE}px`);
     condition(name, fx[name]);
@@ -2939,16 +2957,25 @@ themeButton.addEventListener('click', e => {
   themeMenu.hidden = false;
   themeButton.setAttribute('aria-expanded', 'true');
 });
-// Potions are drunk with a double-click (or Enter), the Nexus is a single click. The menu stays
-// open, so potions can be drunk one after another.
+// Potions and keys are used with a double-click (or Enter); consumables, the Nexus and the sound
+// button with a single click. The menu stays open, so items can be used one after another.
+const isBrew = key => BREWS.some(b => b[0] === key);
 themeMenu.addEventListener('click', e => {
   e.stopPropagation();
-  if (e.target.closest('.inv-nexus')) nexus();
+  if (e.target.closest('.inv-nexus')) return nexus();
+  if (e.target.closest('.inv-sound')) {
+    muted = !muted;
+    try { localStorage.setItem('muted', muted ? '1' : '0'); } catch { /* storage unavailable */ }
+    hideTip();
+    return drawSoundIcon();
+  }
+  const b = e.target.closest('.inv-slot');
+  if (b && isBrew(b.dataset.themeKey)) drink(b.dataset.themeKey);
 });
 themeMenu.addEventListener('dblclick', e => {
   e.stopPropagation();
   const b = e.target.closest('.inv-slot');
-  if (b) drink(b.dataset.themeKey);
+  if (b && !isBrew(b.dataset.themeKey)) drink(b.dataset.themeKey);
 });
 themeMenu.addEventListener('keydown', e => {
   const b = e.target.closest('.inv-slot');
@@ -2959,6 +2986,16 @@ themeMenu.addEventListener('keydown', e => {
 document.addEventListener('click', e => { if (!themeMenu.hidden && e.target !== document.documentElement && !e.target.closest('.settings')) closeThemes(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !themeMenu.hidden) { closeThemes(); themeButton.focus(); } });
 
+// Press / anywhere (outside a text field) to jump to the search box.
+document.addEventListener('keydown', e => {
+  if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+  const t = e.target;
+  if (t.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+  e.preventDefault();
+  input.focus();
+  input.select();
+});
+
 // ---------- footer status ----------
 async function footer() {
   try {
@@ -2967,6 +3004,12 @@ async function footer() {
     // The Guilds page shows up once the game shares guilds.
     document.querySelector('[data-nav="guilds"]').hidden = !s.features?.guilds;
     document.getElementById('footer-status').textContent = last ? `Data updated ${ago(last)}.` : 'Waiting for the first update.';
+    // Players are read every 5 minutes; if that has stopped for 20, say so rather than show old
+    // numbers as if they were live.
+    const note = document.getElementById('stale-note');
+    const stale = last && s.now - last > 20 * 60;
+    note.hidden = !stale;
+    if (stale) note.textContent = `${s.server && !s.server.ok ? 'The game server is not answering, so' : 'Updates are paused:'} the numbers here are from ${ago(last)}.`;
   } catch { /* server stopped */ }
 }
 

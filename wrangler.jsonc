@@ -13,7 +13,8 @@
     "run_worker_first": ["/api/*"]
   },
 
-  // The database. Created in the Cloudflare account that owns openrotmgeye.com.
+  // The database. Self-hosting: create your own with `npx wrangler d1 create openeye` and put
+  // its database_id here (see SELF_HOSTING.md).
   "d1_databases": [
     {
       "binding": "DB",
@@ -37,11 +38,20 @@
     }
   ],
 
-  // The public address.
+  // The public address. Self-hosting: use your own domain, or remove "routes" to use the
+  // free workers.dev address.
   "routes": [
     { "pattern": "openrotmgeye.com", "custom_domain": true },
     { "pattern": "www.openrotmgeye.com", "custom_domain": true }
   ],
+
+  // The address the collector names in its user-agent, so the game server's operator can see
+  // who is calling. Self-hosting: set your own.
+  "vars": {
+    "SITE_URL": "https://openrotmgeye.com"
+  },
+  // Keep any variables set in the Cloudflare dashboard on deploy (see src/core/settings.js).
+  "keep_vars": true,
 
   // Logs in the Cloudflare dashboard (Workers > openeye > Logs).
   "observability": {
