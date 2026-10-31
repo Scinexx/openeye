@@ -18,8 +18,13 @@ export const THEME_SPRITES = [
   // Beachzone
   'Masked Party God', 'Beach Bum', 'Beach Spectre', 'Palm Tree', 'Beach Umbrella', 'Sand Castle',
   // Loot bags (brown, pink, purple, cyan, white; the soulbound one)
-  'Loot Bag', 'Loot Bag 2', 'Loot Bag 3', 'Loot Bag 4', 'Loot Bag 5', 'Soulbound Loot Bag'
+  'Loot Bag', 'Loot Bag 2', 'Loot Bag 3', 'Loot Bag 4', 'Loot Bag 5', 'Soulbound Loot Bag',
+  // Ship's stores, for Pirate Rum
+  'Wine Barrel', 'Ghost Ship Crate'
 ];
+// Floor tiles (grounds.xml), tiled by the themes: the Mad Lab's two vats (green Hexes you, blue
+// cures it) and its floor, and ship's planking.
+export const THEME_GROUNDS = ['Lab Bad Vat No Slow', 'Lab Good Vat No Slow', 'Lab Floor', 'Wood Plank Floor', 'Wood Plank Floor Dark', 'Wood Panel Floor'];
 
 const animated = file => {
   const m = file.match(/^chars(\d+)x(\d+)[rd]/);
@@ -27,8 +32,12 @@ const animated = file => {
 };
 const own = node => node?.children.find(c => c.tag === 'Texture' || c.tag === 'AnimatedTexture');
 
-/** @param objects [{type, id, body, src}] every <Object>, @param sheets Map from swfBitmaps(client.swf) */
-export function buildThemeSprites({objects, sheets}) {
+/**
+ * @param objects [{type, id, body, src}] every <Object>
+ * @param grounds grounds.xml text
+ * @param sheets  Map from swfBitmaps(client.swf)
+ */
+export function buildThemeSprites({objects, grounds = '', sheets}) {
   const hexable = objects.filter(o => /<Group>Hexable<\/Group>/.test(o.body)).map(o => o.id);
   const cuts = [], missing = [];
   for (const name of [...THEME_SPRITES, ...hexable]) try {
@@ -45,6 +54,17 @@ export function buildThemeSprites({objects, sheets}) {
     const [, w, h, bw, bh] = spec;
     const per = Math.floor(sheet.width / bw);
     cuts.push({name, pet: hexable.includes(name), sheet, sx: (index % per) * bw, sy: Math.floor(index / per) * bh, w, h});
+  } catch (e) { missing.push(e.message); }
+  for (const name of THEME_GROUNDS) try {
+    const m = grounds.match(new RegExp(`<Ground type="[^"]+" id="${name}">([\\s\\S]*?)</Ground>`));
+    if (!m) throw new Error(`Theme ground ${name} missing from grounds.xml`);
+    const el = parseElement(`<Ground>${m[1]}</Ground>`);
+    const tex = own(el) ?? own(el.children.find(c => c.tag === 'RandomTexture'));
+    const kid = tag => tex?.children.find(c => c.tag === tag)?.text;
+    const spec = STATIC[kid('File')], sheet = spec && sheets.get(spec[0]), index = Number(kid('Index'));
+    if (!sheet || !Number.isFinite(index)) throw new Error(`Theme ground ${name}: texture not found`);
+    const [, w, h] = spec, per = Math.floor(sheet.width / w);
+    cuts.push({name: `ground:${name}`, sheet, sx: (index % per) * w, sy: Math.floor(index / per) * h, w, h});
   } catch (e) { missing.push(e.message); }
   // Pets come and go with events, so a missing one is skipped; a missing prop is an error.
   const fatal = missing.filter(m => !hexable.some(p => m.includes(` ${p}`)));

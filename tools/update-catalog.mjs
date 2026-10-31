@@ -224,7 +224,7 @@ export const KILLER_NAMES = ${JSON.stringify(killers.names, Object.keys(killers.
 `);
   console.log(`Killers: ${Object.keys(killers.names).length} renamed, hazard icons for ${Object.keys(killers.hazards).join(', ')}.`);
   // What the themes draw with: bosses, props, loot bags and the pets Hexed players turn into.
-  const theme = buildThemeSprites({objects, sheets: clientSheets});
+  const theme = buildThemeSprites({objects, grounds: await get(SOURCES.grounds), sheets: clientSheets});
   await writeFile(join(out, 'themes.png'), theme.sheet.png);
   await writeFile(join(out, 'themes.json'), JSON.stringify({sheet: {width: theme.sheet.width, height: theme.sheet.height}, sprites: theme.sprites}));
   // A theme backdrop only: if the map ever changes shape, keep the last good one.

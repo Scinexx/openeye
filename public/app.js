@@ -2022,17 +2022,17 @@ const THEME_NOTES = {
   jungle: 'A jungle bay at night: fireflies, moonlight and leaves spinning down.',
   pcave: 'A torchlit sea cave: parrots overhead, treasure glinting and Dreadstump on guard. Click him to fight.',
   sden: 'Webs in every corner, spiders lowering themselves on silk, and Arachna waiting in her web. Click her to fight.',
-  spit: 'Snakes sliding across mossy stone, and Stheno with her swarm circling. Click her to fight.',
+  spit: 'A vent in the floor with little snakes crawling out, and Stheno with her swarm. Click her to fight.',
   fjungle: 'The jungle temple at night: braziers, totems, drifting spirits and drums. Click Mixcoatl to fight.',
   beach: 'The Masked Party God’s beach: surf, palms, a beach ball and confetti. Click him to fight.',
   hp: 'Plain crimson; drinking it restores 100 HP.',
   mp: 'Plain deep blue; drinking it restores 100 MP.',
-  pirum: 'On deck at dusk: the sea rolls and the ship’s wheel swings. Drinking it makes you drunk for 30 seconds.',
-  ichor: 'Arachna’s den, where it comes from: webs, ichor dripping, a slow red pulse. Heals 150 HP.',
+  pirum: 'Below decks on a pirate ship: planking, lanterns swinging, barrels and crates. Drinking it makes you drunk for 30 seconds.',
+  ichor: 'Veins of glowing ichor beating in the dark, beads of it rising like a lava lamp. Heals 150 HP.',
   holy: 'Light through a high window, dust turning in the beams. Heals 100 HP and cures drunk, Hexed and hallucinating.',
-  coral: 'Thessal’s reef: coral swaying and bubbles rising. Restores 100 HP and 100 MP.',
+  coral: 'A clean pale page patterned with Thessal’s coral. Restores 100 HP and 100 MP.',
   pollen: 'Golden clouds of Forbidden Jungle pollen drifting over its flowers. Restores 100 MP to everyone within 10 tiles.',
-  hexed: 'The Mad Lab’s experiment: shifting light and a bubbling flask. Drinking it Hexes you: everyone on the page turns into a pet for 30 seconds.'
+  hexed: 'The Mad Lab’s floor and its two vats: the green that Hexes and the blue that cures. Drinking it Hexes you: everyone on the page turns into a pet for 30 seconds.'
 };
 function vault() {
   document.title = 'Vault | OpenEye';
@@ -2554,7 +2554,20 @@ fxLayer.setAttribute('aria-hidden', 'true');
 document.body.prepend(fxLayer);
 // The themes' own sprites (themes.png, cut from the client by tools/codex/theme-sprites.mjs).
 let THEME_ART = null;
-async function loadThemeArt() { THEME_ART = await staticJson('/catalog/themes.json').catch(() => null); }
+async function loadThemeArt() {
+  THEME_ART = await staticJson('/catalog/themes.json').catch(() => null);
+  // The floor tiles become CSS variables (--tile-lab-floor, ...) so backdrops can repeat them.
+  const tiles = Object.entries(THEME_ART?.sprites ?? {}).filter(([n]) => n.startsWith('ground:'));
+  if (!tiles.length) return;
+  const sheet = await new Promise(res => { const img = new Image(); img.onload = () => res(img); img.onerror = () => res(null); img.src = '/catalog/themes.png?v=2'; });
+  if (!sheet) return;
+  for (const [name, a] of tiles) {
+    const c = document.createElement('canvas');
+    c.width = a.w; c.height = a.h;
+    c.getContext('2d').drawImage(sheet, a.x, a.y, a.w, a.h, 0, 0, a.w, a.h);
+    document.documentElement.style.setProperty(`--tile-${name.slice(7).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`, `url(${c.toDataURL()})`);
+  }
+}
 /** One sprite from themes.png at a whole-number scale, as a positioned <i> for #theme-fx. */
 function art(name, scale, cls = '', style = '') {
   const a = THEME_ART?.sprites[name];
@@ -2603,14 +2616,14 @@ const FX = {
     + many(4, i => `<i class="fx-eggsac" style="left:${4 + i * 7}%;--d:-${(i * 0.7).toFixed(1)}s">${art('Spider Egg Sac', 5)}</i>`)
     + many(3, i => `<i class="fx-scuttle" style="--t:${rand(16, 26).toFixed(0)}s;--d:-${rand(0, 26).toFixed(0)}s;bottom:${2 + i * 3}vh">${art('Green Den Spider Hatchling', 4)}</i>`)
     + bossMarkup('sden'),
-  // Snake Pit: mossy stone and grates, snakes and pythons sliding along the floor, and Stheno with
-  // her swarm circling her (at a calmer pace than the server's).
-  spit: () => many(4, i => `<i class="fx-grate" style="left:${10 + i * 24}%">${art('Snake Grate', 6)}</i>`)
-    + ['Pit Snake', 'Brown Python', 'Greater Pit Snake', 'Yellow Python', 'Fire Python'].map((n, i) => `<i class="fx-slither${i % 2 ? ' back' : ''}" style="bottom:${3 + (i % 3) * 5}vh;--t:${rand(22, 34).toFixed(0)}s;--d:-${rand(0, 34).toFixed(0)}s">${art(n, 4)}</i>`).join('')
+  // Snake Pit: one vent in the floor, glowing, with little snakes crawling out of it and off
+  // either side of the page; Stheno in the corner with her swarm (calmer than the server's).
+  spit: () => `<i class="fx-vent"><b></b>${art('Snake Grate', 10)}</i>`
+    + many(7, i => `<i class="fx-hatch${i % 2 ? ' back' : ''}" style="--dir:${i % 2 ? -1 : 1};--dy:${rand(-30, 20).toFixed(0)}px;--t:14s;--d:-${(i * 2).toFixed(1)}s">${art(['Pit Snake', 'Pit Snake', 'Brown Python', 'Pit Snake', 'Yellow Python', 'Pit Snake', 'Fire Python'][i], 3)}</i>`)
     + bossMarkup('spit', `<i class="fx-swarm">${many(4, i => `<b style="--a:${i * 90}deg">${art('Stheno Swarm', 4)}</b>`)}</i>`),
-  // Forbidden Jungle: the temple at night. Great trees frame the page, braziers burn either side,
+  // Forbidden Jungle: the temple at night. Braziers burn either side,
   // Totem Spirits drift between the totems, flowers glow, and the drums beat in the dark.
-  fjungle: () => `<i class="fx-drums"></i>${art('Jungle Tree Big', 18, 'fx-tree l')}${art('Jungle Tree Big', 15, 'fx-tree r')}`
+  fjungle: () => `<i class="fx-drums"></i>`
     + `<i class="fx-brazier l">${art('Jungle Brazier', 6)}<b></b></i><i class="fx-brazier r">${art('Jungle Brazier', 6)}<b></b></i>`
     + `<i class="fx-totem l">${art('Jungle Totem', 6)}</i><i class="fx-totem r">${art('Jungle Totem', 6)}</i>`
     + many(5, i => `<i class="fx-spirit" style="left:${10 + i * 19}%;top:${rand(22, 60).toFixed(0)}%;--t:${rand(6, 10).toFixed(1)}s;--d:-${rand(0, 10).toFixed(1)}s">${art('Totem Spirit', 4)}</i>`)
@@ -2630,39 +2643,32 @@ const FX = {
   // Health and Magic Potions: plain everyday themes, a short glow after drinking.
   hp: () => `<i class="fx-halo fx-redhalo"></i>${many(10, () => `<i class="fx-mote fx-plus fx-redplus" style="left:${pct(2, 98)};--s:${rand(7, 12).toFixed(0)}px;--dx:${rand(-30, 30).toFixed(0)}px;--t:${rand(9, 16).toFixed(1)}s;--d:-${rand(0, 16).toFixed(1)}s"></i>`)}`,
   mp: () => `<i class="fx-halo fx-bluehalo"></i>${many(16, () => `<i class="fx-fly fx-blue" style="left:${pct(2, 98)};top:${pct(10, 98)};--t:${rand(5, 10).toFixed(1)}s;--d:-${rand(0, 10).toFixed(1)}s;--dx:${rand(-60, 60).toFixed(0)}px;--dy:${rand(-80, 20).toFixed(0)}px"></i>`)}`,
-  // Pirate Rum: on deck at dusk with a bottle in hand. The sea rolls, the ship's wheel swings,
-  // gulls pass, a parrot keeps watch from the rail. Drinking it makes you drunk for 30 s.
-  pirum: () => `<i class="fx-deck-sea"><b></b><b></b></i><i class="fx-wheel"></i>${art('Cave Pirate Parrot', 6, 'fx-rail')}`
-    + many(3, () => `<i class="fx-gull" style="top:${pct(8, 32)};--k:${rand(.5, .9).toFixed(2)};--dy:${rand(-30, 20).toFixed(0)}px;--t:${rand(24, 36).toFixed(1)}s;--d:-${rand(0, 36).toFixed(1)}s"><b></b></i>`),
-  // Healing Ichor: Arachna's den, where it comes from. Webs in the corners, ichor dripping and
-  // pooling, a slow red pulse like a heartbeat, one spider coming down to see who took it.
-  ichor: () => `<i class="fx-web l"></i><i class="fx-web r"></i><i class="fx-pool"></i>`
-    + many(8, () => `<i class="fx-drip fx-ichor" style="left:${pct(3, 97)};--t:${rand(6, 12).toFixed(1)}s;--d:-${rand(0, 12).toFixed(1)}s"></i>`)
-    + `<i class="fx-dangle" style="left:72%;--y:34vh;--t:11s;--d:-3s">${art('Red Spotted Den Spider', 4)}</i>`,
+  // Pirate Rum: below decks on a pirate ship: the game's dark planking, a rope along the beams,
+  // lanterns swinging, barrels and crates of stores. Drinking it makes you drunk for 30 s.
+  pirum: () => `<i class="fx-rope"></i><i class="fx-lantern l"><b></b></i><i class="fx-lantern r"><b></b></i>`
+    + `<i class="fx-stores l"><i class="fx-stack">${art('Wine Barrel', 9)}${art('Wine Barrel', 9)}</i>${art('Wine Barrel', 9)}${art('Treasure Chest', 7)}</i>`
+    + `<i class="fx-stores r">${art('Treasure Chest', 7)}<i class="fx-stack">${art('Wine Barrel', 9)}${art('Wine Barrel', 9)}</i></i>`,
+  // Healing Ichor: veins of glowing ichor beating across the dark, beads of it rising and
+  // swelling like a lava lamp. Heals 150 HP.
+  ichor: () => `<i class="fx-veins"></i>${many(7, i => `<i class="fx-orb" style="left:${[3, 9, 15, 83, 88, 94, 50][i] + rand(-2, 2)}%;--s:${rand(26, 64).toFixed(0)}px;--t:${rand(16, 26).toFixed(1)}s;--d:-${rand(0, 26).toFixed(1)}s"></i>`)}`,
   // Holy Water: light through a high window. Shafts of gold light, dust motes turning in them,
   // a halo breathing behind the page title. It heals and washes away drunk, Hexed and visions.
-  holy: () => `<i class="fx-window"></i>${many(4, i => `<i class="fx-ray fx-holyray" style="left:${18 + i * 18 + rand(-4, 4)}%;--a:${rand(8, 18).toFixed(1)}deg;--t:${rand(8, 13).toFixed(1)}s;--d:-${rand(0, 13).toFixed(1)}s"></i>`)}`
+  holy: () => `<i class="fx-window"></i>${many(4, i => `<i class="fx-ray fx-holyray" style="left:${84 + i * 2.5 + rand(-1, 1)}%;--a:${rand(22, 40).toFixed(1)}deg;--t:${rand(8, 13).toFixed(1)}s;--d:-${rand(0, 13).toFixed(1)}s"></i>`)}`
     + many(18, () => `<i class="fx-fly fx-dust" style="left:${pct(10, 90)};top:${pct(10, 95)};--t:${rand(8, 14).toFixed(1)}s;--d:-${rand(0, 14).toFixed(1)}s;--dx:${rand(-40, 40).toFixed(0)}px;--dy:${rand(-40, 40).toFixed(0)}px"></i>`),
-  // Coral Juice: Thessal's reef, kept simple: coral swaying on the sea floor and bubbles.
-  coral: () => `${many(9, i => `<i class="fx-coral${i % 3 === 1 ? ' fan' : i % 3 === 2 ? ' orange' : ''}" style="left:${(i < 5 ? i * 4.5 : 62 + i * 4.5).toFixed(1)}%;--w:${rand(70, 130).toFixed(0)}px;--t:${rand(4, 7).toFixed(1)}s;--d:-${rand(0, 7).toFixed(1)}s"></i>`)}${many(10, () => `<i class="fx-bubble fx-sea" style="left:${pct(2, 98)};--s:${rand(4, 11).toFixed(0)}px;--t:${rand(8, 15).toFixed(1)}s;--d:-${rand(0, 15).toFixed(1)}s"></i>`)}`,
+  // Coral Juice: like Snake Oil, a light page with a repeating coral motif; a few pearly bubbles.
+  coral: () => many(8, () => `<i class="fx-bubble fx-pearl" style="left:${pct(2, 98)};--s:${rand(6, 14).toFixed(0)}px;--t:${rand(12, 20).toFixed(1)}s;--d:-${rand(0, 20).toFixed(1)}s"></i>`),
   // Pollen Powder: ground from the Forbidden Jungle's flowers. Golden clouds of it drift across,
   // the flowers it came from nod along the bottom. Using it restores 100 MP to all within 10 tiles.
   pollen: () => many(6, () => `<i class="fx-pollen" style="left:${pct(-10, 80)};top:${pct(5, 75)};--s:${rand(120, 260).toFixed(0)}px;--dx:${rand(80, 220).toFixed(0)}px;--dy:${rand(-40, 40).toFixed(0)}px;--t:${rand(14, 22).toFixed(1)}s;--d:-${rand(0, 22).toFixed(1)}s"></i>`)
     + many(24, () => `<i class="fx-fly fx-grain" style="left:${pct(2, 98)};top:${pct(5, 95)};--t:${rand(6, 12).toFixed(1)}s;--d:-${rand(0, 12).toFixed(1)}s;--dx:${rand(20, 90).toFixed(0)}px;--dy:${rand(-40, 30).toFixed(0)}px"></i>`)
     + many(10, i => `<i class="fx-bloom" style="left:${1 + i * 10}%;--d:-${rand(0, 4).toFixed(1)}s">${art(i % 2 ? 'Pink Flowers' : 'Jungle Flower Bright', 4)}</i>`),
-  // Transformation Potion: the Mad Lab's experiment. The light keeps changing colour, a flask
-  // bubbles in the corner, and in it the pets you might turn into come and go. Drinking it Hexes
-  // you for 30 s: every character on the page becomes one of those pets.
-  hexed: () => `<i class="fx-shift a"></i><i class="fx-shift b"></i><i class="fx-shift c"></i><i class="fx-flask"><b></b></i>`
-    + petCycle()
-    + many(10, () => `<i class="fx-bubble fx-toxic" style="left:${pct(70, 96)};--s:${rand(5, 12).toFixed(0)}px;--t:${rand(5, 9).toFixed(1)}s;--d:-${rand(0, 9).toFixed(1)}s"></i>`),
+  // Transformation Potion: the Mad Lab floor with its two vats, the green that Hexes and the
+  // blue that cures, each throwing up its sparks. Drinking it Hexes you for 30 s.
+  hexed: () => `<i class="fx-vat-glow blue"></i><i class="fx-vat-glow green"></i><i class="fx-vat blue"></i><i class="fx-vat green"></i>`
+    + many(14, () => `<i class="fx-spark" style="--c:#00e640;right:${rand(2, 30).toFixed(1)}vw;bottom:${rand(18, 28).toFixed(0)}vh;--t:${rand(.9, 1.6).toFixed(2)}s;--d:-${rand(0, 1.6).toFixed(2)}s"></i>`)
+    + many(10, () => `<i class="fx-spark" style="--c:#2a9bff;left:${rand(2, 20).toFixed(1)}vw;bottom:${rand(12, 20).toFixed(0)}vh;--t:${rand(.9, 1.6).toFixed(2)}s;--d:-${rand(0, 1.6).toFixed(2)}s"></i>`),
   jungle: () => `<i class="fx-leaves"></i><i class="fx-leaves b"></i>${many(16, () => `<i class="fx-fly" style="left:${pct(2, 98)};top:${pct(25, 98)};--t:${rand(5, 10).toFixed(1)}s;--d:-${rand(0, 10).toFixed(1)}s;--dx:${rand(-60, 60).toFixed(0)}px;--dy:${rand(-50, 20).toFixed(0)}px"></i>`)}` + many(6, () => `<i class="fx-leaf" style="left:${pct(2, 98)};--dx:${rand(-120, 120).toFixed(0)}px;--t:${rand(14, 22).toFixed(1)}s;--d:-${rand(0, 22).toFixed(1)}s"></i>`)
 };
-// Six pets shown by turns in the Transformation Potion's flask.
-function petCycle() {
-  const pets = Object.entries(THEME_ART?.sprites ?? {}).filter(([, a]) => a.pet).map(([n]) => n).sort(() => Math.random() - 0.5).slice(0, 6);
-  return `<i class="fx-specimens">${pets.map((n, i) => `<b style="--i:${i}">${art(n, 6)}</b>`).join('')}</i>`;
-}
 // ---- Dungeon bosses: click to fight ----
 // Each key's boss stands in a corner of the page. Clicking hits it (its own hit sound from
 // objects.xml and a damage number); at 0 HP it dies (its death sound) and drops a loot bag with

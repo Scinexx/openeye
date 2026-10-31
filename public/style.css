@@ -1571,11 +1571,11 @@ img.cls.hexed-pet { image-rendering: pixelated; image-rendering: crisp-edges; an
 :root[data-theme="pcave"] h1 { color: #ffd76a; text-shadow: 0 3px 0 #5a2e08, 0 0 18px rgb(255 160 40 / .45); }
 
 /* Spider Den: dark earth, webs across both upper corners, Arachna in the right-hand web. */
-:root[data-theme="sden"] { --stone: #17121a; --stone-deep: #110d14; --panel: #251d29; --panel-raised: #2e2433; --bevel-light: #6d5a7a; --bevel-dark: #08060a; --muted: #ab9eb3; --bone: #f4eef7; --bone-dim: #d0c3d8; --accent: #a4ff4f; --accent-line: #3e7a1a; --accent-wash: #22282a; }
+:root[data-theme="sden"] { --stone: #151018; --stone-deep: #100c13; --panel: #211a26; --panel-raised: #29202f; --bevel-light: #5e4b6e; --bevel-dark: #070509; --muted: #a99db4; --bone: #f5f0f8; --bone-dim: #d3c7dc; --accent: #9cff57; --accent-line: #3e7a1a; --accent-wash: #1f2622; }
 :root[data-theme="sden"] body::before { background:
   radial-gradient(120% 60% at 50% 115%, rgb(80 50 30 / .45), transparent 70%),
   radial-gradient(140% 110% at 50% 40%, transparent 55%, rgb(5 3 8 / .7) 100%), #17121a; }
-#theme-fx .fx-web { top: -2px; width: min(40vw, 460px); aspect-ratio: 1; opacity: .5;
+#theme-fx .fx-web { top: -2px; width: min(40vw, 460px); aspect-ratio: 1; opacity: .3;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none' stroke='%23e9e4f2' stroke-width='.7'%3E%3Cpath d='M0 0L200 200M0 0L200 110M0 0L110 200M0 0L200 40M0 0L40 200'/%3E%3Cpath d='M30 0Q22 22 0 30M60 0Q45 45 0 60M95 0Q72 72 0 95M135 0Q100 100 0 135M175 0Q130 130 0 175'/%3E%3C/svg%3E") 0 0 / contain no-repeat; }
 #theme-fx .fx-web.l { left: -2px; }
 #theme-fx .fx-web.r { right: -2px; transform: scaleX(-1); }
@@ -1590,26 +1590,26 @@ img.cls.hexed-pet { image-rendering: pixelated; image-rendering: crisp-edges; an
 @keyframes fx-websway { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
 :root[data-theme="sden"] h1 { color: #f4eef7; text-shadow: 0 0 2px #000, 0 3px 0 #000, 0 0 16px rgb(164 255 79 / .35); }
 
-/* Snake Pit: mossy stone in a scale pattern; snakes along the floor; Stheno and her swarm. */
-:root[data-theme="spit"] { --stone: #0f1a10; --stone-deep: #0b140c; --panel: #1a2a1b; --panel-raised: #203322; --bevel-light: #5d8a3a; --bevel-dark: #050a05; --muted: #a9bf98; --bone: #f2fbe9; --bone-dim: #cfe3bf; --accent: #d8f24a; --accent-line: #6b7d12; --accent-wash: #1d2b14; }
+/* Snake Pit: in the spirit of the endgame keys, a plain palette of cold stone and jade with
+   one setpiece: a vent in the floor, glowing faintly, that little snakes keep crawling out of
+   and slithering off the page. Stheno waits in the corner with her swarm. */
+:root[data-theme="spit"] { --stone: #111614; --stone-deep: #0c110f; --panel: #19211d; --panel-raised: #1f2924; --bevel-light: #3f6b52; --bevel-dark: #060907; --muted: #9db3a6; --bone: #eef7f1; --bone-dim: #c5d8cc; --accent: #5fd38d; --accent-line: #2a6a45; --accent-wash: #1a2a22; }
 :root[data-theme="spit"] body::before { background:
-  radial-gradient(circle at 50% 0, rgb(120 160 70 / .10) 0 9px, transparent 10px) 0 0 / 22px 14px,
-  radial-gradient(circle at 50% 0, rgb(120 160 70 / .10) 0 9px, transparent 10px) 11px 7px / 22px 14px,
-  radial-gradient(120% 50% at 50% 115%, rgb(40 80 20 / .55), transparent 70%), #0f1a10; }
-#theme-fx .fx-grate { bottom: 18vh; opacity: .5; }
-#theme-fx .fx-slither { left: -80px; will-change: transform; animation: fx-slither var(--t) linear var(--d) infinite; }
-#theme-fx .fx-slither > .fx-art { animation: fx-snake-wiggle .7s ease-in-out infinite alternate; }
-#theme-fx .fx-slither.back { left: auto; right: -80px; animation-name: fx-slither-back; }
-#theme-fx .fx-slither.back > .fx-art { scale: -1 1; }
-@keyframes fx-slither { from { transform: translateX(0); } to { transform: translateX(calc(100vw + 160px)); } }
-@keyframes fx-slither-back { from { transform: translateX(0); } to { transform: translateX(calc(-100vw - 160px)); } }
-@keyframes fx-snake-wiggle { from { transform: translateY(-2px) rotate(-4deg); } to { transform: translateY(2px) rotate(4deg); } }
-#theme-fx .fx-boss.b-spit { right: 4vw; bottom: 10vh; }
+  radial-gradient(30vw 22vh at 10vw 100%, rgb(95 211 141 / .16), transparent 70%),
+  radial-gradient(140% 110% at 50% 40%, transparent 55%, rgb(0 0 0 / .55) 100%), #111614; }
+#theme-fx .fx-vent { left: 10vw; bottom: 3vh; translate: -50% 0; }
+#theme-fx .fx-vent > b { position: absolute; left: 50%; top: 50%; width: 180px; height: 120px; translate: -50% -50%; border-radius: 50%; background: radial-gradient(closest-side, rgb(95 211 141 / .35), transparent); will-change: opacity; animation: fx-breathe 3.2s ease-in-out infinite alternate; }
+#theme-fx .fx-vent > .fx-art { filter: brightness(.85) drop-shadow(0 0 0 #000) drop-shadow(2px 0 0 #000) drop-shadow(-2px 0 0 #000) drop-shadow(0 2px 0 #000) drop-shadow(0 -2px 0 #000); }
+#theme-fx .fx-hatch { left: 10vw; bottom: calc(3vh + 28px); opacity: 0; will-change: transform, opacity; animation: fx-hatch var(--t) linear var(--d) infinite; }
+#theme-fx .fx-hatch > .fx-art { animation: fx-snake-wiggle .5s ease-in-out infinite alternate; }
+#theme-fx .fx-hatch.back > .fx-art { scale: -1 1; }
+@keyframes fx-hatch { 0% { transform: translate(-50%, 10px) scale(.4); opacity: 0; } 6% { transform: translate(-50%, 0) scale(1); opacity: 1; } 90% { opacity: 1; } 100% { transform: translate(calc(var(--dir) * 85vw), var(--dy)) scale(1); opacity: 0; } }
+#theme-fx .fx-boss.b-spit { right: 4vw; bottom: 8vh; }
 #theme-fx .fx-swarm { position: absolute; left: 50%; top: calc(50% + 6px); width: 0; height: 0; will-change: transform; animation: fx-spin 9s linear infinite; }
 #theme-fx .fx-swarm > b { position: absolute; left: -16px; top: -16px; transform: rotate(var(--a)) translateX(82px); }
-:root[data-theme="spit"] h1 { color: #e8ff8a; text-shadow: 0 3px 0 #1f3a0a, 0 0 16px rgb(216 242 74 / .4); }
+:root[data-theme="spit"] h1 { color: #e9fff1; text-shadow: 0 0 16px rgb(95 211 141 / .45), 0 2px 0 #0a2416; }
 
-/* Forbidden Jungle: the temple at night, trees either side, braziers and totems, a drumbeat. */
+/* Forbidden Jungle: the temple at night: braziers and totems either side, a drumbeat in the dark. */
 :root[data-theme="fjungle"] { --stone: #0a1612; --stone-deep: #07110d; --panel: #13261f; --panel-raised: #183027; --bevel-light: #4f8a5e; --bevel-dark: #030806; --muted: #9fbca9; --bone: #effbf3; --bone-dim: #c8e2d1; --accent: #ffa630; --accent-line: #8a4a0c; --accent-wash: #1d2a1d; }
 :root[data-theme="fjungle"] body::before { background:
   repeating-linear-gradient(0deg, rgb(255 255 255 / .018) 0 2px, transparent 2px 26px), repeating-linear-gradient(90deg, rgb(0 0 0 / .12) 0 2px, transparent 2px 52px),
@@ -1617,8 +1617,6 @@ img.cls.hexed-pet { image-rendering: pixelated; image-rendering: crisp-edges; an
   linear-gradient(180deg, #050d0b, #0a1612 60%, #0d1a12); }
 #theme-fx .fx-drums { inset: 0; background: radial-gradient(140% 100% at 50% 50%, transparent 55%, rgb(120 40 0 / .28) 100%); opacity: 0; will-change: opacity; animation: fx-drums 1.6s ease-out infinite; }
 @keyframes fx-drums { 0%, 50% { opacity: .9; } 8%, 58% { opacity: .2; } 30%, 100% { opacity: 0; } }
-#theme-fx .fx-tree { bottom: -4vh; opacity: .55; filter: brightness(.45) saturate(.7); }
-#theme-fx .fx-tree.l { left: -90px; } #theme-fx .fx-tree.r { right: -80px; scale: -1 1; }
 #theme-fx .fx-brazier { bottom: 5vh; }
 #theme-fx .fx-brazier.l { left: 15vw; } #theme-fx .fx-brazier.r { right: 15vw; }
 #theme-fx .fx-brazier > b { position: absolute; left: 50%; top: -60px; width: 120px; height: 120px; margin-left: -60px; border-radius: 50%; background: radial-gradient(circle, rgb(255 180 60 / .45), transparent 65%); will-change: opacity; animation: fx-flicker 1.7s steps(5) infinite; }
@@ -1668,45 +1666,64 @@ img.cls.hexed-pet { image-rendering: pixelated; image-rendering: crisp-edges; an
 #theme-fx .fx-mote.fx-plus.fx-redplus { color: #ff6b70; }
 #theme-fx .fx-fly.fx-blue { background: #cfe0ff; box-shadow: 0 0 6px 2px rgb(96 132 224 / .8), 0 0 14px 5px rgb(96 132 224 / .3); }
 
-/* Pirate Rum: on deck at dusk, the sea rolling under the bow. */
-:root[data-theme="pirum"] { --stone: #1f1712; --stone-deep: #18110d; --panel: #2e2219; --panel-raised: #382a1f; --bevel-light: #a0723f; --bevel-dark: #0c0805; --muted: #c4ad8f; --bone: #fff4e3; --bone-dim: #e6d2b4; --accent: #ffb347; --accent-line: #8a4f16; --accent-wash: #33261b; }
-:root[data-theme="pirum"] body::before { background: linear-gradient(180deg, #2a1a2e 0%, #6b3a3a 30%, #c9733a 47%, #22303d 48%, #142231 75%, #2b1d12 75.3%, #3a2817 100%); }
-#theme-fx .fx-deck-sea { left: -10%; top: 30vh; width: 120%; height: 45vh; transform-origin: 50% 30%; will-change: transform; animation: fx-roll-sea 7s ease-in-out infinite; }
-#theme-fx .fx-deck-sea > b { position: absolute; left: 0; right: 0; height: 3px; background: rgb(255 210 150 / .25); }
-#theme-fx .fx-deck-sea > b:first-child { top: 18vh; } #theme-fx .fx-deck-sea > b:last-child { top: 30vh; opacity: .6; }
-@keyframes fx-roll-sea { 0%, 100% { transform: rotate(-2.2deg) translateY(-6px); } 50% { transform: rotate(2.2deg) translateY(6px); } }
-#theme-fx .fx-wheel { left: 2vw; bottom: -90px; width: 260px; height: 260px; will-change: transform; animation: fx-helm 9s ease-in-out infinite;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-50 -50 100 100'%3E%3Cg stroke='%2316100b' stroke-width='5' stroke-linecap='round'%3E%3Cpath d='M0-48V48M-48 0H48M-34-34L34 34M-34 34L34-34'/%3E%3C/g%3E%3Ccircle r='30' fill='none' stroke='%235a3a1c' stroke-width='7'/%3E%3Ccircle r='30' fill='none' stroke='%2316100b' stroke-width='1.5'/%3E%3Ccircle r='7' fill='%235a3a1c' stroke='%2316100b' stroke-width='2'/%3E%3C/svg%3E") center / contain no-repeat; }
-@keyframes fx-helm { 0%, 100% { transform: rotate(-35deg); } 50% { transform: rotate(40deg); } }
-#theme-fx .fx-rail { right: 5vw; bottom: 24vh; animation: fx-bob 3.4s ease-in-out infinite; }
-:root[data-theme="pirum"] h1 { color: #ffd59a; text-shadow: 0 3px 0 #3a1d08, 0 0 16px rgb(255 140 60 / .4); }
+/* Pirate Rum: below decks on a pirate ship. The game's own dark planking (Wood Plank Floor
+   Dark) under a warm vignette, a rope strung along the top, two lanterns swinging from the
+   beams, barrels and a crate of the ship's stores stacked in the corners. */
+:root[data-theme="pirum"] { --stone: #1a110a; --stone-deep: #140d07; --panel: #2a1b10; --panel-raised: #332214; --bevel-light: #9c6a34; --bevel-dark: #0b0603; --muted: #c4a681; --bone: #fff2de; --bone-dim: #e6cfae; --accent: #ffb347; --accent-line: #8a5214; --accent-wash: #33210f; }
+:root[data-theme="pirum"] body::before { background:
+  radial-gradient(28vw 40vh at 12vw 18vh, rgb(255 170 70 / .2), transparent 70%), radial-gradient(28vw 40vh at 88vw 18vh, rgb(255 170 70 / .17), transparent 70%),
+  radial-gradient(140% 110% at 50% 40%, transparent 45%, rgb(8 4 1 / .78) 100%),
+  linear-gradient(rgb(26 17 10 / .62), rgb(26 17 10 / .62)),
+  var(--tile-wood-plank-floor-dark, none) 0 0 / 48px 48px, #2a1a0e; image-rendering: pixelated; }
+#theme-fx .fx-rope { left: 0; right: 0; top: 64px; height: 10px; opacity: .85;
+  background: repeating-linear-gradient(135deg, #c99a5b 0 4px, #8a6230 4px 7px, #5a3c1a 7px 9px); box-shadow: 0 2px 0 rgb(0 0 0 / .5); }
+#theme-fx .fx-lantern { top: 64px; transform-origin: 50% 0; will-change: transform; animation: fx-lantern 4.5s ease-in-out infinite; }
+#theme-fx .fx-lantern.l { left: 12vw; } #theme-fx .fx-lantern.r { left: 88vw; animation-delay: -2.2s; }
+#theme-fx .fx-lantern::before { content: ""; position: absolute; left: 50%; top: 0; width: 2px; height: 70px; background: #2a1a0c; }
+#theme-fx .fx-lantern > b { position: absolute; left: -15px; top: 70px; width: 30px; height: 42px; border-radius: 6px 6px 8px 8px; box-shadow: 0 0 0 3px #2a1a0c, 0 0 40px 18px rgb(255 170 70 / .25);
+  background: linear-gradient(90deg, transparent 0 9px, #2a1a0c 9px 11px, transparent 11px 19px, #2a1a0c 19px 21px, transparent 21px), radial-gradient(circle at 50% 60%, #fff3c0, #ffb347 45%, #b5651d 90%); }
+#theme-fx .fx-lantern > b::after { content: ""; position: absolute; left: 50%; top: 50%; width: 140px; height: 140px; translate: -50% -50%; border-radius: 50%; background: radial-gradient(closest-side, rgb(255 190 90 / .22), transparent); will-change: opacity; animation: fx-flicker 2.6s steps(6) infinite; }
+@keyframes fx-lantern { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+#theme-fx .fx-stores { bottom: 2vh; display: flex; align-items: flex-end; gap: 4px; }
+#theme-fx .fx-stores.l { left: 2vw; } #theme-fx .fx-stores.r { right: 2vw; }
+#theme-fx .fx-stores .fx-art { filter: brightness(.82) drop-shadow(2px 0 0 #000) drop-shadow(-2px 0 0 #000) drop-shadow(0 2px 0 #000) drop-shadow(0 -2px 0 #000); }
+#theme-fx .fx-stack { display: flex; flex-direction: column; align-items: center; }
+:root[data-theme="pirum"] h1 { color: #ffd08a; text-shadow: 0 3px 0 #3a1d08, 0 0 18px rgb(255 150 50 / .45); }
 
-/* Healing Ichor: Arachna's den in red. */
-:root[data-theme="ichor"] { --stone: #170d10; --stone-deep: #11090b; --panel: #26151a; --panel-raised: #2f1a20; --bevel-light: #8a3040; --bevel-dark: #070304; --muted: #bfa0a6; --bone: #fbeff1; --bone-dim: #dcc0c5; --accent: #ff3d5a; --accent-line: #7d1022; --accent-wash: #2d1218; }
-:root[data-theme="ichor"] body::before { background: radial-gradient(140% 110% at 50% 40%, transparent 55%, rgb(40 0 8 / .7) 100%), #170d10; }
-#theme-fx .fx-drip.fx-ichor { width: 7px; height: 12px; background: linear-gradient(#ff3d5a, #7d0a1f); box-shadow: 0 0 8px rgb(255 40 70 / .7); }
-#theme-fx .fx-pool { left: -10%; right: -10%; bottom: -12vh; height: 30vh; border-radius: 50%; background: radial-gradient(closest-side, rgb(220 20 50 / .35), transparent); will-change: opacity; animation: fx-heart 1.4s ease-in-out infinite; }
-@keyframes fx-heart { 0%, 40%, 100% { opacity: .5; } 10% { opacity: 1; } 25% { opacity: .75; } }
-:root[data-theme="ichor"] h1 { color: #ffe3e8; text-shadow: 0 3px 0 #3a0610, 0 0 16px rgb(255 61 90 / .5); }
+/* Healing Ichor: the living blood of the Spider Queen's brood. Veins of it branch across the
+   dark, beating with a slow pulse, and beads of ichor rise and swell like a lava lamp. */
+:root[data-theme="ichor"] { --stone: #120609; --stone-deep: #0d0406; --panel: #1f0a10; --panel-raised: #280d15; --bevel-light: #8f2238; --bevel-dark: #050102; --muted: #c09aa3; --bone: #fff0f3; --bone-dim: #e2c1c9; --accent: #ff3d6e; --accent-line: #8a1230; --accent-wash: #2a0c14; }
+:root[data-theme="ichor"] body::before { background: radial-gradient(70% 60% at 50% 110%, rgb(160 10 40 / .3), transparent 70%), radial-gradient(140% 110% at 50% 40%, transparent 50%, rgb(0 0 0 / .7) 100%), #120609; }
+#theme-fx .fx-veins { inset: 0; will-change: opacity; animation: fx-heart 1.6s ease-in-out infinite;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 250' preserveAspectRatio='none' fill='none' stroke='%23ff2d55' stroke-linecap='round'%3E%3Cg stroke-width='1.6' stroke-opacity='.55'%3E%3Cpath d='M0 40C40 50 60 30 90 45S140 80 170 70'/%3E%3Cpath d='M0 200C30 190 50 210 80 195S120 160 150 170'/%3E%3Cpath d='M400 30C360 45 345 25 315 42S270 75 240 66'/%3E%3Cpath d='M400 215C370 205 352 224 322 210S285 180 255 188'/%3E%3C/g%3E%3Cg stroke-width='.9' stroke-opacity='.4'%3E%3Cpath d='M90 45C95 70 85 90 100 110M170 70C180 95 165 110 175 130M60 30C70 15 65 5 80 0'/%3E%3Cpath d='M80 195C88 175 78 160 95 140M150 170C160 150 150 135 165 120M40 205C45 225 35 235 45 250'/%3E%3Cpath d='M315 42C310 65 322 85 305 105M240 66C232 90 245 108 232 126M345 30C335 15 342 5 330 0'/%3E%3Cpath d='M322 210C315 190 326 172 310 152M255 188C246 168 258 152 245 136M365 212C360 230 370 240 362 250'/%3E%3C/g%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  filter: drop-shadow(0 0 4px rgb(255 45 85 / .8)); }
+#theme-fx .fx-orb { width: var(--s); height: var(--s); border-radius: 50%; bottom: -12vh; will-change: transform, opacity; animation: fx-orb var(--t) ease-in-out var(--d) infinite;
+  background: radial-gradient(circle at 34% 30%, rgb(255 220 228 / .9) 0 7%, rgb(255 61 110 / .9) 22%, rgb(150 8 40 / .85) 62%, rgb(80 0 20 / .6) 78%, transparent 80%);
+  box-shadow: 0 0 30px 8px rgb(255 45 85 / .25); }
+@keyframes fx-orb { 0% { transform: translateY(0) scale(.7); opacity: 0; } 15% { opacity: .95; } 50% { transform: translateY(-55vh) scale(1.05, .95); } 85% { opacity: .9; } 100% { transform: translateY(-112vh) scale(.8); opacity: 0; } }
+:root[data-theme="ichor"] h1 { color: #ffe5ec; text-shadow: 0 0 18px rgb(255 61 110 / .65), 0 2px 0 #3a0614; }
 
 /* Holy Water: a dim chapel, gold light falling through a high window. */
 :root[data-theme="holy"] { --stone: #141a2c; --stone-deep: #0f1424; --panel: #1d2540; --panel-raised: #232d4d; --bevel-light: #c9a95a; --bevel-dark: #070a14; --muted: #b6bdd4; --bone: #fffaf0; --bone-dim: #e4e0d2; --accent: #ffe08a; --accent-line: #8a6d1f; --accent-wash: #262c45; }
-:root[data-theme="holy"] body::before { background: radial-gradient(60% 50% at 50% -10%, rgb(255 236 170 / .28), transparent 70%), radial-gradient(140% 110% at 50% 40%, transparent 60%, rgb(4 6 14 / .65) 100%), #141a2c; }
-#theme-fx .fx-window { left: 50%; top: -60px; width: 220px; height: 220px; margin-left: -110px; border-radius: 50%; opacity: .55;
+:root[data-theme="holy"] body::before { background: radial-gradient(45% 45% at 88% 18%, rgb(255 236 170 / .24), transparent 70%), radial-gradient(140% 110% at 50% 40%, transparent 60%, rgb(4 6 14 / .65) 100%), #141a2c; }
+#theme-fx .fx-window { right: 6vw; top: 90px; width: 150px; height: 150px; border-radius: 50%; opacity: .6; box-shadow: 0 0 60px 20px rgb(255 224 138 / .18);
   background: conic-gradient(from 0deg, #6fb6ff 0 45deg, #ffd36a 45deg 90deg, #ff7a9a 90deg 135deg, #9cf2a8 135deg 180deg, #6fb6ff 180deg 225deg, #ffd36a 225deg 270deg, #ff7a9a 270deg 315deg, #9cf2a8 315deg);
   -webkit-mask: radial-gradient(circle, #000 0 60%, transparent 61% 64%, #000 65%); mask: radial-gradient(circle, #000 0 60%, transparent 61% 64%, #000 65%); will-change: transform; animation: fx-spin 120s linear infinite; }
-#theme-fx .fx-ray.fx-holyray { background: linear-gradient(180deg, rgb(255 236 170 / .28), rgb(255 236 170 / .06) 60%, transparent); }
+#theme-fx .fx-ray.fx-holyray { top: 140px; background: linear-gradient(180deg, rgb(255 236 170 / .26), rgb(255 236 170 / .05) 60%, transparent); }
 #theme-fx .fx-fly.fx-dust { width: 3px; height: 3px; background: #fff6d0; box-shadow: 0 0 6px 2px rgb(255 230 150 / .6); }
 :root[data-theme="holy"] h1 { color: #fffaf0; text-shadow: 0 0 18px rgb(255 224 138 / .8), 0 0 2px #fff; }
 
-/* Coral Juice: kept simple, a pink-teal reef. */
-:root[data-theme="coral"] { --stone: #0d2a33; --stone-deep: #0a222a; --panel: #133844; --panel-raised: #174352; --bevel-light: #ff7aa8; --bevel-dark: #04141a; --muted: #a8d4d8; --bone: #f2fffd; --bone-dim: #c7ecea; --accent: #ff8ab4; --accent-line: #a2375f; --accent-wash: #173c47; }
-:root[data-theme="coral"] body::before { background: radial-gradient(90% 50% at 50% -10%, rgb(120 240 230 / .18), transparent 70%), linear-gradient(180deg, #0d3a45, #0d2a33 70%, #2a1a2c); }
-#theme-fx .fx-coral { bottom: -6px; width: var(--w); aspect-ratio: 3 / 4; transform-origin: 50% 100%; will-change: transform; animation: fx-nod var(--t) ease-in-out var(--d) infinite;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 80' fill='none' stroke='%23ff7aa8' stroke-linecap='round' stroke-width='5'%3E%3Cpath d='M30 80V48M30 48L18 30M18 30L12 14M18 30L26 16M30 48L42 32M42 32L38 18M42 32L52 20M30 60L46 52M46 52L52 40'/%3E%3C/svg%3E") center bottom / contain no-repeat; }
-#theme-fx .fx-coral.fan { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 80'%3E%3Cpath d='M30 80V56C8 54 2 30 10 14 20 2 40 2 50 14 58 30 52 54 30 56' fill='%23b06bff' fill-opacity='.5' stroke='%23d9a8ff' stroke-width='2'/%3E%3Cpath d='M30 56L14 20M30 56L30 8M30 56L46 20M30 56L22 12M30 56L38 12' stroke='%23d9a8ff' stroke-width='1.5'/%3E%3C/svg%3E"); }
-#theme-fx .fx-coral.orange { filter: hue-rotate(40deg) saturate(1.2); }
-:root[data-theme="coral"] h1 { color: #ffe6f0; text-shadow: 0 0 14px rgb(255 122 168 / .55); }
+/* Coral Juice: in the manner of Snake Oil, a clean light page with one simple repeating motif:
+   Thessal's coral, in pink and sea green on pale shell. */
+:root[data-theme="coral"] { --stone: #fff6f3; --stone-deep: #fbe9e4; --panel: #ffffff; --panel-raised: #fff4f1; --bevel-light: #ffffff; --bevel-dark: #f0c9c2; --muted: #6e5b5b; --bone: #2a1a1f; --bone-dim: #4d3a40; --accent: #e0466a; --accent-line: #f6b7c4; --accent-wash: #fde7ec; --fame: #c86400; color-scheme: light; }
+:root[data-theme="coral"] body::before { background:
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='88' height='88' viewBox='0 0 88 88' fill='none' stroke-linecap='round'%3E%3Cg stroke='%23f4a6b5' stroke-width='2.4' stroke-opacity='.5'%3E%3Cpath d='M22 40V26M22 30L15 20M22 30L29 21M15 20L13 13M15 20L19 14M29 21L27 14M29 21L33 15'/%3E%3C/g%3E%3Cg stroke='%237fcfc0' stroke-width='2.4' stroke-opacity='.45'%3E%3Cpath d='M66 84V70M66 74L59 64M66 74L73 65M59 64L57 57M59 64L63 58M73 65L71 58M73 65L77 59'/%3E%3C/g%3E%3Cg fill='%237fcfc0' fill-opacity='.35' stroke='none'%3E%3Ccircle cx='60' cy='22' r='2'/%3E%3Ccircle cx='66' cy='14' r='1.4'/%3E%3C/g%3E%3Cg fill='%23f4a6b5' fill-opacity='.4' stroke='none'%3E%3Ccircle cx='18' cy='70' r='2'/%3E%3Ccircle cx='12' cy='62' r='1.3'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 88px 88px,
+  linear-gradient(#fffaf8, #fdeee9); }
+#theme-fx .fx-bubble.fx-pearl { border-color: rgb(224 70 106 / .35); background: radial-gradient(circle at 35% 30%, rgb(255 255 255 / .9) 0 18%, rgb(255 220 228 / .25) 45%, transparent 70%); }
+:root[data-theme="coral"] h1 { color: #2a1a1f; position: relative; }
+:root[data-theme="coral"] h1::after { content: ""; position: absolute; left: 0; bottom: -6px; width: 2.2em; height: 4px; border-radius: 2px; background: linear-gradient(90deg, #e0466a, #7fcfc0); }
+:root[data-theme="coral"] .char-stats { filter: brightness(.6) saturate(1.5); }
+:root[data-theme="coral"] .topbar { box-shadow: inset 0 -2px 0 #fff, 0 2px 12px rgb(120 40 50 / .08); }
 
 /* Pollen Powder: dusk over the jungle's flowers, pollen drifting on the air. */
 :root[data-theme="pollen"] { --stone: #1d1a0c; --stone-deep: #171409; --panel: #2c2812; --panel-raised: #363017; --bevel-light: #b39a35; --bevel-dark: #0a0904; --muted: #cbc199; --bone: #fffbe8; --bone-dim: #ebe2bd; --accent: #ffd84a; --accent-line: #8a6e0c; --accent-wash: #332d14; }
@@ -1716,19 +1733,26 @@ img.cls.hexed-pet { image-rendering: pixelated; image-rendering: crisp-edges; an
 #theme-fx .fx-fly.fx-grain { width: 3px; height: 3px; background: #ffe680; box-shadow: 0 0 5px 1px rgb(255 216 74 / .7); }
 :root[data-theme="pollen"] h1 { color: #fff3b0; text-shadow: 0 3px 0 #4a3a06, 0 0 18px rgb(255 216 74 / .55); }
 
-/* Transformation Potion: the Mad Lab's light shifting colour, a flask of pets. */
-:root[data-theme="hexed"] { --stone: #161424; --stone-deep: #110f1c; --panel: #221f38; --panel-raised: #2a2645; --bevel-light: #7a5ad8; --bevel-dark: #08070f; --muted: #aaa3cc; --bone: #f6f2ff; --bone-dim: #d2caf0; --accent: #c86bff; --accent-line: #5a2a9a; --accent-wash: #252142; }
-:root[data-theme="hexed"] body::before { background: #161424; }
-#theme-fx .fx-shift { inset: 0; opacity: 0; will-change: opacity; animation: fx-shift 12s ease-in-out infinite; }
-#theme-fx .fx-shift.a { background: radial-gradient(90% 70% at 20% 30%, rgb(200 107 255 / .22), transparent 70%); }
-#theme-fx .fx-shift.b { background: radial-gradient(90% 70% at 80% 60%, rgb(110 255 160 / .18), transparent 70%); animation-delay: -4s; }
-#theme-fx .fx-shift.c { background: radial-gradient(90% 70% at 50% 100%, rgb(255 150 70 / .18), transparent 70%); animation-delay: -8s; }
-@keyframes fx-shift { 0%, 100% { opacity: 0; } 33% { opacity: 1; } 66% { opacity: 0; } }
-#theme-fx .fx-flask { right: 4vw; bottom: 3vh; width: 170px; height: 210px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 85 105'%3E%3Cpath d='M30 2h25v6h-3v28l28 52q4 14-10 15H15Q1 102 5 88l28-52V8h-3z' fill='%23c86bff' fill-opacity='.12' stroke='%23e8dcff' stroke-width='2'/%3E%3Cpath d='M17 70h51l12 20q3 10-8 11H13Q3 100 6 90z' fill='%2391ff6b' fill-opacity='.45'/%3E%3C/svg%3E") center / contain no-repeat; }
-#theme-fx .fx-specimens { right: calc(4vw + 85px); bottom: calc(3vh + 30px); width: 0; height: 0; }
-#theme-fx .fx-specimens > b { position: absolute; left: -24px; bottom: 0; opacity: 0; will-change: opacity, transform; animation: fx-specimen 12s ease-in-out calc(var(--i) * -2s) infinite; }
-@keyframes fx-specimen { 0%, 100% { opacity: 0; transform: translateY(6px) scale(.8); } 4%, 13% { opacity: 1; transform: none; } 17% { opacity: 0; transform: translateY(-6px) scale(.8); } }
-:root[data-theme="hexed"] h1 { color: #f1e6ff; text-shadow: 2px 0 0 rgb(200 107 255 / .6), -2px 0 0 rgb(110 255 160 / .45), 0 0 16px rgb(200 107 255 / .45); }
+/* Transformation Potion: the Mad Lab's floor (the game's Lab Floor tiles) with its two vats:
+   the green one that Hexes whoever steps in (the Hexxer) and the blue one that cures it (the
+   DeHexxer), each throwing up its own sparks the way the game's particles do. Drinking it
+   Hexes you for 30 s: everyone on the page becomes a pet. */
+:root[data-theme="hexed"] { --stone: #121520; --stone-deep: #0e1019; --panel: #1a1e2c; --panel-raised: #202536; --bevel-light: #4a5a7a; --bevel-dark: #06080d; --muted: #a2adc4; --bone: #f0f4ff; --bone-dim: #c8d0e4; --accent: #2bff6a; --accent-line: #10803a; --accent-wash: #16241f; }
+:root[data-theme="hexed"] body::before { background:
+  radial-gradient(36vw 36vh at 100% 100%, rgb(0 198 49 / .22), transparent 70%), radial-gradient(30vw 32vh at 0% 100%, rgb(0 121 235 / .22), transparent 70%),
+  radial-gradient(140% 110% at 50% 40%, transparent 45%, rgb(0 0 0 / .7) 100%),
+  linear-gradient(rgb(18 21 32 / .72), rgb(18 21 32 / .72)), var(--tile-lab-floor, none) 0 0 / 48px 48px, #121520; image-rendering: pixelated; }
+#theme-fx .fx-vat { bottom: -8vh; image-rendering: pixelated; background-size: 48px 48px; box-shadow: inset 0 0 0 6px #0b0d14, inset 0 10px 24px rgb(0 0 0 / .55); will-change: opacity; }
+#theme-fx .fx-vat.green { right: -6vw; width: 40vw; height: 34vh; border-radius: 58% 42% 0 0 / 70% 60% 0 0; background-image: var(--tile-lab-bad-vat-no-slow, none); }
+#theme-fx .fx-vat.blue { left: -6vw; width: 30vw; height: 26vh; border-radius: 45% 60% 0 0 / 65% 70% 0 0; background-image: var(--tile-lab-good-vat-no-slow, none); }
+#theme-fx .fx-vat::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: radial-gradient(60% 40% at 50% 20%, rgb(255 255 255 / .22), transparent 70%); will-change: opacity; animation: fx-breathe 3s ease-in-out infinite alternate; }
+#theme-fx .fx-vat-glow { bottom: 0; width: 46vw; height: 52vh; border-radius: 50%; will-change: opacity; animation: fx-breathe 2.6s ease-in-out infinite alternate; }
+#theme-fx .fx-vat-glow.green { right: -10vw; background: radial-gradient(closest-side, rgb(0 198 49 / .28), transparent); }
+#theme-fx .fx-vat-glow.blue { left: -10vw; width: 36vw; background: radial-gradient(closest-side, rgb(0 121 235 / .28), transparent); animation-delay: -1.3s; }
+/* The vats' CustomParticles: small squares rising a tile and fading. */
+#theme-fx .fx-spark { width: 5px; height: 5px; background: var(--c); box-shadow: 0 0 6px var(--c); will-change: transform, opacity; animation: fx-spark var(--t) linear var(--d) infinite; }
+@keyframes fx-spark { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(-70px); opacity: 0; } }
+:root[data-theme="hexed"] h1 { color: #eafff0; text-shadow: 0 0 14px rgb(43 255 106 / .55), 2px 0 0 rgb(0 121 235 / .5); }
 
 /* ---------- Oryx's most loyal, dressed for each theme ----------
    The plain themes (the Nexus, the stat potions, Health and Magic) keep the red. Every other
@@ -1873,11 +1897,11 @@ img.cls.hexed-pet { image-rendering: pixelated; image-rendering: crisp-edges; an
 :root[data-theme="sden"] .loyal-box > .ly-b::before { content: ""; position: absolute; left: 50%; bottom: 100%; width: 1px; height: 200px; background: rgb(233 228 242 / .6); }
 @keyframes ly-dangle { 0%, 100% { transform: translateY(-14px); } 50% { transform: translateY(70px); } }
 
-/* Snake Pit: green scales, a snake winding along the bottom edge. */
-:root[data-theme="spit"] .loyal-box { --ly-hi: #d8f24a; --ly-lo: #2a4510; --ly-bg: radial-gradient(circle at 50% 0, rgb(160 200 80 / .14) 0 7px, transparent 8px) 0 0 / 18px 11px, radial-gradient(circle at 50% 0, rgb(160 200 80 / .14) 0 7px, transparent 8px) 9px 5.5px / 18px 11px, #14261a;
-  --ly-head: linear-gradient(#203a1a, #182e14); --ly-title: #e8ff8a; --ly-line: #cfe3bf; --ly-strong: #d8f24a; }
-:root[data-theme="spit"] .loyal-box > .ly-a { display: block; left: -20px; right: -20px; bottom: 2px; height: 22px; animation: ly-slide 5s ease-in-out infinite alternate;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 20' preserveAspectRatio='none'%3E%3Cpath d='M0 10Q15 0 30 10T60 10 90 10 112 8' fill='none' stroke='%237bbf2a' stroke-width='5' stroke-linecap='round'/%3E%3Ccircle cx='114' cy='8' r='4' fill='%237bbf2a'/%3E%3Ccircle cx='115.5' cy='6.5' r='1' fill='%23000'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat; }
+/* Snake Pit: cold stone and jade, a little snake crawling along the bottom edge. */
+:root[data-theme="spit"] .loyal-box { --ly-hi: #5fd38d; --ly-lo: #1f3a2a; --ly-bg: radial-gradient(90% 120% at 50% 120%, #1d3326, #121a16 70%); --ly-head: linear-gradient(#1b2520, #151d19); --ly-title: #8ff0b4; --ly-line: #c5d8cc; --ly-strong: #5fd38d; }
+:root[data-theme="spit"] .loyal-box > header h2 { text-shadow: 0 0 12px rgb(95 211 141 / .5); }
+:root[data-theme="spit"] .loyal-box > .ly-a { display: block; left: -20px; right: -20px; bottom: 2px; height: 18px; animation: ly-slide 5s ease-in-out infinite alternate;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 20' preserveAspectRatio='none'%3E%3Cpath d='M70 10Q78 4 86 10T102 10 114 8' fill='none' stroke='%235fd38d' stroke-width='4' stroke-linecap='round'/%3E%3Ccircle cx='115' cy='8' r='3.4' fill='%235fd38d'/%3E%3Ccircle cx='116.2' cy='6.8' r='.9' fill='%23000'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat; }
 @keyframes ly-slide { from { transform: translateX(-10px); } to { transform: translateX(10px); } }
 
 /* Forbidden Jungle: a carved temple stone, a tribal band across the top, fire either side. */
@@ -1893,18 +1917,18 @@ img.cls.hexed-pet { image-rendering: pixelated; image-rendering: crisp-edges; an
   background: conic-gradient(#ff4f6a 0 60deg, #fff 60deg 120deg, #3fb6ff 120deg 180deg, #fff 180deg 240deg, #ffd23f 240deg 300deg, #fff 300deg); animation: ly-ball 1s cubic-bezier(.35, 0, .65, 1) infinite alternate; z-index: 3; }
 @keyframes ly-ball { from { transform: translateY(0) rotate(0); } to { transform: translateY(-8px) rotate(160deg); } }
 
-/* Pirate Rum: a weathered plank with rope round its edge and brass nails at the corners. */
-:root[data-theme="pirum"] .loyal-box { --ly-hi: #c9955a; --ly-lo: #4a2e14; --ly-bg: repeating-linear-gradient(180deg, #5a3a1e 0 26px, #4a2f17 26px 28px), #5a3a1e; --ly-head: linear-gradient(#3a2412, #2c1b0c); --ly-title: #ffd59a; --ly-line: #f0dcc0; --ly-strong: #ffb347;
-  outline: 4px dashed #c9a36a; outline-offset: -6px; }
-:root[data-theme="pirum"] .loyal-box > .ly-a { display: block; inset: 4px; background: radial-gradient(circle at 6px 6px, #e0b45a 0 3px, #6a4a1a 3.5px, transparent 4.5px) 0 0 / 100% 100%, radial-gradient(circle at calc(100% - 6px) 6px, #e0b45a 0 3px, #6a4a1a 3.5px, transparent 4.5px), radial-gradient(circle at 6px calc(100% - 6px), #e0b45a 0 3px, #6a4a1a 3.5px, transparent 4.5px), radial-gradient(circle at calc(100% - 6px) calc(100% - 6px), #e0b45a 0 3px, #6a4a1a 3.5px, transparent 4.5px); z-index: 3; }
-:root[data-theme="pirum"] .loyal-box { animation: ly-rock 6s ease-in-out infinite; }
-@keyframes ly-rock { 0%, 100% { transform: rotate(-.6deg); } 50% { transform: rotate(.6deg); } }
+/* Pirate Rum: a board of the ship's own planking with brass nails, a rope across the top. */
+:root[data-theme="pirum"] .loyal-box { --ly-hi: #9c6a34; --ly-lo: #2a1608; --ly-bg: linear-gradient(rgb(40 24 10 / .55), rgb(40 24 10 / .55)), var(--tile-wood-plank-floor, none) 0 0 / 48px 48px, #6a4520; --ly-head: linear-gradient(#2a1a0c, #1f1308); --ly-title: #ffd08a; --ly-line: #fbe6c6; --ly-strong: #ffb347; image-rendering: pixelated; }
+:root[data-theme="pirum"] .loyal-box > header { border-bottom: 8px solid; border-image: repeating-linear-gradient(135deg, #c99a5b 0 4px, #8a6230 4px 7px, #5a3c1a 7px 9px) 8; }
+:root[data-theme="pirum"] .loyal-box .trio-text { text-shadow: 0 1px 0 rgb(0 0 0 / .8), 0 0 6px rgb(0 0 0 / .6); }
+:root[data-theme="pirum"] .loyal-box > .ly-a { display: block; inset: 0; z-index: 3; background: radial-gradient(circle at 9px calc(100% - 9px), #e0b45a 0 3px, #5a3a14 3.5px, transparent 4.5px), radial-gradient(circle at calc(100% - 9px) calc(100% - 9px), #e0b45a 0 3px, #5a3a14 3.5px, transparent 4.5px); }
 
-/* Healing Ichor: a web in the corner and ichor dripping from the header. */
-:root[data-theme="ichor"] .loyal-box { --ly-hi: #ff3d5a; --ly-lo: #4a0610; --ly-bg: radial-gradient(90% 120% at 50% 120%, #4a0a16, #1a070b 70%); --ly-head: linear-gradient(#2a0810, #1c0509); --ly-title: #ff6b80; --ly-line: #dcc0c5; --ly-strong: #ff3d5a; }
-:root[data-theme="ichor"] .loyal-box > .ly-a { display: block; left: 0; top: 0; width: 120px; height: 120px; opacity: .45;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none' stroke='%23f2dce0' stroke-width='1'%3E%3Cpath d='M0 0L200 200M0 0L200 110M0 0L110 200M0 0L200 40M0 0L40 200'/%3E%3Cpath d='M30 0Q22 22 0 30M60 0Q45 45 0 60M95 0Q72 72 0 95M135 0Q100 100 0 135'/%3E%3C/svg%3E") 0 0 / contain no-repeat; }
-:root[data-theme="ichor"] .loyal-box > .ly-b { display: block; left: 64%; top: 50px; width: 6px; height: 10px; border-radius: 50% 50% 50% 50% / 35% 35% 65% 65%; background: linear-gradient(#ff3d5a, #7d0a1f); box-shadow: 0 0 6px rgb(255 40 70 / .7); animation: ly-drip 3.6s cubic-bezier(.55, 0, 1, .45) infinite; }
+/* Healing Ichor: a vein of ichor beating across the box, a bead of it rising. */
+:root[data-theme="ichor"] .loyal-box { --ly-hi: #ff3d6e; --ly-lo: #4a0618; --ly-bg: radial-gradient(90% 120% at 50% 120%, #4a0a1c, #170609 70%); --ly-head: linear-gradient(#24070f, #1a050b); --ly-title: #ff7a9a; --ly-line: #e2c1c9; --ly-strong: #ff3d6e; }
+:root[data-theme="ichor"] .loyal-box > header h2 { text-shadow: 0 0 12px rgb(255 61 110 / .6); }
+:root[data-theme="ichor"] .loyal-box > .ly-a { display: block; inset: 0; animation: fx-heart 1.6s ease-in-out infinite; filter: drop-shadow(0 0 3px rgb(255 45 85 / .9));
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 140' preserveAspectRatio='none' fill='none' stroke='%23ff2d55' stroke-linecap='round' stroke-opacity='.55'%3E%3Cpath stroke-width='1.5' d='M300 120C260 112 240 128 210 116S170 92 140 100'/%3E%3Cpath stroke-width='1' d='M210 116C205 100 214 90 204 76M250 116C255 132 248 136 252 140'/%3E%3C/svg%3E") center / 100% 100% no-repeat; }
+:root[data-theme="ichor"] .loyal-box > .ly-b { display: block; right: 22px; bottom: -14px; width: 22px; height: 22px; border-radius: 50%; background: radial-gradient(circle at 34% 30%, #ffdce4 0 8%, #ff3d6e 25%, #96082a 65%, transparent 80%); animation: ly-rise 6s ease-in-out infinite; }
 
 /* Holy Water: white marble with gold trim, a halo glowing behind the killer. */
 :root[data-theme="holy"] .loyal-box { --ly-hi: #ffe08a; --ly-lo: #a8842a; --ly-bg: linear-gradient(115deg, transparent 40%, rgb(150 150 170 / .18) 41%, transparent 43%), linear-gradient(160deg, transparent 60%, rgb(150 150 170 / .14) 61%, transparent 62%), linear-gradient(#fbf8f0, #e9e4d6);
@@ -1912,20 +1936,21 @@ img.cls.hexed-pet { image-rendering: pixelated; image-rendering: crisp-edges; an
 :root[data-theme="holy"] .loyal-box .trio-pic { background: radial-gradient(circle, rgb(255 236 170 / .9), rgb(255 224 138 / .3) 55%, transparent 70%); border-radius: 50%; }
 :root[data-theme="holy"] .loyal-box > .ly-a { display: block; left: 12px; top: 50px; width: 64px; height: 64px; border-radius: 50%; box-shadow: 0 0 0 2px rgb(255 224 138 / .8), 0 0 18px 6px rgb(255 224 138 / .5); animation: fx-breathe 3s ease-in-out infinite alternate; }
 
-/* Coral Juice: teal water and a coral border. */
-:root[data-theme="coral"] .loyal-box { --ly-hi: #ff8ab4; --ly-lo: #a2375f; --ly-bg: radial-gradient(circle at 80% 30%, rgb(255 255 255 / .2) 0 3px, transparent 4px), radial-gradient(circle at 88% 60%, rgb(255 255 255 / .15) 0 2px, transparent 3px), linear-gradient(#155a68, #0d3a45); --ly-head: linear-gradient(#a2375f, #7a2848); --ly-title: #ffe6f0; --ly-line: #c7ecea; --ly-strong: #ff8ab4; }
+/* Coral Juice: a white card on the coral pattern, a coral-pink band along the top. */
+:root[data-theme="coral"] .loyal-box { --ly-hi: #f4a6b5; --ly-lo: #e0466a; --ly-bg: #ffffff; --ly-head: linear-gradient(90deg, #e0466a, #f07a8f); --ly-title: #fff; --ly-text: #2a1a1f; --ly-line: #6e5b5b; --ly-strong: #e0466a; box-shadow: 0 6px 18px rgb(224 70 106 / .14); }
+:root[data-theme="coral"] .loyal-box > .ly-a { display: block; right: 10px; bottom: 6px; width: 54px; height: 54px; opacity: .55;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30' fill='none' stroke='%237fcfc0' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M15 30V18M15 22L9 13M15 22L21 14M9 13L7 7M9 13L12 8M21 14L19 8M21 14L25 9'/%3E%3C/svg%3E") center / contain no-repeat; }
 
 /* Pollen Powder: a golden bloom, pollen drifting up off it. */
 :root[data-theme="pollen"] .loyal-box { --ly-hi: #ffd84a; --ly-lo: #8a6e0c; --ly-bg: radial-gradient(80% 100% at 50% 120%, #5a4a14, #2c2812 70%); --ly-head: linear-gradient(#ffd84a, #e0a92a); --ly-title: #2c2004; --ly-line: #ebe2bd; --ly-strong: #ffd84a; }
 :root[data-theme="pollen"] .loyal-box > .ly-a, :root[data-theme="pollen"] .loyal-box > .ly-b { display: block; bottom: 0; width: 4px; height: 4px; border-radius: 50%; background: #ffe680; box-shadow: 0 0 6px 2px rgb(255 216 74 / .8), 30px -10px 0 0 #ffe680, 60px 5px 0 -1px #ffe680; animation: ly-rise 4s linear infinite; }
 :root[data-theme="pollen"] .loyal-box > .ly-a { left: 30%; } :root[data-theme="pollen"] .loyal-box > .ly-b { left: 62%; animation-delay: -2s; }
 
-/* Transformation Potion: a specimen tank: the killer floats in bubbling green, labelled. */
-:root[data-theme="hexed"] .loyal-box { --ly-hi: #c86bff; --ly-lo: #5a2a9a; --ly-bg: linear-gradient(#221f38, #161424); --ly-head: linear-gradient(#2a2645, #221f38); --ly-title: #e8d6ff; --ly-line: #d2caf0; --ly-strong: #91ff6b; }
-:root[data-theme="hexed"] .loyal-box .trio-pic { width: 58px; height: 66px; border-radius: 10px 10px 4px 4px; background: linear-gradient(transparent 30%, rgb(145 255 107 / .45) 30%); box-shadow: inset 0 0 0 2px #e8dcff, inset 0 0 12px rgb(145 255 107 / .5); }
-:root[data-theme="hexed"] .loyal-box .trio-pic > * { animation: fx-bob 2.6s ease-in-out infinite; }
-:root[data-theme="hexed"] .loyal-box > .ly-a { display: block; left: 30px; top: 108px; width: 6px; height: 6px; border-radius: 50%; border: 1px solid rgb(220 255 180 / .8); animation: ly-rise 2.2s linear infinite; }
-:root[data-theme="hexed"] .loyal-box > .ly-b { display: block; right: 12px; top: 52px; padding: 2px 6px; background: #f1e6ff; color: #2a1a44; font: 700 10px ui-monospace, monospace; transform: rotate(4deg); }
-:root[data-theme="hexed"] .loyal-box > .ly-b::after { content: "SPECIMEN #20"; }
+/* Transformation Potion: the lab floor, the green vat's ooze dripping from the top edge. */
+:root[data-theme="hexed"] .loyal-box { --ly-hi: #2bff6a; --ly-lo: #0a4a1e; --ly-bg: linear-gradient(rgb(18 21 32 / .8), rgb(18 21 32 / .8)), var(--tile-lab-floor, none) 0 0 / 48px 48px, #121520; --ly-head: linear-gradient(#0f3a1c, #0b2a15); --ly-title: #b9ffcc; --ly-line: #c8d0e4; --ly-strong: #2bff6a; image-rendering: pixelated; }
+:root[data-theme="hexed"] .loyal-box > header { border-bottom: 0; }
+:root[data-theme="hexed"] .loyal-box > .ly-a { display: block; left: 0; right: 0; top: 46px; height: 22px; z-index: 3;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 22' preserveAspectRatio='none'%3E%3Cpath fill='%230b2a15' d='M0 0H300V4C292 4 290 14 284 14S278 4 268 4 252 18 244 18 236 4 222 4 206 9 198 9 188 4 172 4 158 20 150 20 142 4 128 4 116 11 108 11 98 4 84 4 70 16 62 16 54 4 40 4 26 10 18 10 10 4 0 4Z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat; }
+:root[data-theme="hexed"] .loyal-box > .ly-b { display: block; left: 49%; top: 62px; width: 6px; height: 9px; border-radius: 50% 50% 50% 50% / 35% 35% 65% 65%; background: #2bff6a; box-shadow: 0 0 6px #2bff6a; animation: ly-drip 3.4s cubic-bezier(.55, 0, 1, .45) infinite; z-index: 3; }
 
 @media (prefers-reduced-motion: reduce) { .loyal-box, .loyal-box *, .loyal-box > header::after { animation: none !important; } }
