@@ -230,6 +230,14 @@ main { flex: 1; width: 100%; max-width: var(--max); margin: 0 auto; padding: 32p
 .sprite.missing { filter: brightness(0) opacity(.35); }
 .slot { display: inline-flex; padding: 0; background: #3c3c3c; }
 a.slot:hover { background: #4d4d4d; }
+/* The earlier look, kept for Latest loot and the Loot page: whole cells on bordered slots coloured by bag. */
+.sprite.classic:not(.none) { filter: none; }
+.sprite.classic.missing { filter: brightness(0) opacity(0.55); }
+.slot.classic { padding: 2px; background: var(--stone-deep); border: 2px solid var(--bevel-dark); }
+a.slot.classic:hover { background: var(--stone-deep); border-color: var(--accent); }
+.slot.classic.bag-ut { border-color: #8a5ccc; box-shadow: 0 0 6px rgba(164, 107, 224, 0.35); }
+.slot.classic.bag-top { border-color: #b39a2c; }
+.slot.classic.empty-slot { background: none; border-style: dashed; }
 .gear { display: flex; gap: 4px; flex-wrap: wrap; }
 /* In tables the four equipment slots stay on one line; the table scrolls sideways if it must. */
 td .gear { flex-wrap: nowrap; }
@@ -633,6 +641,8 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 .grave-sprite { display: block; flex: none; background: url(/catalog/graves.png?v=2) no-repeat; image-rendering: pixelated; image-rendering: crisp-edges;
   filter: drop-shadow(1px 0 0 #000) drop-shadow(-1px 0 0 #000) drop-shadow(0 1px 0 #000) drop-shadow(0 -1px 0 #000) drop-shadow(0 0 3px rgba(0, 0, 0, .45)); }
 .rows .grave { font-size: 0.9rem; min-width: 3.4em; }
+/* Death rows: the fame column has a fixed width, so the gear lines up down the list. */
+.rows > li > .gear ~ .num { min-width: 4.2em; }
 .death-head-line { display: flex; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
 .death-head-line .grave { font: 700 1.3rem var(--display); }
 
@@ -655,7 +665,9 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 /* ---------- First find: an untiered item nobody had looted before ----------
    Kept subtle: a faint turning gold halo, a soft glow on the slot and a few sparks. */
 .first-find { display: inline-flex; position: relative; flex: none; isolation: isolate; }
-.first-find > .slot { position: relative; z-index: 2; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--aura-a, #ffd65c) 80%, transparent); }
+.first-find > .slot { position: relative; z-index: 2; }
+.first-find > .slot:not(.classic) { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--aura-a, #ffd65c) 80%, transparent); }
+.first-find > .slot.classic { border-color: color-mix(in srgb, var(--aura-a, #ffd65c) 80%, transparent); }
 /* The glow breathes by fading a fixed shadow in and out (opacity runs off the main thread;
    animating the shadow itself repainted every frame). */
 .first-find::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; will-change: opacity;

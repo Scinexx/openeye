@@ -74,8 +74,17 @@ function bag(item) {
 // Items are drawn as the game's inventory draws them: the 8px sprite at `scale` (4 is the
 // client's 32px) with one sprite pixel of margin, so a 4x item fills a 40px slot like the game's.
 // items.png keeps each sprite in a 16px cell, 4px in, so the box starts 3px into the cell.
-function itemSprite(id, scale = 4, {missing = false} = {}) {
+// `classic` keeps the earlier look (the sprite in its whole 16px cell, on bordered slots
+// coloured by bag), still used by Latest loot and the Loot page.
+function itemSprite(id, scale = 4, {missing = false, classic = false} = {}) {
   const it = ITEMS.get(id);
+  if (classic) {
+    const size = 16 * scale;
+    if (!it?.sprite) return h`<span class="sprite classic none" ${it ? raw(`data-tip="${Number(id)}"`) : ''} style="width:${size}px;height:${size}px"></span>`;
+    const dye = dyeIcon(id, 4);
+    if (dye) return h`<span class="sprite classic${missing ? ' missing' : ''}" data-tip="${id}" style="width:${size}px;height:${size}px;background:url(${dye}) 0 0 / 100% 100%"></span>`;
+    return h`<span class="sprite classic${missing ? ' missing' : ''}" data-tip="${id}" style="width:${size}px;height:${size}px;background-size:${320 * scale}px auto;background-position:-${it.sprite.x * scale}px -${it.sprite.y * scale}px"></span>`;
+  }
   const size = 10 * scale;
   if (!it?.sprite) return h`<span class="sprite none" ${it ? raw(`data-tip="${Number(id)}"`) : ''} style="width:${size}px;height:${size}px"></span>`;
   const dye = dyeIcon(id);
@@ -83,12 +92,12 @@ function itemSprite(id, scale = 4, {missing = false} = {}) {
   return h`<span class="sprite${missing ? ' missing' : ''}" data-tip="${id}" style="width:${size}px;height:${size}px;background-size:${320 * scale}px auto;background-position:-${(it.sprite.x + 3) * scale}px -${(it.sprite.y + 3) * scale}px"></span>`;
 }
 function itemSlot(id, scale = 4, opts = {}) {
-  const size = 10 * scale;
-  if (id === -1 || id === null || id === undefined) return h`<span class="slot empty-slot" title="Empty slot"><span style="width:${size}px;height:${size}px;display:inline-block"></span></span>`;
+  const size = (opts.classic ? 16 : 10) * scale;
+  if (id === -1 || id === null || id === undefined) return h`<span class="slot empty-slot${opts.classic ? ' classic' : ''}" title="Empty slot"><span style="width:${size}px;height:${size}px;display:inline-block"></span></span>`;
   const it = ITEMS.get(id);
   const t = tierInfo(it);
   const title = it ? `${it.name}${t.label ? ` (${t.label})` : ''}` : `Unknown item ${id}`;
-  return h`<a class="slot ${bag(it)}" href="/item/${id}" data-link aria-label="${title}">${itemSprite(id, scale, opts)}</a>`;
+  return h`<a class="slot ${bag(it)}${opts.classic ? ' classic' : ''}" href="/item/${id}" data-link aria-label="${title}">${itemSprite(id, scale, opts)}</a>`;
 }
 function classSprite(classId, size = 32, char = null) {
   const c = CLASSES.get(classId);
@@ -166,9 +175,9 @@ function dyedSprite(classId, tex1, tex2) {
   return dyedImage(DYES.meta.rows[classId], tex1, tex2);
 }
 // A dye or cloth item in its own colour, as a 16px item cell (8px art, 4px around it).
-function dyeIcon(id) {
+function dyeIcon(id, pad = 1) {
   const icon = DYES?.meta.icons?.[id];
-  return icon ? dyedImage(icon.row, icon.tex1, icon.tex2, 1) : null;
+  return icon ? dyedImage(icon.row, icon.tex1, icon.tex2, pad) : null;
 }
 // The dye or cloth items behind a character's look, for its death page.
 function dyeItems(char) {
@@ -514,7 +523,7 @@ const AURA_FX = {
 };
 const FX_BY_NAME = new Map(Object.entries(AURA_FX).flatMap(([k, f]) => f.items.map(n => [n, k])));
 const auraFx = id => FX_BY_NAME.get(ITEMS.get(id)?.name) ?? 'sparks';
-const firstFind = (id, title = '') => h`<span class="first-find fx-${auraFx(id)}"${title ? raw(` title="${esc(title)}"`) : ''}>${itemSlot(id, 4)}${raw('<i class="p"></i>'.repeat(6))}</span>`;
+const firstFind = (id, title = '', {classic = false} = {}) => h`<span class="first-find fx-${auraFx(id)}"${title ? raw(` title="${esc(title)}"`) : ''}>${itemSlot(id, classic ? 2 : 4, {classic})}${raw('<i class="p"></i>'.repeat(6))}</span>`;
 
 // ---- Graves ----
 // The gravestone a death leaves, by the server's rule (src/world.rs finish_death): with no
@@ -679,7 +688,7 @@ async function home() {
       <section class="panel">
         <header><h2>Latest loot</h2><a href="/items" data-link>All items</a></header>
         ${s.recentFinds.length ? h`<ul class="rows">${s.recentFinds.slice(0, 10).map(f => h`<li style="${f.first ? auraStyle(auraOf(f.item)) : ''}">
-          ${f.first ? firstFind(f.item, 'First ever found on the server') : itemSlot(f.item)}
+          ${f.first ? firstFind(f.item, 'First ever found on the server', {classic: true}) : itemSlot(f.item, 2, {classic: true})}
           <span class="grow"><span class="title">${ITEMS.get(f.item)?.name ?? `Item ${f.item}`}</span>
           <span class="sub">${playerLink(f.name, f.stars)} ${when(f.found_at)}${f.first ? h` <span class="first-tag">First!</span>` : ''}</span></span>
           <span class="tier ${tierInfo(ITEMS.get(f.item)).cls}">${tierInfo(ITEMS.get(f.item)).label}</span>
@@ -1696,7 +1705,7 @@ async function loot() {
         <tbody>${d.rows.map(f => {
           const it = ITEMS.get(f.item), t = tierInfo(it);
           return h`<tr>
-            <td><span class="who">${itemSlot(f.item)}<a href="/item/${f.item}" data-link>${it?.name ?? `Item ${f.item}`}</a></span></td>
+            <td><span class="who">${itemSlot(f.item, 1, {classic: true})}<a href="/item/${f.item}" data-link>${it?.name ?? `Item ${f.item}`}</a></span></td>
             <td><span class="tier ${t.cls}">${t.label || '–'}</span></td>
             <td class="muted">${it?.slotName ?? ''}</td>
             <td>${playerLink(f.name, f.stars)}</td>
@@ -1993,7 +2002,7 @@ function auras() {
   view(h`
     <div class="page-head"><div><h1>Auras</h1><p>The glow a UT gets in Latest loot when it is the first ever found, in the item’s own colours.</p></div></div>
     <div class="aura-gallery">${ids.map(id => h`<div class="panel aura-card" style="${auraStyle(auraOf(id))}">
-      ${firstFind(id)}
+      ${firstFind(id, '', {classic: true})}
       <span class="grow"><span class="title">${ITEMS.get(id).name}</span><span class="sub">${AURA_FX[auraFx(id)]?.label ?? 'Sparks'}</span></span>
       <span class="first-tag">First!</span>
     </div>`)}</div>`);
@@ -2935,7 +2944,8 @@ async function hallucinate(on) {
         if (e) el.style.backgroundPosition = `-${e.sprite.x * scale}px -${e.sprite.y * scale}px`;
       } else {
         const it = pick(items);
-        el.style.backgroundPosition = `-${(it.sprite.x + 3) * scale}px -${(it.sprite.y + 3) * scale}px`;
+        const o = el.classList.contains('classic') ? 0 : 3;
+        el.style.backgroundPosition = `-${(it.sprite.x + o) * scale}px -${(it.sprite.y + o) * scale}px`;
       }
     }
   };
