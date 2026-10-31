@@ -19,6 +19,7 @@ import {buildEnemies, literalDrops} from './codex/enemies.mjs';
 import {buildCellar} from './codex/cellar.mjs';
 import {buildDyes} from './codex/dyes.mjs';
 import {buildKillers} from './codex/killers.mjs';
+import {buildThemeSprites} from './codex/theme-sprites.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'public', 'catalog');
@@ -222,6 +223,10 @@ if (lootFile) {
 export const KILLER_NAMES = ${JSON.stringify(killers.names, Object.keys(killers.names).sort(), 1)};
 `);
   console.log(`Killers: ${Object.keys(killers.names).length} renamed, hazard icons for ${Object.keys(killers.hazards).join(', ')}.`);
+  // What the themes draw with: bosses, props, loot bags and the pets Hexed players turn into.
+  const theme = buildThemeSprites({objects, sheets: clientSheets});
+  await writeFile(join(out, 'themes.png'), theme.sheet.png);
+  await writeFile(join(out, 'themes.json'), JSON.stringify({sheet: {width: theme.sheet.width, height: theme.sheet.height}, sprites: theme.sprites}));
   // A theme backdrop only: if the map ever changes shape, keep the last good one.
   try {
     const cellar = buildCellar({map: await get(SOURCES.cellar, true), grounds: await get(SOURCES.grounds), objects, sheets: clientSheets});

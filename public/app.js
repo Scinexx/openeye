@@ -776,7 +776,9 @@ function crownLine(reigns, days) {
 }
 // Oryx's most loyal: the enemy with the most level 20 player kills on record.
 function loyalBox(l) {
+  // .ly-a and .ly-b are free layers each theme can dress the box with (see style.css).
   return h`<section class="panel trio-box loyal-box" aria-labelledby="loyal-title">
+    <i class="ly-a" aria-hidden="true"></i><i class="ly-b" aria-hidden="true"></i>
     <header><h2 id="loyal-title">Oryx’s most loyal</h2></header>
     <div class="trio-body">${l ? h`<span class="trio-pic loyal-sprite" id="loyal-sprite"></span>
       <span class="trio-text"><span class="trio-name" id="loyal-name">${l.name}</span>
@@ -2017,12 +2019,25 @@ const THEME_NOTES = {
   sunrise: 'The sun climbs out of the sea between the palms while gulls glide by.',
   paradise: 'Under the lagoon: caustic light, sun shafts, bubbles and a passing school of fish.',
   passion: 'A warm magenta breeze carrying petals past soft lights.',
-  jungle: 'A jungle bay at night: fireflies, moonlight and leaves spinning down.'
+  jungle: 'A jungle bay at night: fireflies, moonlight and leaves spinning down.',
+  pcave: 'A torchlit sea cave: parrots overhead, treasure glinting and Dreadstump on guard. Click him to fight.',
+  sden: 'Webs in every corner, spiders lowering themselves on silk, and Arachna waiting in her web. Click her to fight.',
+  spit: 'Snakes sliding across mossy stone, and Stheno with her swarm circling. Click her to fight.',
+  fjungle: 'The jungle temple at night: braziers, totems, drifting spirits and drums. Click Mixcoatl to fight.',
+  beach: 'The Masked Party God’s beach: surf, palms, a beach ball and confetti. Click him to fight.',
+  hp: 'Plain crimson; drinking it restores 100 HP.',
+  mp: 'Plain deep blue; drinking it restores 100 MP.',
+  pirum: 'On deck at dusk: the sea rolls and the ship’s wheel swings. Drinking it makes you drunk for 30 seconds.',
+  ichor: 'Arachna’s den, where it comes from: webs, ichor dripping, a slow red pulse. Heals 150 HP.',
+  holy: 'Light through a high window, dust turning in the beams. Heals 100 HP and cures drunk, Hexed and hallucinating.',
+  coral: 'Thessal’s reef: coral swaying and bubbles rising. Restores 100 HP and 100 MP.',
+  pollen: 'Golden clouds of Forbidden Jungle pollen drifting over its flowers. Restores 100 MP to everyone within 10 tiles.',
+  hexed: 'The Mad Lab’s experiment: shifting light and a bubbling flask. Drinking it Hexes you: everyone on the page turns into a pet for 30 seconds.'
 };
 function vault() {
   document.title = 'Vault | OpenEye';
   const byName = new Map([...ITEMS.values()].map(i => [i.name, i]));
-  const chests = [['Potions', POTIONS], ['Dungeon keys', KEYS], ['Consumables', BREWS]];
+  const chests = [['Potions', POTIONS], ['Endgame keys', KEYS], ['Dungeon keys', DUNGEON_KEYS], ['Consumables', BREWS]];
   const current = () => document.documentElement.dataset.theme ?? '';
   const slotOf = ([key, label, item]) => {
     const it = byName.get(item);
@@ -2044,7 +2059,7 @@ function vault() {
     const key = current();
     document.querySelectorAll('[data-vault]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.vault === key)));
     const entry = INV_ALL.find(t => t[0] === key);
-    document.querySelector('.vault-name').textContent = entry ? (BREWS.includes(entry) ? entry[2] : KEYS.includes(entry) ? entry[1] : `${entry[1]} potion`) : 'Nexus';
+    document.querySelector('.vault-name').textContent = entry ? (BREWS.includes(entry) ? entry[2] : ALL_KEYS.includes(entry) ? entry[1] : `${entry[1]} potion`) : 'Nexus';
     document.querySelector('.vault-note').textContent = THEME_NOTES[key] ?? '';
   };
   sync();
@@ -2056,7 +2071,7 @@ function vault() {
     if (e.detail > 1) return; // the double-click handler takes it from here
     if (key === current() && key) return;
     sober();
-    playSound(KEYS.some(k => k[0] === key) || key === 'cellar' ? '/sfx/use_key.mp3' : '/sfx/use_potion.mp3');
+    playSound(ALL_KEYS.some(k => k[0] === key) || key === 'cellar' ? '/sfx/use_key.mp3' : '/sfx/use_potion.mp3');
     setTheme(key, {intro: true});
     sync();
   });
@@ -2296,9 +2311,23 @@ const KEYS = [
   ['undead', 'Undead Lair', 'Undead Lair Key'], ['sprite', 'Sprite World', 'Sprite World Key']
 ];
 const KEY_PROFILES = ['/player/cramshon', '/player/redbracket'];
+// The other dungeons' keys. Each theme is that dungeon, and its boss waits in a corner of the
+// page to be fought: [key, dungeon, item, verb, boss].
+const DUNGEON_KEYS = [
+  ['pcave', 'Pirate Cave', 'Pirate Cave Key', 'Use', 'Dreadstump the Pirate King'],
+  ['sden', 'Spider Den', 'Spider Den Key', 'Use', 'Arachna the Spider Queen'],
+  ['spit', 'Snake Pit', 'Snake Pit Key', 'Use', 'Stheno the Snake Queen'],
+  ['fjungle', 'Forbidden Jungle', 'Totem Key', 'Use', 'Mixcoatl the Masked God'],
+  ['beach', 'Beachzone', 'Beachzone Key', 'Use', 'Masked Party God']
+];
+const ALL_KEYS = [...KEYS, ...DUNGEON_KEYS];
 // Consumables: every Nexus puts two of these consumables or dungeon keys (picked at random) in place of
 // potions, each of the others still has a 1% chance to turn up too, and an item is certain to on the
-// page of an enemy that drops it. Each has
+// page of an enemy that drops it. Using one does what it does in the game (objects.xml Activate):
+// Heal and Magic restore HP and MP (shown as the client's green and blue numbers), HealNova and
+// MagicNova reach everyone within range, Holy Water also cures you of negative conditions, and the
+// Transformation Potion Hexes you for 30 s, turning you into a pet (the objects.xml Group Hexable).
+// Health and Magic Potions are everyday items, so their themes are as plain as the stat potions'. Each has
 // its own theme with moving effects, and using it does what the item does in the game
 // (objects.xml): the incantation opens the Wine Cellar with the key sound, Snake Oil heals 100 HP
 // in a 10-tile nova, the mushroom makes you hallucinate for 30 s, and the rum and the Masked
@@ -2312,11 +2341,19 @@ const BREWS = [
   ['sunrise', 'Bahama Sunrise', 'Bahama Sunrise', 'Drink', {boost: true, drunk: 15}],
   ['paradise', 'Blue Paradise', 'Blue Paradise', 'Drink', {boost: true, drunk: 15}],
   ['passion', 'Pink Passion Breeze', 'Pink Passion Breeze', 'Drink', {boost: true, drunk: 15}],
-  ['jungle', 'Lime Jungle Bay', 'Lime Jungle Bay', 'Drink', {boost: true, drunk: 15}]
+  ['jungle', 'Lime Jungle Bay', 'Lime Jungle Bay', 'Drink', {boost: true, drunk: 15}],
+  ['hp', 'Health Potion', 'Health Potion', 'Drink', {heal: 100, basic: true}],
+  ['mp', 'Magic Potion', 'Magic Potion', 'Drink', {magic: 100, basic: true}],
+  ['pirum', 'Pirate Rum', 'Pirate Rum', 'Drink', {drunk: 30}],
+  ['ichor', 'Healing Ichor', 'Healing Ichor', 'Drink', {heal: 150}],
+  ['holy', 'Holy Water', 'Holy Water', 'Drink', {heal: 100, cleanse: true}],
+  ['coral', 'Coral Juice', 'Coral Juice', 'Drink', {heal: 100, magic: 100}],
+  ['pollen', 'Pollen Powder', 'Pollen Powder', 'Use', {magic: 100, range: 10}],
+  ['hexed', 'Transformation Potion', 'Transformation Potion', 'Drink', {hexed: 30}]
 ];
 const BREW_CHANCE = 0.01;
 const POTIONS = THEMES.filter(t => t[2]);
-const INV_ALL = [...POTIONS, ...KEYS, ...BREWS];
+const INV_ALL = [...POTIONS, ...ALL_KEYS, ...BREWS];
 // The inventory is the list of the eight slots' keys, kept in this browser until the next Nexus.
 let inventory = POTIONS.map(t => t[0]);
 try {
@@ -2328,11 +2365,11 @@ try {
   }
 } catch { /* storage unavailable */ }
 const invItems = () => inventory.map(k => INV_ALL.find(t => t[0] === k));
-const invKind = key => (KEYS.some(k => k[0] === key) ? 'key' : BREWS.some(b => b[0] === key) ? 'brew' : 'potion');
+const invKind = key => (ALL_KEYS.some(k => k[0] === key) ? 'key' : BREWS.some(b => b[0] === key) ? 'brew' : 'potion');
 const BREWS_PER_NEXUS = 2;
 function rollInventory(forced = new Set()) {
   const slots = POTIONS.map(t => t[0]);
-  const pool = [...BREWS, ...KEYS];
+  const pool = [...BREWS, ...ALL_KEYS];
   const found = BREWS.filter(b => forced.has(b[2]));
   // Two are guaranteed: top up with random picks the enemy page did not already force.
   const rest = pool.filter(b => !found.includes(b)).sort(() => Math.random() - 0.5);
@@ -2376,7 +2413,7 @@ function drink(key) {
 // Using an item, as in the game: keys (and the incantation) play the key sound and load into
 // their dungeon; potions play use_potion; rare consumables also do what the item does.
 function useItem(key, at) {
-  const dungeon = KEYS.find(k => k[0] === key);
+  const dungeon = ALL_KEYS.find(k => k[0] === key);
   if (dungeon) {
     playSound('/sfx/use_key.mp3');
     loadingScreen(dungeon[1], () => setTheme(key, {intro: true}));
@@ -2492,7 +2529,7 @@ function drawThemeMenu() {
 // With a potion theme, the logo becomes that potion (sprite positions come from the item catalog).
 function drawBrand() {
   const key = document.documentElement.dataset.theme ?? '';
-  const potion = [...THEMES, ...KEYS, ...BREWS].find(t => t[0] === key)?.[2];
+  const potion = [...THEMES, ...ALL_KEYS, ...BREWS].find(t => t[0] === key)?.[2];
   const it = potion && [...ITEMS.values()].find(i => i.name === potion);
   const el = document.getElementById('brand-potion');
   if (!it?.sprite) { el.removeAttribute('style'); return; }
@@ -2515,6 +2552,15 @@ const fxLayer = document.createElement('div');
 fxLayer.id = 'theme-fx';
 fxLayer.setAttribute('aria-hidden', 'true');
 document.body.prepend(fxLayer);
+// The themes' own sprites (themes.png, cut from the client by tools/codex/theme-sprites.mjs).
+let THEME_ART = null;
+async function loadThemeArt() { THEME_ART = await staticJson('/catalog/themes.json').catch(() => null); }
+/** One sprite from themes.png at a whole-number scale, as a positioned <i> for #theme-fx. */
+function art(name, scale, cls = '', style = '') {
+  const a = THEME_ART?.sprites[name];
+  if (!a) return '';
+  return `<i class="fx-art ${cls}" style="width:${a.w * scale}px;height:${a.h * scale}px;background-size:${THEME_ART.sheet.width * scale}px auto;background-position:-${a.x * scale}px -${a.y * scale}px;${style}"></i>`;
+}
 const rand = (a, b) => a + Math.random() * (b - a);
 const pct = (a, b) => `${rand(a, b).toFixed(1)}%`;
 const many = (n, make) => Array.from({length: n}, (_, i) => make(i)).join('');
@@ -2542,15 +2588,192 @@ const FX = {
   sunrise: () => '<i class="fx-sun"></i><i class="fx-glare"></i><i class="fx-palm"></i><i class="fx-palm b"></i>' + many(4, () => `<i class="fx-gull" style="top:${pct(8, 40)};--k:${rand(.5, 1).toFixed(2)};--dy:${rand(-40, 30).toFixed(0)}px;--t:${rand(26, 40).toFixed(1)}s;--d:-${rand(0, 40).toFixed(1)}s"><b></b></i>`),
   paradise: () => `<i class="fx-caustics"></i><i class="fx-caustics b"></i><i class="fx-surface"></i>${many(5, i => `<i class="fx-ray" style="left:${8 + i * 21 + rand(-5, 5)}%;--a:${rand(-14, 14).toFixed(1)}deg;--t:${rand(7, 12).toFixed(1)}s;--d:-${rand(0, 12).toFixed(1)}s"></i>`)}<i class="fx-deep"></i>${many(12, () => `<i class="fx-mote" style="left:${pct(2, 98)};--s:${rand(3, 9).toFixed(0)}px;--dx:${rand(-40, 40).toFixed(0)}px;--t:${rand(12, 24).toFixed(1)}s;--d:-${rand(0, 24).toFixed(1)}s"></i>`)}${many(5, () => `<i class="fx-glint" style="left:${pct(3, 97)};top:${pct(4, 30)};--t:${rand(3, 6).toFixed(1)}s;--d:-${rand(0, 6).toFixed(1)}s"></i>`)}` + many(7, () => `<i class="fx-fish" style="top:${pct(35, 60)};--dy:${rand(-50, 50).toFixed(0)}px;--t:28s;--d:-${rand(0, 3).toFixed(1)}s"><b></b></i>`),
   passion: () => `<i class="fx-haze"></i>${many(11, () => `<i class="fx-petal" style="top:${pct(-10, 70)};--s:${rand(10, 20).toFixed(0)}px;--t:${rand(11, 19).toFixed(1)}s;--d:-${rand(0, 19).toFixed(1)}s;--r:${rand(-200, 200).toFixed(0)}deg"></i>`)}` + many(7, () => `<i class="fx-bokeh" style="left:${pct(0, 95)};top:${pct(0, 90)};--s:${rand(60, 160).toFixed(0)}px;--dx:${rand(-80, 80).toFixed(0)}px;--dy:${rand(-60, 60).toFixed(0)}px;--t:${rand(8, 14).toFixed(1)}s;--d:-${rand(0, 14).toFixed(1)}s"></i>`),
+  // ---- Dungeon keys: each dungeon as you would walk into it, its boss waiting to be fought ----
+  // Pirate Cave: a torchlit sea cave. Parrots and macaws cross the cave, water drips from the
+  // roof, the treasure glints, and Dreadstump stands guard.
+  pcave: () => `<i class="fx-stalactites"></i><i class="fx-cave-glow l"></i><i class="fx-cave-glow r"></i><i class="fx-torch l"><b></b></i><i class="fx-torch r"><b></b></i>`
+    + many(5, () => `<i class="fx-drip fx-water" style="left:${pct(5, 95)};--t:${rand(6, 12).toFixed(1)}s;--d:-${rand(0, 12).toFixed(1)}s"></i>`)
+    + ['Cave Pirate Parrot', 'Cave Pirate Macaw', 'Cave Pirate Parrot'].map((n, i) => `<i class="fx-flyby" style="top:${8 + i * 17}%;--t:${18 + i * 7}s;--d:-${i * 9}s">${art(n, 5, 'fx-flap')}</i>`).join('')
+    + `<i class="fx-hoard">${art('Treasure Chest', 7)}${many(6, i => `<i class="fx-glint fx-coin" style="left:${10 + i * 14}%;top:${rand(10, 60).toFixed(0)}%;--t:${rand(2.5, 5).toFixed(1)}s;--d:-${rand(0, 5).toFixed(1)}s"></i>`)}</i>`
+    + bossMarkup('pcave'),
+  // Spider Den: webs strung across the corners, spiders lowering themselves on silk and climbing
+  // back, egg sacs pulsing, hatchlings scuttling, and Arachna in the middle of her web.
+  sden: () => `<i class="fx-web l"></i><i class="fx-web r"></i>`
+    + ['Black Den Spider', 'Red Spotted Den Spider', 'Brown Den Spider', 'Black Den Spider', 'Brown Den Spider'].map((n, i) => `<i class="fx-dangle" style="left:${[4, 11, 17, 84, 91][i] + rand(-2, 2)}%;--y:${rand(18, 55).toFixed(0)}vh;--t:${rand(7, 12).toFixed(1)}s;--d:-${rand(0, 12).toFixed(1)}s">${art(n, 4)}</i>`).join('')
+    + many(4, i => `<i class="fx-eggsac" style="left:${4 + i * 7}%;--d:-${(i * 0.7).toFixed(1)}s">${art('Spider Egg Sac', 5)}</i>`)
+    + many(3, i => `<i class="fx-scuttle" style="--t:${rand(16, 26).toFixed(0)}s;--d:-${rand(0, 26).toFixed(0)}s;bottom:${2 + i * 3}vh">${art('Green Den Spider Hatchling', 4)}</i>`)
+    + bossMarkup('sden'),
+  // Snake Pit: mossy stone and grates, snakes and pythons sliding along the floor, and Stheno with
+  // her swarm circling her (at a calmer pace than the server's).
+  spit: () => many(4, i => `<i class="fx-grate" style="left:${10 + i * 24}%">${art('Snake Grate', 6)}</i>`)
+    + ['Pit Snake', 'Brown Python', 'Greater Pit Snake', 'Yellow Python', 'Fire Python'].map((n, i) => `<i class="fx-slither${i % 2 ? ' back' : ''}" style="bottom:${3 + (i % 3) * 5}vh;--t:${rand(22, 34).toFixed(0)}s;--d:-${rand(0, 34).toFixed(0)}s">${art(n, 4)}</i>`).join('')
+    + bossMarkup('spit', `<i class="fx-swarm">${many(4, i => `<b style="--a:${i * 90}deg">${art('Stheno Swarm', 4)}</b>`)}</i>`),
+  // Forbidden Jungle: the temple at night. Great trees frame the page, braziers burn either side,
+  // Totem Spirits drift between the totems, flowers glow, and the drums beat in the dark.
+  fjungle: () => `<i class="fx-drums"></i>${art('Jungle Tree Big', 18, 'fx-tree l')}${art('Jungle Tree Big', 15, 'fx-tree r')}`
+    + `<i class="fx-brazier l">${art('Jungle Brazier', 6)}<b></b></i><i class="fx-brazier r">${art('Jungle Brazier', 6)}<b></b></i>`
+    + `<i class="fx-totem l">${art('Jungle Totem', 6)}</i><i class="fx-totem r">${art('Jungle Totem', 6)}</i>`
+    + many(5, i => `<i class="fx-spirit" style="left:${10 + i * 19}%;top:${rand(22, 60).toFixed(0)}%;--t:${rand(6, 10).toFixed(1)}s;--d:-${rand(0, 10).toFixed(1)}s">${art('Totem Spirit', 4)}</i>`)
+    + many(9, i => `<i class="fx-bloom" style="left:${2 + i * 11.5}%;--d:-${rand(0, 4).toFixed(1)}s">${art(i % 2 ? 'Pink Flowers' : 'Jungle Flower Bright', 4)}</i>`)
+    + many(14, () => `<i class="fx-fly fx-ember-fly" style="left:${pct(2, 98)};top:${pct(30, 95)};--t:${rand(5, 10).toFixed(1)}s;--d:-${rand(0, 10).toFixed(1)}s;--dx:${rand(-60, 60).toFixed(0)}px;--dy:${rand(-70, 10).toFixed(0)}px"></i>`)
+    + bossMarkup('fjungle'),
+  // Beachzone: the Masked Party God's beach on a summer afternoon. Waves wash in, palms sway, a
+  // beach ball bounces along the sand, Beach Bums lounge, confetti falls on the party.
+  beach: () => `<i class="fx-beach-sun"></i><i class="fx-surf"></i><i class="fx-surf b"></i>`
+    + `${art('Palm Tree', 17, 'fx-beach-palm l')}${art('Palm Tree', 14, 'fx-beach-palm r')}`
+    + `<i class="fx-sandprops">${art('Beach Umbrella', 6)}${art('Sand Castle', 7)}</i>`
+    + `<i class="fx-ball"><b></b></i>`
+    + many(2, i => `<i class="fx-bum" style="left:${18 + i * 50}%;--d:-${i * 2}s">${art('Beach Bum', 5)}</i>`)
+    + many(18, () => `<i class="fx-confetti" style="left:${pct(1, 99)};--c:${['#ff4fa3', '#ffd23f', '#3fd3ff', '#7cff6b', '#ff8a3d'][Math.floor(Math.random() * 5)]};--r:${rand(-540, 540).toFixed(0)}deg;--dx:${rand(-80, 80).toFixed(0)}px;--t:${rand(7, 13).toFixed(1)}s;--d:-${rand(0, 13).toFixed(1)}s"></i>`)
+    + bossMarkup('beach'),
+  // ---- Consumables ----
+  // Health and Magic Potions: plain everyday themes, a short glow after drinking.
+  hp: () => `<i class="fx-halo fx-redhalo"></i>${many(10, () => `<i class="fx-mote fx-plus fx-redplus" style="left:${pct(2, 98)};--s:${rand(7, 12).toFixed(0)}px;--dx:${rand(-30, 30).toFixed(0)}px;--t:${rand(9, 16).toFixed(1)}s;--d:-${rand(0, 16).toFixed(1)}s"></i>`)}`,
+  mp: () => `<i class="fx-halo fx-bluehalo"></i>${many(16, () => `<i class="fx-fly fx-blue" style="left:${pct(2, 98)};top:${pct(10, 98)};--t:${rand(5, 10).toFixed(1)}s;--d:-${rand(0, 10).toFixed(1)}s;--dx:${rand(-60, 60).toFixed(0)}px;--dy:${rand(-80, 20).toFixed(0)}px"></i>`)}`,
+  // Pirate Rum: on deck at dusk with a bottle in hand. The sea rolls, the ship's wheel swings,
+  // gulls pass, a parrot keeps watch from the rail. Drinking it makes you drunk for 30 s.
+  pirum: () => `<i class="fx-deck-sea"><b></b><b></b></i><i class="fx-wheel"></i>${art('Cave Pirate Parrot', 6, 'fx-rail')}`
+    + many(3, () => `<i class="fx-gull" style="top:${pct(8, 32)};--k:${rand(.5, .9).toFixed(2)};--dy:${rand(-30, 20).toFixed(0)}px;--t:${rand(24, 36).toFixed(1)}s;--d:-${rand(0, 36).toFixed(1)}s"><b></b></i>`),
+  // Healing Ichor: Arachna's den, where it comes from. Webs in the corners, ichor dripping and
+  // pooling, a slow red pulse like a heartbeat, one spider coming down to see who took it.
+  ichor: () => `<i class="fx-web l"></i><i class="fx-web r"></i><i class="fx-pool"></i>`
+    + many(8, () => `<i class="fx-drip fx-ichor" style="left:${pct(3, 97)};--t:${rand(6, 12).toFixed(1)}s;--d:-${rand(0, 12).toFixed(1)}s"></i>`)
+    + `<i class="fx-dangle" style="left:72%;--y:34vh;--t:11s;--d:-3s">${art('Red Spotted Den Spider', 4)}</i>`,
+  // Holy Water: light through a high window. Shafts of gold light, dust motes turning in them,
+  // a halo breathing behind the page title. It heals and washes away drunk, Hexed and visions.
+  holy: () => `<i class="fx-window"></i>${many(4, i => `<i class="fx-ray fx-holyray" style="left:${18 + i * 18 + rand(-4, 4)}%;--a:${rand(8, 18).toFixed(1)}deg;--t:${rand(8, 13).toFixed(1)}s;--d:-${rand(0, 13).toFixed(1)}s"></i>`)}`
+    + many(18, () => `<i class="fx-fly fx-dust" style="left:${pct(10, 90)};top:${pct(10, 95)};--t:${rand(8, 14).toFixed(1)}s;--d:-${rand(0, 14).toFixed(1)}s;--dx:${rand(-40, 40).toFixed(0)}px;--dy:${rand(-40, 40).toFixed(0)}px"></i>`),
+  // Coral Juice: Thessal's reef, kept simple: coral swaying on the sea floor and bubbles.
+  coral: () => `${many(9, i => `<i class="fx-coral${i % 3 === 1 ? ' fan' : i % 3 === 2 ? ' orange' : ''}" style="left:${(i < 5 ? i * 4.5 : 62 + i * 4.5).toFixed(1)}%;--w:${rand(70, 130).toFixed(0)}px;--t:${rand(4, 7).toFixed(1)}s;--d:-${rand(0, 7).toFixed(1)}s"></i>`)}${many(10, () => `<i class="fx-bubble fx-sea" style="left:${pct(2, 98)};--s:${rand(4, 11).toFixed(0)}px;--t:${rand(8, 15).toFixed(1)}s;--d:-${rand(0, 15).toFixed(1)}s"></i>`)}`,
+  // Pollen Powder: ground from the Forbidden Jungle's flowers. Golden clouds of it drift across,
+  // the flowers it came from nod along the bottom. Using it restores 100 MP to all within 10 tiles.
+  pollen: () => many(6, () => `<i class="fx-pollen" style="left:${pct(-10, 80)};top:${pct(5, 75)};--s:${rand(120, 260).toFixed(0)}px;--dx:${rand(80, 220).toFixed(0)}px;--dy:${rand(-40, 40).toFixed(0)}px;--t:${rand(14, 22).toFixed(1)}s;--d:-${rand(0, 22).toFixed(1)}s"></i>`)
+    + many(24, () => `<i class="fx-fly fx-grain" style="left:${pct(2, 98)};top:${pct(5, 95)};--t:${rand(6, 12).toFixed(1)}s;--d:-${rand(0, 12).toFixed(1)}s;--dx:${rand(20, 90).toFixed(0)}px;--dy:${rand(-40, 30).toFixed(0)}px"></i>`)
+    + many(10, i => `<i class="fx-bloom" style="left:${1 + i * 10}%;--d:-${rand(0, 4).toFixed(1)}s">${art(i % 2 ? 'Pink Flowers' : 'Jungle Flower Bright', 4)}</i>`),
+  // Transformation Potion: the Mad Lab's experiment. The light keeps changing colour, a flask
+  // bubbles in the corner, and in it the pets you might turn into come and go. Drinking it Hexes
+  // you for 30 s: every character on the page becomes one of those pets.
+  hexed: () => `<i class="fx-shift a"></i><i class="fx-shift b"></i><i class="fx-shift c"></i><i class="fx-flask"><b></b></i>`
+    + petCycle()
+    + many(10, () => `<i class="fx-bubble fx-toxic" style="left:${pct(70, 96)};--s:${rand(5, 12).toFixed(0)}px;--t:${rand(5, 9).toFixed(1)}s;--d:-${rand(0, 9).toFixed(1)}s"></i>`),
   jungle: () => `<i class="fx-leaves"></i><i class="fx-leaves b"></i>${many(16, () => `<i class="fx-fly" style="left:${pct(2, 98)};top:${pct(25, 98)};--t:${rand(5, 10).toFixed(1)}s;--d:-${rand(0, 10).toFixed(1)}s;--dx:${rand(-60, 60).toFixed(0)}px;--dy:${rand(-50, 20).toFixed(0)}px"></i>`)}` + many(6, () => `<i class="fx-leaf" style="left:${pct(2, 98)};--dx:${rand(-120, 120).toFixed(0)}px;--t:${rand(14, 22).toFixed(1)}s;--d:-${rand(0, 22).toFixed(1)}s"></i>`)
 };
+// Six pets shown by turns in the Transformation Potion's flask.
+function petCycle() {
+  const pets = Object.entries(THEME_ART?.sprites ?? {}).filter(([, a]) => a.pet).map(([n]) => n).sort(() => Math.random() - 0.5).slice(0, 6);
+  return `<i class="fx-specimens">${pets.map((n, i) => `<b style="--i:${i}">${art(n, 6)}</b>`).join('')}</i>`;
+}
+// ---- Dungeon bosses: click to fight ----
+// Each key's boss stands in a corner of the page. Clicking hits it (its own hit sound from
+// objects.xml and a damage number); at 0 HP it dies (its death sound) and drops a loot bag with
+// one item from its real drop list (enemies.json). Hover the bag to see it, click to pick it up.
+// It comes back half a minute later. HP is the game's, damage is scaled so a fight lasts ~15 hits.
+const BOSSES = {
+  pcave: {name: 'Dreadstump the Pirate King', hp: 800, hit: 'pirate_king_hit', death: 'pirate_king_death', scale: 7},
+  sden: {name: 'Arachna the Spider Queen', hp: 2700, hit: 'spider_queen_hit', death: 'spider_queen_death', scale: 8},
+  spit: {name: 'Stheno the Snake Queen', hp: 7500, hit: 'snake_queen_hit', death: 'snake_queen_death', scale: 7},
+  fjungle: {name: 'Mixcoatl the Masked God', hp: 4200, hit: 'slimes_death', death: 'flying_brain_death', scale: 7},
+  beach: {name: 'Masked Party God', hp: 30000, hit: 'default_hit', death: 'dark_elves_death', scale: 7}
+};
+function bossMarkup(key, extra = '') {
+  const b = BOSSES[key];
+  return `<i class="fx-boss b-${key}" data-boss="${key}" role="button" tabindex="-1" aria-label="${b.name}" data-tip-title="${b.name}" data-tip-text="${fmt(b.hp)} HP. Click to attack.">${extra}${art(b.name, b.scale, 'fx-boss-art')}<b class="fx-hp"><b style="width:100%"></b></b></i>`;
+}
+const BAGS = {ut: 'Loot Bag 5', top: 'Soulbound Loot Bag', plain: 'Loot Bag'};
+let bossHp = {};
+async function hitBoss(el, e) {
+  const key = el.dataset.boss, b = BOSSES[key];
+  if (!b || el.classList.contains('dead')) return;
+  bossHp[key] ??= b.hp;
+  const dmg = Math.max(1, Math.round((b.hp / 15) * rand(0.7, 1.3)));
+  bossHp[key] = Math.max(0, bossHp[key] - dmg);
+  playSound(`/sfx/${b.hit}.mp3`, 0.4);
+  burst('fx-status fx-status-dmg', {x: e.clientX, y: e.clientY - 10}, '', `-${fmt(dmg)}`);
+  el.querySelector('.fx-hp > b').style.width = `${(bossHp[key] / b.hp) * 100}%`;
+  el.classList.remove('hit'); void el.offsetWidth; el.classList.add('hit');
+  if (bossHp[key] > 0) return;
+  // Dead: the death sound, then a bag with one of its drops.
+  playSound(`/sfx/${b.death}.mp3`, 0.5);
+  el.classList.add('dead');
+  delete bossHp[key];
+  const E = await loadEnemies();
+  const boss = E.list.find(x => x.name === b.name);
+  const drops = (boss?.drops ?? []).map(id => ITEMS.get(id)).filter(Boolean);
+  const uts = drops.filter(i => i.untiered), rest = drops.filter(i => !i.untiered);
+  const item = (uts.length && Math.random() < 0.25) || !rest.length ? uts[Math.floor(Math.random() * uts.length)] : rest[Math.floor(Math.random() * rest.length)];
+  if (item) {
+    const kind = item.untiered ? 'ut' : tierInfo(item).cls === 'high' || /^Potion of /.test(item.name) ? 'top' : 'plain';
+    const bag = document.createElement('i');
+    bag.className = 'fx-bag';
+    bag.dataset.tip = item.id;
+    bag.setAttribute('role', 'button');
+    bag.innerHTML = art(BAGS[kind], 5);
+    el.after(bag);
+    const r = el.getBoundingClientRect();
+    bag.style.cssText = `left:${r.left + r.width / 2}px;top:${r.top + r.height * 0.7}px`;
+    setTimeout(() => playSound('/sfx/loot_appears.mp3', 0.4), 500);
+  }
+  setTimeout(() => { if (el.isConnected) { el.classList.remove('dead', 'hit'); el.querySelector('.fx-hp > b').style.width = '100%'; } }, 30000);
+}
+fxLayer.addEventListener('click', e => {
+  const boss = e.target.closest('.fx-boss');
+  if (boss) return hitBoss(boss, e);
+  const bag = e.target.closest('.fx-bag');
+  if (bag) {
+    const it = ITEMS.get(Number(bag.dataset.tip));
+    playSound('/sfx/inventory_move_item.mp3', 0.5);
+    hideTip();
+    const r = bag.getBoundingClientRect();
+    burst('fx-status fx-status-loot', {x: r.left + r.width / 2, y: r.top - 10}, '', it?.name ?? 'Loot');
+    bag.remove();
+  }
+});
+// Hexed: the Transformation Potion turns you into a pet. Every character on the page (the class
+// sprites) becomes one of the Hexable pets, each its own, until it wears off.
+const petImages = new Map();
+let hexTimer = null, petSheet = null;
+async function petURL(name) {
+  if (petImages.has(name)) return petImages.get(name);
+  const a = THEME_ART?.sprites[name];
+  if (!a) return null;
+  petSheet ??= await new Promise(res => { const img = new Image(); img.onload = () => res(img); img.onerror = () => res(null); img.src = '/catalog/themes.png?v=2'; });
+  if (!petSheet) return null;
+  const c = document.createElement('canvas');
+  c.width = a.w; c.height = a.h;
+  c.getContext('2d').drawImage(petSheet, a.x, a.y, a.w, a.h, 0, 0, a.w, a.h);
+  const url = c.toDataURL();
+  petImages.set(name, url);
+  return url;
+}
+async function hex(on) {
+  clearInterval(hexTimer);
+  hexTimer = null;
+  if (!on) {
+    document.querySelectorAll('img[data-hexed]').forEach(el => { el.src = el.dataset.hexed; el.removeAttribute('data-hexed'); el.classList.remove('hexed-pet'); });
+    return;
+  }
+  if (!THEME_ART) await loadThemeArt();
+  const pets = Object.entries(THEME_ART?.sprites ?? {}).filter(([, a]) => a.pet).map(([n]) => n);
+  if (!pets.length) return;
+  const swap = async () => {
+    for (const el of document.querySelectorAll('img.cls:not([data-hexed])')) {
+      const url = await petURL(pets[Math.floor(Math.random() * pets.length)]);
+      if (!url || el.dataset.hexed) continue;
+      el.dataset.hexed = el.getAttribute('src');
+      el.src = url;
+      el.classList.add('hexed-pet');
+    }
+  };
+  await swap();
+  hexTimer = setInterval(swap, 1000);
+}
 // The stat potions are the plain everyday themes: their effects only play for a few seconds
 // after drinking one, then fade away and leave the clean theme.
 const POTION_FX_MS = 4000;
 let fxTimer = null;
 function themeFx(key, intro = false) {
   clearTimeout(fxTimer);
-  const brief = POTIONS.some(t => t[0] === key);
+  const brief = POTIONS.some(t => t[0] === key) || BREWS.some(b => b[0] === key && b[4].basic);
   fxLayer.className = intro ? 'intro' : '';
   fxLayer.innerHTML = brief && !intro ? '' : FX[key]?.() ?? '';
   if (brief && intro) {
@@ -2579,23 +2802,39 @@ function burst(cls, {x, y}, style = '', text = '') {
 }
 const effectTimers = new Map();
 function condition(name, seconds) {
-  if (reducedMotion() && name !== 'invisible') return;
+  if (reducedMotion() && !['invisible', 'hexed'].includes(name)) return;
   clearTimeout(effectTimers.get(name));
   document.documentElement.classList.add(name);
-  effectTimers.set(name, setTimeout(() => { document.documentElement.classList.remove(name); if (name === 'hallucinating') hallucinate(false); }, seconds * 1000));
+  effectTimers.set(name, setTimeout(() => { document.documentElement.classList.remove(name); if (name === 'hallucinating') hallucinate(false); if (name === 'hexed') hex(false); }, seconds * 1000));
   if (name === 'hallucinating') hallucinate(true);
+  if (name === 'hexed') hex(true);
 }
 function sober() {
   for (const [name, t] of effectTimers) { clearTimeout(t); document.documentElement.classList.remove(name); }
   effectTimers.clear();
   hallucinate(false);
+  hex(false);
 }
 function brewEffects(fx, at) {
-  if (fx.heal) {
-    burst('fx-nova', at, `--r:${fx.range * TILE}px`);
-    burst('fx-status', {x: at.x, y: at.y - 24}, '', `+${fx.heal}`);
-  }
+  // A nova shows only for items that reach others (HealNova, MagicNova); Heal and Magic are self only.
+  if (fx.range) burst(fx.heal ? 'fx-nova' : 'fx-nova fx-nova-magic', at, `--r:${fx.range * TILE}px`);
+  if (fx.heal) burst('fx-status', {x: at.x, y: at.y - 24}, '', `+${fx.heal}`);
+  if (fx.magic) setTimeout(() => burst('fx-status fx-status-mp', {x: at.x, y: at.y - (fx.heal ? 48 : 24)}, '', `+${fx.magic}`), fx.heal ? 200 : 0);
   if (fx.boost) burst('fx-heal', at);
+  if (fx.cleanse) {
+    // RemoveNegativeConditionsSelf: drunk, hallucinating and Hexed all end.
+    const cured = ['drunk', 'hallucinating', 'hexed'].filter(n => document.documentElement.classList.contains(n));
+    for (const n of cured) { clearTimeout(effectTimers.get(n)); effectTimers.delete(n); document.documentElement.classList.remove(n); }
+    if (cured.includes('hallucinating')) hallucinate(false);
+    if (cured.includes('hexed')) hex(false);
+    burst('fx-holy', at);
+    if (cured.length) setTimeout(() => burst('fx-status fx-status-cure', {x: at.x, y: at.y - 48}, '', 'Purified'), 250);
+  }
+  if (fx.hexed) {
+    burst('fx-nova fx-nova-hex', at, `--r:${TILE}px`);
+    setTimeout(() => burst('fx-status fx-status-hex', {x: at.x, y: at.y - 24}, '', 'Hexed'), 150);
+    condition('hexed', fx.hexed);
+  }
   for (const name of ['drunk', 'invisible', 'hallucinating']) {
     if (!fx[name]) continue;
     burst('fx-nova', at, `--r:${TILE}px`);
@@ -2679,7 +2918,7 @@ async function footer() {
   } catch { /* server stopped */ }
 }
 
-await Promise.all([loadCatalog(), loadCrown(), loadGraves(), loadAuras(), loadWalk(), loadDyes()]);
+await Promise.all([loadCatalog(), loadCrown(), loadGraves(), loadAuras(), loadWalk(), loadDyes(), loadThemeArt()]);
 drawBrand();
 themeFx(document.documentElement.dataset.theme ?? '');
 route();
