@@ -2296,8 +2296,9 @@ const KEYS = [
   ['undead', 'Undead Lair', 'Undead Lair Key'], ['sprite', 'Sprite World', 'Sprite World Key']
 ];
 const KEY_PROFILES = ['/player/cramshon', '/player/redbracket'];
-// Rare finds: each of these consumables (and each dungeon key) has a 1% chance to take the place of a potion when the
-// Nexus refills the inventory, and is certain to on the page of an enemy that drops it. Each has
+// Rare finds: every Nexus puts two of these consumables or dungeon keys (picked at random) in place of
+// potions, each of the others still has a 1% chance to turn up too, and an item is certain to on the
+// page of an enemy that drops it. Each has
 // its own theme with moving effects, and using it does what the item does in the game
 // (objects.xml): the incantation opens the Wine Cellar with the key sound, Snake Oil heals 100 HP
 // in a 10-tile nova, the mushroom makes you hallucinate for 30 s, and the rum and the Masked
@@ -2328,12 +2329,17 @@ try {
 } catch { /* storage unavailable */ }
 const invItems = () => inventory.map(k => INV_ALL.find(t => t[0] === k));
 const invKind = key => (KEYS.some(k => k[0] === key) ? 'key' : BREWS.some(b => b[0] === key) ? 'brew' : 'potion');
+const BREWS_PER_NEXUS = 2;
 function rollInventory(forced = new Set()) {
   const slots = POTIONS.map(t => t[0]);
-  // The dungeon keys can turn up the same way, at the same 1% each.
-  const found = [...BREWS.filter(b => forced.has(b[2])), ...[...BREWS, ...KEYS].filter(b => !forced.has(b[2]) && Math.random() < BREW_CHANCE)].map(b => b[0]);
+  const pool = [...BREWS, ...KEYS];
+  const found = BREWS.filter(b => forced.has(b[2]));
+  // Two are guaranteed: top up with random picks the enemy page did not already force.
+  const rest = pool.filter(b => !found.includes(b)).sort(() => Math.random() - 0.5);
+  while (found.length < BREWS_PER_NEXUS && rest.length) found.push(rest.shift());
+  for (const b of rest) if (Math.random() < BREW_CHANCE) found.push(b);
   const free = [...slots.keys()].sort(() => Math.random() - 0.5);
-  found.slice(0, 8).forEach((k, i) => { slots[free[i]] = k; });
+  found.slice(0, 8).forEach((b, i) => { slots[free[i]] = b[0]; });
   return slots;
 }
 const themeButton = document.getElementById('theme-button');
