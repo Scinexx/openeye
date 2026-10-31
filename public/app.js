@@ -693,7 +693,7 @@ async function home() {
         })}</tr>`)}</tbody>
       </table></div>
     </section>`);
-  if (!hasData) setTimeout(() => location.pathname === '/' && route(), 15000);
+  if (!hasData) setTimeout(() => /^\/(homevault\/?)?$/.test(location.pathname) && route(), 15000);
   // While the server is unreachable, count up the time since it last answered.
   const down = main.querySelector('[data-down-since]');
   if (down) {
@@ -2034,42 +2034,42 @@ const THEME_NOTES = {
   pollen: 'Golden clouds of Forbidden Jungle pollen drifting over its flowers. Restores 100 MP to everyone within 10 tiles.',
   hexed: 'The Mad Lab’s floor and its two vats: the green that Hexes and the blue that cures. Drinking it Hexes you: everyone on the page turns into a pet for 30 seconds.'
 };
-function vault() {
-  document.title = 'Vault | OpenEye';
+// The vault's pieces, shared by /vault and the docked inventory on /homevault.
+const VAULT_CHESTS = () => [['Potions', POTIONS], ['Endgame keys', KEYS], ['Dungeon keys', DUNGEON_KEYS], ['Consumables', BREWS]];
+const currentTheme = () => document.documentElement.dataset.theme ?? '';
+function vaultChests(scale) {
   const byName = new Map([...ITEMS.values()].map(i => [i.name, i]));
-  const chests = [['Potions', POTIONS], ['Endgame keys', KEYS], ['Dungeon keys', DUNGEON_KEYS], ['Consumables', BREWS]];
-  const current = () => document.documentElement.dataset.theme ?? '';
   const slotOf = ([key, label, item]) => {
     const it = byName.get(item);
-    return h`<button type="button" class="vault-slot" data-vault="${key}" aria-pressed="${key === current()}" aria-label="${label}"${it ? raw(` data-tip="${it.id}"`) : ''}>${it ? itemSprite(it.id, 5) : ''}</button>`;
+    return h`<button type="button" class="vault-slot" data-vault="${key}" aria-pressed="${key === currentTheme()}" aria-label="${label}"${it ? raw(` data-tip="${it.id}"`) : ''}>${it ? itemSprite(it.id, scale) : ''}</button>`;
   };
-  view(h`
-    <div class="page-head"><div><h1>Vault</h1><p>Every theme in one place. Click an item to wear its theme, double-click to use it like in the game.</p></div></div>
-    <div class="vault">
-      <div class="vault-top">
-        <button type="button" class="vault-nexus" data-vault="" aria-pressed="${current() === ''}"><img src="/icons/nexus.png" width="48" height="48" alt=""><span>Nexus</span></button>
-        <section class="panel vault-now" aria-live="polite"><p class="vault-name"></p><p class="vault-note"></p></section>
-      </div>
-      <div class="vault-chests">${chests.map(([title, list]) => h`<section class="vault-chest" aria-label="${title}">
-        <h2>${title}</h2>
-        <div class="vault-grid">${list.map(slotOf)}</div>
-      </section>`)}</div>
-    </div>`);
+  return VAULT_CHESTS().map(([title, list]) => h`<section class="vault-chest" aria-label="${title}">
+    <h2>${title}</h2>
+    <div class="vault-grid">${list.map(slotOf)}</div>
+  </section>`);
+}
+const vaultNexus = size => h`<button type="button" class="vault-nexus" data-vault="" aria-pressed="${currentTheme() === ''}"><img src="/icons/nexus.png" width="${size}" height="${size}" alt=""><span>Nexus</span></button>`;
+// Click an item to wear its theme, double-click to use it. Returns the function that redraws
+// which slot is worn; it also runs whenever the theme changes some other way (the header menu).
+function bindVault(box) {
   const sync = () => {
-    const key = current();
-    document.querySelectorAll('[data-vault]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.vault === key)));
+    if (!box.isConnected) return observer.disconnect();
+    const key = currentTheme();
+    box.querySelectorAll('[data-vault]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.vault === key)));
     const entry = INV_ALL.find(t => t[0] === key);
-    document.querySelector('.vault-name').textContent = entry ? (BREWS.includes(entry) ? entry[2] : ALL_KEYS.includes(entry) ? entry[1] : `${entry[1]} potion`) : 'Nexus';
-    document.querySelector('.vault-note').textContent = THEME_NOTES[key] ?? '';
+    const name = box.querySelector('.vault-name'), note = box.querySelector('.vault-note');
+    if (name) name.textContent = entry ? (BREWS.includes(entry) ? entry[2] : ALL_KEYS.includes(entry) ? entry[1] : `${entry[1]} potion`) : 'Nexus';
+    if (note) note.textContent = THEME_NOTES[key] ?? '';
   };
+  const observer = new MutationObserver(sync);
+  observer.observe(document.documentElement, {attributes: true, attributeFilter: ['data-theme']});
   sync();
-  const box = document.querySelector('.vault');
   box.addEventListener('click', e => {
     const b = e.target.closest('[data-vault]');
     if (!b || mapLoading) return;
     const key = b.dataset.vault;
     if (e.detail > 1) return; // the double-click handler takes it from here
-    if (key === current() && key) return;
+    if (key === currentTheme() && key) return;
     sober();
     playSound(ALL_KEYS.some(k => k[0] === key) || key === 'cellar' ? '/sfx/use_key.mp3' : '/sfx/use_potion.mp3');
     setTheme(key, {intro: true});
@@ -2082,6 +2082,49 @@ function vault() {
     useItem(b.dataset.vault, fxAt(b));
     setTimeout(sync, 1100);
     sync();
+  });
+  return sync;
+}
+function vault() {
+  document.title = 'Vault | OpenEye';
+  view(h`
+    <div class="page-head"><div><h1>Vault</h1><p>Every theme in one place. Click an item to wear its theme, double-click to use it like in the game.</p></div></div>
+    <div class="vault">
+      <div class="vault-top">
+        ${vaultNexus(48)}
+        <section class="panel vault-now" aria-live="polite"><p class="vault-name"></p><p class="vault-note"></p></section>
+      </div>
+      <div class="vault-chests">${vaultChests(5)}</div>
+    </div>`);
+  bindVault(main.querySelector('.vault'));
+}
+
+// ---------- the home vault (unlisted: /homevault) ----------
+// The homepage with every theme item docked beside it, to try themes without leaving it.
+async function homeVault() {
+  await home();
+  if (location.pathname.replace(/\/$/, '') !== '/homevault') return;
+  document.getElementById('home-vault')?.remove();
+  let open = true;
+  try { open = localStorage.getItem('homeVaultOpen') !== '0'; } catch { /* storage unavailable */ }
+  const dock = document.createElement('aside');
+  dock.id = 'home-vault';
+  dock.className = 'home-vault';
+  dock.dataset.open = String(open);
+  dock.setAttribute('aria-label', 'Vault');
+  dock.innerHTML = String(h`
+    <button type="button" class="hv-toggle" aria-expanded="${open}" aria-controls="hv-body" title="Show or hide the vault"><span>Vault</span></button>
+    <div class="hv-body" id="hv-body">
+      <div class="hv-now" aria-live="polite">${vaultNexus(32)}<p class="vault-name"></p></div>
+      <div class="hv-chests">${vaultChests(4)}</div>
+    </div>`);
+  document.body.append(dock);
+  bindVault(dock);
+  dock.querySelector('.hv-toggle').addEventListener('click', e => {
+    const now = dock.dataset.open !== 'true';
+    dock.dataset.open = String(now);
+    e.currentTarget.setAttribute('aria-expanded', String(now));
+    try { localStorage.setItem('homeVaultOpen', now ? '1' : '0'); } catch { /* storage unavailable */ }
   });
 }
 
@@ -2168,6 +2211,7 @@ const routes = [
   [/^\/about$/, () => about(), 'about'],
   [/^\/auras\/?$/, () => auras(), ''],
   [/^\/vault\/?$/, () => vault(), ''],
+  [/^\/homevault\/?$/, () => homeVault(), ''],
   [/^\/crown\/?$/, () => crownPage(), ''],
   [/^\/guilds\/?$/, () => guildsPage(), 'guilds'],
   [/^\/guild\/([^/]+)$/, m => guildPage(decodeURIComponent(m[1])), 'guilds']
@@ -2177,6 +2221,7 @@ const TITLES = {guilds: 'Guilds', rankings: 'Rankings', graveyard: 'Graveyard', 
 async function route() {
   hideTip();
   const path = location.pathname;
+  if (!/^\/homevault\/?$/.test(path)) document.getElementById('home-vault')?.remove();
   for (const [re, fn, nav] of routes) {
     const m = path.match(re);
     if (!m) continue;
@@ -2685,7 +2730,9 @@ function bossMarkup(key, extra = '') {
   const b = BOSSES[key];
   return `<i class="fx-boss b-${key}" data-boss="${key}" role="button" tabindex="-1" aria-label="${b.name}" data-tip-title="${b.name}" data-tip-text="${fmt(b.hp)} HP. Click to attack.">${extra}${art(b.name, b.scale, 'fx-boss-art')}<b class="fx-hp"><b style="width:100%"></b></b></i>`;
 }
-const BAGS = {ut: 'Loot Bag 5', top: 'Soulbound Loot Bag', plain: 'Loot Bag'};
+// Bags by the item's BagType, as they look in game: brown, soulbound purple, purple (most
+// dungeon UTs, Mixcoatl's included), cyan, white (the rarest, like the Incantation).
+const BAGS = ['Loot Bag', 'Soulbound Loot Bag', 'Loot Bag 2', 'Loot Bag 3', 'Loot Bag 5'];
 let bossHp = {};
 async function hitBoss(el, e) {
   const key = el.dataset.boss, b = BOSSES[key];
@@ -2708,12 +2755,11 @@ async function hitBoss(el, e) {
   const uts = drops.filter(i => i.untiered), rest = drops.filter(i => !i.untiered);
   const item = (uts.length && Math.random() < 0.25) || !rest.length ? uts[Math.floor(Math.random() * uts.length)] : rest[Math.floor(Math.random() * rest.length)];
   if (item) {
-    const kind = item.untiered ? 'ut' : tierInfo(item).cls === 'high' || /^Potion of /.test(item.name) ? 'top' : 'plain';
     const bag = document.createElement('i');
     bag.className = 'fx-bag';
     bag.dataset.tip = item.id;
     bag.setAttribute('role', 'button');
-    bag.innerHTML = art(BAGS[kind], 5);
+    bag.innerHTML = art(BAGS[item.bag] ?? BAGS[0], 5);
     el.after(bag);
     const r = el.getBoundingClientRect();
     bag.style.cssText = `left:${r.left + r.width / 2}px;top:${r.top + r.height * 0.7}px`;

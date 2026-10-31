@@ -105,6 +105,9 @@ for (const o of objects) {
     soulbound: /<Soulbound\s*\/>/.test(o.body),
     consumable: /<Consumable\s*\/>/.test(o.body),
     fameBonus: Number(tag(o.body, 'FameBonus') ?? 0),
+    // Which loot bag the item drops in (the server shows the highest in a bag):
+    // 0 brown, 1 soulbound, 2 purple, 3 cyan, 4 white.
+    bag: Number(tag(o.body, 'BagType') ?? 0),
     description: tag(o.body, 'Description') ?? '',
     bonuses,
     sprite: pos ? {x: pos.x, y: pos.y} : null
