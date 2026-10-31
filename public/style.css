@@ -224,12 +224,12 @@ main { flex: 1; width: 100%; max-width: var(--max); margin: 0 auto; padding: 32p
 }
 .sprite { background-image: url(/catalog/items.png?v=2); background-repeat: no-repeat; }
 .sprite.none { background: var(--stone-deep); box-shadow: inset 0 0 0 2px var(--bevel-dark); }
-.sprite.missing { filter: brightness(0) opacity(0.55); }
-.slot { display: inline-flex; padding: 2px; background: var(--stone-deep); border: 2px solid var(--bevel-dark); }
-a.slot:hover { border-color: var(--accent); }
-.slot.bag-ut { border-color: #8a5ccc; box-shadow: 0 0 6px rgba(164, 107, 224, 0.35); }
-.slot.bag-top { border-color: #b39a2c; }
-.slot.empty-slot { background: none; border-style: dashed; }
+/* Items as in the game's inventory: a 1px black outline and a soft shadow (the client's
+   TextureRedrawer), on plain slots the colour of an empty slot, with no tier borders. */
+.sprite:not(.none) { filter: drop-shadow(1px 0 0 #000) drop-shadow(-1px 0 0 #000) drop-shadow(0 1px 0 #000) drop-shadow(0 -1px 0 #000) drop-shadow(0 2px 2px rgb(0 0 0 / .45)); }
+.sprite.missing { filter: brightness(0) opacity(.35); }
+.slot { display: inline-flex; padding: 0; background: #3c3c3c; }
+a.slot:hover { background: #4d4d4d; }
 .gear { display: flex; gap: 4px; flex-wrap: wrap; }
 /* In tables the four equipment slots stay on one line; the table scrolls sideways if it must. */
 td .gear { flex-wrap: nowrap; }
@@ -655,7 +655,7 @@ td.main-metric { font: 700 1.15rem var(--display); color: var(--accent); }
 /* ---------- First find: an untiered item nobody had looted before ----------
    Kept subtle: a faint turning gold halo, a soft glow on the slot and a few sparks. */
 .first-find { display: inline-flex; position: relative; flex: none; isolation: isolate; }
-.first-find > .slot { position: relative; z-index: 2; border-color: color-mix(in srgb, var(--aura-a, #ffd65c) 80%, transparent); }
+.first-find > .slot { position: relative; z-index: 2; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--aura-a, #ffd65c) 80%, transparent); }
 /* The glow breathes by fading a fixed shadow in and out (opacity runs off the main thread;
    animating the shadow itself repainted every frame). */
 .first-find::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; will-change: opacity;

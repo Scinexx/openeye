@@ -71,16 +71,19 @@ function bag(item) {
 }
 
 // ---------- sprites ----------
-function itemSprite(id, scale = 2, {missing = false} = {}) {
+// Items are drawn as the game's inventory draws them: the 8px sprite at `scale` (4 is the
+// client's 32px) with one sprite pixel of margin, so a 4x item fills a 40px slot like the game's.
+// items.png keeps each sprite in a 16px cell, 4px in, so the box starts 3px into the cell.
+function itemSprite(id, scale = 4, {missing = false} = {}) {
   const it = ITEMS.get(id);
-  const size = 16 * scale;
+  const size = 10 * scale;
   if (!it?.sprite) return h`<span class="sprite none" ${it ? raw(`data-tip="${Number(id)}"`) : ''} style="width:${size}px;height:${size}px"></span>`;
   const dye = dyeIcon(id);
   if (dye) return h`<span class="sprite${missing ? ' missing' : ''}" data-tip="${id}" style="width:${size}px;height:${size}px;background:url(${dye}) 0 0 / 100% 100%"></span>`;
-  return h`<span class="sprite${missing ? ' missing' : ''}" data-tip="${id}" style="width:${size}px;height:${size}px;background-size:${320 * scale}px auto;background-position:-${it.sprite.x * scale}px -${it.sprite.y * scale}px"></span>`;
+  return h`<span class="sprite${missing ? ' missing' : ''}" data-tip="${id}" style="width:${size}px;height:${size}px;background-size:${320 * scale}px auto;background-position:-${(it.sprite.x + 3) * scale}px -${(it.sprite.y + 3) * scale}px"></span>`;
 }
-function itemSlot(id, scale = 2, opts = {}) {
-  const size = 16 * scale;
+function itemSlot(id, scale = 4, opts = {}) {
+  const size = 10 * scale;
   if (id === -1 || id === null || id === undefined) return h`<span class="slot empty-slot" title="Empty slot"><span style="width:${size}px;height:${size}px;display:inline-block"></span></span>`;
   const it = ITEMS.get(id);
   const t = tierInfo(it);
@@ -165,7 +168,7 @@ function dyedSprite(classId, tex1, tex2) {
 // A dye or cloth item in its own colour, as a 16px item cell (8px art, 4px around it).
 function dyeIcon(id) {
   const icon = DYES?.meta.icons?.[id];
-  return icon ? dyedImage(icon.row, icon.tex1, icon.tex2, 4) : null;
+  return icon ? dyedImage(icon.row, icon.tex1, icon.tex2, 1) : null;
 }
 // The dye or cloth items behind a character's look, for its death page.
 function dyeItems(char) {
@@ -204,7 +207,7 @@ const ownerLink = d => (d.is_bot ? h`<span class="who">${d.name} <span class="ba
   : d.is_guest ? h`<span class="who">${d.name} <span class="badge" title="A player on an account that never chose a name; not on the hiscores, so no profile">Guest</span></span>`
   : playerLink(d.player ?? d.name, d.player_stars));
 const discordIcon = id => (id ? h`<a class="discord" href="https://discord.com/users/${id}" rel="noopener" title="Discord account linked" aria-label="Discord profile"><svg viewBox="0 0 16 12" width="16" height="12" aria-hidden="true"><path fill="#8b9cf7" d="M13.5 1A13 13 0 0 0 10.3 0l-.4.8a12 12 0 0 0-3.8 0L5.7 0a13 13 0 0 0-3.2 1C.4 4 0 7 .2 9.9A13 13 0 0 0 4.1 12l.8-1.3a8 8 0 0 1-1.3-.6l.3-.2a9 9 0 0 0 8.2 0l.3.2-1.3.6.8 1.3a13 13 0 0 0 3.9-2c.3-3.4-.5-6.3-2.3-8.9ZM5.4 8.3c-.8 0-1.4-.7-1.4-1.6s.6-1.6 1.4-1.6 1.4.7 1.4 1.6-.6 1.6-1.4 1.6Zm5.2 0c-.8 0-1.4-.7-1.4-1.6s.6-1.6 1.4-1.6S12 5.8 12 6.7s-.6 1.6-1.4 1.6Z"/></svg></a>` : '');
-const gear = (equipment, scale = 2, count = 4) => h`<span class="gear">${(equipment ?? []).slice(0, count).map(id => itemSlot(id, scale))}</span>`;
+const gear = (equipment, scale = 4, count = 4) => h`<span class="gear">${(equipment ?? []).slice(0, count).map(id => itemSlot(id, scale))}</span>`;
 
 // ---------- in-game item tooltips ----------
 // The text of each tooltip is built from the game data by tools/tooltip.mjs, which is a
@@ -511,7 +514,7 @@ const AURA_FX = {
 };
 const FX_BY_NAME = new Map(Object.entries(AURA_FX).flatMap(([k, f]) => f.items.map(n => [n, k])));
 const auraFx = id => FX_BY_NAME.get(ITEMS.get(id)?.name) ?? 'sparks';
-const firstFind = (id, title = '') => h`<span class="first-find fx-${auraFx(id)}"${title ? raw(` title="${esc(title)}"`) : ''}>${itemSlot(id, 2)}${raw('<i class="p"></i>'.repeat(6))}</span>`;
+const firstFind = (id, title = '') => h`<span class="first-find fx-${auraFx(id)}"${title ? raw(` title="${esc(title)}"`) : ''}>${itemSlot(id, 4)}${raw('<i class="p"></i>'.repeat(6))}</span>`;
 
 // ---- Graves ----
 // The gravestone a death leaves, by the server's rule (src/world.rs finish_death): with no
@@ -630,7 +633,7 @@ function deathRow(d, showPlayer, member = null) {
       <a class="title" href="/death/${d.account}/${d.char_id}" data-link>${showPlayer ? h`${d.is_bot ? starIcon(d.player_stars) : rankIcon(d.name, d.player_stars)}${d.name}` : `${d.level ? `Level ${d.level} ` : ''}${className(d.class)}`}</a>
       <span class="sub">${showPlayer ? `${className(d.class)}${d.level ? `, level ${d.level}` : ''}` : ''}${d.killed_by ? raw(`${showPlayer ? ', ' : ''}killed by <span class="killed">${esc(d.killed_by)}</span>`) : ''}${d.died_at ? raw(` ${when(d.died_at)}`) : ''}</span>
     </span>
-    ${gear(d.equipment, 1)}
+    ${gear(d.equipment)}
     ${graveBadge(d, 1)}
     <span class="num fame">${fmt(d.total_fame)}</span>
   </li>`;
@@ -676,7 +679,7 @@ async function home() {
       <section class="panel">
         <header><h2>Latest loot</h2><a href="/items" data-link>All items</a></header>
         ${s.recentFinds.length ? h`<ul class="rows">${s.recentFinds.slice(0, 10).map(f => h`<li style="${f.first ? auraStyle(auraOf(f.item)) : ''}">
-          ${f.first ? firstFind(f.item, 'First ever found on the server') : itemSlot(f.item, 2)}
+          ${f.first ? firstFind(f.item, 'First ever found on the server') : itemSlot(f.item)}
           <span class="grow"><span class="title">${ITEMS.get(f.item)?.name ?? `Item ${f.item}`}</span>
           <span class="sub">${playerLink(f.name, f.stars)} ${when(f.found_at)}${f.first ? h` <span class="first-tag">First!</span>` : ''}</span></span>
           <span class="tier ${tierInfo(ITEMS.get(f.item)).cls}">${tierInfo(ITEMS.get(f.item)).label}</span>
@@ -872,7 +875,7 @@ async function bestCharacters() {
       <td class="n fame${sort === 'fame' ? ' main-metric' : ''}">${fmt(c.fame)}</td>
       <td class="n${sort === 'maxed' ? ' main-metric' : ''}${c.maxed === 8 ? ' hl' : ''}">${dead ? graveBadge({...c, base_stats: c.stats}, 1) : statsMaxed(c.class, c.stats, c.maxed)}</td>
       <td class="n${sort === 'gear' ? ' main-metric' : ''}">${c.bonus ? `+${c.bonus}%` : '0%'}</td>
-      <td>${gear(c.equipment, 2)}</td>
+      <td>${gear(c.equipment)}</td>
       ${dead ? h`<td>${c.died_at ? when(c.died_at) : ''}</td>` : ''}
     </tr>`)}` : h`<tr><td colspan="${dead ? 9 : 8}" class="empty">${rows.length ? `No characters match “${filter}”.` : max20 ? `No ${dead ? 'dead' : 'living'} level 20 characters yet.` : dead ? 'No player deaths yet.' : 'No living characters yet.'}</td></tr>`);
   };
@@ -1367,7 +1370,7 @@ async function player(name) {
     document.getElementById('col-grid').innerHTML = String(h`${ids.map(id => {
       const it = ITEMS.get(id);
       const title = `${it?.name ?? id}${found.has(id) ? `, found ${day(found.get(id))}` : ', not found yet'}`;
-      return h`<a class="slot ${found.has(id) ? bag(it) : ''}" href="/item/${id}" data-link aria-label="${title}">${itemSprite(id, 2, {missing: !found.has(id)})}</a>`;
+      return h`<a class="slot ${found.has(id) ? bag(it) : ''}" href="/item/${id}" data-link aria-label="${title}">${itemSprite(id, 4, {missing: !found.has(id)})}</a>`;
     })}`);
   };
   document.getElementById('col-sort').addEventListener('change', drawCollection);
@@ -1412,7 +1415,7 @@ function characterPanel(chars, p) {
           <td class="c-who"><span class="who">${classSprite(c.class, 40, c)} <span>${className(c.class)}${c.created_at ? h`<span class="sub">Created ${day(c.created_at)}</span>` : ''}</span></span></td>
           <td class="n c-level" data-label="Level">${c.level}</td>
           <td class="n fame main-metric c-fame" data-label="Fame">${fmt(c.fame)}</td>
-          <td class="c-gear">${gear(c.equipment, 2)}</td>
+          <td class="c-gear">${gear(c.equipment)}</td>
           <td class="n c-maxed${maxed === 8 ? ' hl' : ''}" data-label="Maxed">${maxed === null ? '–' : statsMaxed(c.class, c.stats, maxed)}</td>
           <td class="c-stats"><span class="char-stats">${STAT_KEYS.map(([k, label], i) => {
             // As in the client's StatView: total with the gear bonus in brackets, gold when the
@@ -1471,7 +1474,7 @@ async function graveyard() {
       <td>${ownerLink(d)}</td>
       <td class="n main-metric fame">${fmt(d.total_fame)}</td>
       <td>${graveBadge(d, 2)}</td>
-      <td>${gear(d.equipment, 1)}</td>
+      <td>${gear(d.equipment)}</td>
       <td class="killed">${d.killed_by ?? ''}</td>
       <td>${d.died_at ? when(d.died_at) : h`<span class="muted">Loading</span>`}</td>
     </tr>`;
@@ -1536,10 +1539,10 @@ async function death(account, charId) {
       <div>${classSprite(d.class, 96, d)}</div>
       <div class="stack" style="gap:16px">
         <div class="death-head-line"><span><span class="fame-total">${fmt(d.total_fame)}</span> <span class="muted">total fame</span></span>${graveBadge(d, 3)}</div>
-        <div>${gear(d.equipment, 3, 4)}</div>
-        ${d.equipment.slice(4).some(i => i !== -1) ? h`<div><span class="muted">Inventory</span><div style="margin-top:6px">${gear(d.equipment.slice(4), 2, 8)}</div></div>` : ''}
+        <div>${gear(d.equipment, 5, 4)}</div>
+        ${d.equipment.slice(4).some(i => i !== -1) ? h`<div><span class="muted">Inventory</span><div style="margin-top:6px">${gear(d.equipment.slice(4), 4, 8)}</div></div>` : ''}
         ${d.guild_name ? h`<p class="muted">Its ${fmt(d.total_fame)} fame went to the guild <a href="/guild/${encodeURIComponent(d.guild_name)}" data-link>${d.guild_name}</a>.</p>` : ''}
-        ${dyeItems(d).length ? h`<div class="dyes"><span class="muted">Dyes</span>${dyeItems(d).map(id => h`<span class="dye">${itemSlot(id, 2)}<span>${ITEMS.get(id).name}</span></span>`)}</div>` : ''}
+        ${dyeItems(d).length ? h`<div class="dyes"><span class="muted">Dyes</span>${dyeItems(d).map(id => h`<span class="dye">${itemSlot(id)}<span>${ITEMS.get(id).name}</span></span>`)}</div>` : ''}
         <p class="muted">${d.is_bot ? 'Bot' : d.is_guest ? 'Guest' : 'Player'}: ${ownerLink(d)}${data.legends.length ? h`. On the Legends board: ${data.legends.map(l => `${SPANS[l.timespan]} rank ${l.rank}`).join(', ')}` : ''}.</p>
       </div>
     </div></section>
@@ -1597,7 +1600,7 @@ async function legends(span) {
         <td><a class="who" href="/death/${d.account}/${d.char_id}" data-link>${classSprite(d.class, 32, d)} ${d.level ? `Level ${d.level} ` : ''}${className(d.class)}</a></td>
         <td>${ownerLink(d)}</td>
         <td class="n main-metric fame">${fmt(d.total_fame)}</td>
-        <td>${gear(d.equipment, 2)}</td>
+        <td>${gear(d.equipment)}</td>
         <td class="killed" title="${d.killed_by ?? ''}">${d.killed_by ?? ''}</td>
         <td>${d.died_at ? when(d.died_at) : ''}</td>
       </tr>`) : h`<tr><td colspan="7" class="empty">${board === 'vanilla' ? 'No deaths on this board yet.' : 'No player deaths on this board yet.'}</td></tr>`}</tbody>
@@ -1693,7 +1696,7 @@ async function loot() {
         <tbody>${d.rows.map(f => {
           const it = ITEMS.get(f.item), t = tierInfo(it);
           return h`<tr>
-            <td><span class="who">${itemSlot(f.item, 1)}<a href="/item/${f.item}" data-link>${it?.name ?? `Item ${f.item}`}</a></span></td>
+            <td><span class="who">${itemSlot(f.item)}<a href="/item/${f.item}" data-link>${it?.name ?? `Item ${f.item}`}</a></span></td>
             <td><span class="tier ${t.cls}">${t.label || '–'}</span></td>
             <td class="muted">${it?.slotName ?? ''}</td>
             <td>${playerLink(f.name, f.stars)}</td>
@@ -1772,7 +1775,7 @@ async function items() {
       .sort((a, b) => (a.tier ?? 99) - (b.tier ?? 99) || a.name.localeCompare(b.name))
       .map(it => {
         const o = owners.get(it.id), t = tierInfo(it);
-        return h`<a href="/item/${it.id}" data-link class="${o ? '' : 'unfound'}">${itemSprite(it.id, 2, {missing: !o})}<span class="grow"><span class="title">${it.name}</span>
+        return h`<a href="/item/${it.id}" data-link class="${o ? '' : 'unfound'}">${itemSprite(it.id, 4, {missing: !o})}<span class="grow"><span class="title">${it.name}</span>
           <span class="sub">${t.label && g !== 'Untiered' ? h`<span class="tier ${t.cls}">${t.label}</span> ` : ''}${o ? `found by ${o.owners}` : 'never found'}</span></span></a>`;
       })}</div></section>`)}` : h`<p class="empty">No items match.</p>`);
   };
@@ -1790,7 +1793,7 @@ async function item(id) {
   document.title = `${it.name} | OpenEye`;
   view(h`
     <div class="item-hero">
-      ${auraOf(id) ? h`<span class="aura-big" style="${auraStyle(auraOf(id))}">${firstFind(id, AURA_FX[auraFx(id)]?.label ?? '')}</span>` : h`<span class="slot ${bag(it)}">${itemSprite(id, 4)}</span>`}
+      ${auraOf(id) ? h`<span class="aura-big" style="${auraStyle(auraOf(id))}">${firstFind(id, AURA_FX[auraFx(id)]?.label ?? '')}</span>` : h`<span class="slot ${bag(it)}">${itemSprite(id, 8)}</span>`}
       <div>
         <h1>${it.name}</h1>
         <p class="muted" style="margin-top:6px">${t.label ? h`<span class="tier ${t.cls}">${t.label === 'UT' ? 'Untiered' : `Tier ${it.tier}`}</span> ` : ''}${it.slotName}${it.soulbound ? ', soulbound' : ''}${it.fameBonus ? `, +${it.fameBonus}% fame bonus` : ''}</p>
@@ -1949,7 +1952,7 @@ async function enemy(id) {
       <header><h2>Drops</h2><span class="muted">Every item it can drop in the current code</span></header>
       ${drops.length ? h`<div class="panel-body"><div class="catalog">${drops.map(it => {
         const t = tierInfo(it);
-        return h`<a href="/item/${it.id}" data-link>${itemSprite(it.id, 2)}<span class="grow"><span class="title">${it.name}</span>
+        return h`<a href="/item/${it.id}" data-link>${itemSprite(it.id, 4)}<span class="grow"><span class="title">${it.name}</span>
           <span class="sub">${t.label ? h`<span class="tier ${t.cls}">${t.label}</span> ` : ''}${it.slotName}</span></span></a>`;
       })}</div></div>` : h`<p class="empty">This enemy drops nothing.</p>`}
     </section>`);
@@ -1974,7 +1977,7 @@ async function about() {
       </section>
       <section class="panel">
         <header><h2>Source code</h2></header>
-        <div class="panel-body"><p style="margin:0">Free to reuse, copy and change. A new home for the code is coming.</p></div>
+        <div class="panel-body"><p style="margin:0">OpenEye’s code is on GitHub: <a href="https://github.com/Scinexx/openeye" rel="noopener">github.com/Scinexx/openeye</a></p></div>
       </section>
       <section class="panel">
         <header><h2>Auras</h2></header>
@@ -2280,7 +2283,7 @@ async function codexResults(q) {
   found.push(...best.values());
   found.sort((a, b) => a.s - b.s || a.name.length - b.name.length || a.name.localeCompare(b.name));
   return found.slice(0, 10).map(r => r.item
-    ? h`<li><a href="/item/${r.item.id}" data-link><span class="player">${itemSprite(r.item.id, 1)}${r.item.name}</span><span class="muted">${tierInfo(r.item).label || 'Item'}</span></a></li>`
+    ? h`<li><a href="/item/${r.item.id}" data-link><span class="player">${itemSprite(r.item.id, 3)}${r.item.name}</span><span class="muted">${tierInfo(r.item).label || 'Item'}</span></a></li>`
     : h`<li><a href="/enemy/${r.enemy.id}" data-link><span class="player">${enemySprite(r.enemy, 16)}${r.enemy.name}</span><span class="muted">Enemy</span></a></li>`);
 }
 async function playerResults(q) {
@@ -2932,7 +2935,7 @@ async function hallucinate(on) {
         if (e) el.style.backgroundPosition = `-${e.sprite.x * scale}px -${e.sprite.y * scale}px`;
       } else {
         const it = pick(items);
-        el.style.backgroundPosition = `-${it.sprite.x * scale}px -${it.sprite.y * scale}px`;
+        el.style.backgroundPosition = `-${(it.sprite.x + 3) * scale}px -${(it.sprite.y + 3) * scale}px`;
       }
     }
   };
