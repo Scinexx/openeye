@@ -1267,7 +1267,7 @@ async function player(name) {
     ...data.fameGains.map(g => g.at), ...data.collection.map(c => c.found_at), ...data.deaths.map(d => d.died_at ?? 0)) || null;
   view(h`
     <div class="player-head">
-      ${crowned(p.name) ? crownIcon(p.stars, 34) : ''}${starIcon(p.stars, 34)}
+      ${crowned(p.name) ? crownIcon(p.stars, 34) : starIcon(p.stars, 34)}
       <h1>${p.name}</h1>
       ${discordIcon(p.discord_id)}
       ${!p.listed ? h`<span class="badge">No longer on the hiscores</span>` : ''}

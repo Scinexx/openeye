@@ -231,6 +231,8 @@ a.slot:hover { border-color: var(--accent); }
 .slot.bag-top { border-color: #b39a2c; }
 .slot.empty-slot { background: none; border-style: dashed; }
 .gear { display: flex; gap: 4px; flex-wrap: wrap; }
+/* In tables the four equipment slots stay on one line; the table scrolls sideways if it must. */
+td .gear { flex-wrap: nowrap; }
 
 /* ---------- Lists & tables ---------- */
 .rows { list-style: none; margin: 0; padding: 0; }
