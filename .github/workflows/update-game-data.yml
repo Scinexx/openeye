@@ -1,6 +1,10 @@
 # Rebuilds OpenEye's game data (items, tooltips, enemies and their drops) from the latest
 # Open RotMG code every day. Enemy drops come from running the server's own loot code.
 # Any change is committed to main, which Cloudflare then deploys.
+#
+# Running your own game server? Set the repository variable OPENROTMG_OWNER (Settings →
+# Secrets and variables → Actions → Variables) to the GitHub owner of your Open-RotMG-Server,
+# Open-RotMG-Website and Open-RotMG-Client repositories. It defaults to OpenRotMG.
 name: Update game data
 
 on:
@@ -27,10 +31,12 @@ jobs:
           node-version: 22
 
       - name: Download the Open RotMG repositories
+        env:
+          OWNER: ${{ vars.OPENROTMG_OWNER || 'OpenRotMG' }}
         run: |
           mkdir -p .openrotmg
           for repo in Open-RotMG-Server Open-RotMG-Website Open-RotMG-Client; do
-            git clone --depth 1 "https://github.com/OpenRotMG/$repo.git" ".openrotmg/$repo"
+            git clone --depth 1 "https://github.com/${OWNER}/$repo.git" ".openrotmg/$repo"
             echo "$repo: $(git -C ".openrotmg/$repo" rev-parse --short HEAD)"
           done
 

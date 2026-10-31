@@ -1,6 +1,5 @@
 // Client for the public Open RotMG game API. Only endpoints that need no login are used.
 // Runs unchanged in Cloudflare Workers and in Node.
-const HEADERS = {'user-agent': 'OpenEye/1.0 (+https://openrotmgeye.com)'};
 
 export class ApiError extends Error {
   constructor(message, status) { super(message); this.status = status; }
@@ -42,7 +41,9 @@ function validDeath(d) {
     && int(d.total_fame) && Array.isArray(d.equipment) && d.equipment.every(int);
 }
 
-export function createGameApi(apiBase) {
+/** siteUrl, when set, is named in the user-agent so the server's operator can see who is calling. */
+export function createGameApi(apiBase, siteUrl = '') {
+  const HEADERS = {'user-agent': siteUrl ? `OpenEye/1.0 (+${siteUrl})` : 'OpenEye/1.0'};
   // Outgoing requests made by this client. Cloudflare caps requests per Worker run
   // (50 on the free plan), so the collector checks this before each request.
   let used = 0;

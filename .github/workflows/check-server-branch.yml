@@ -6,11 +6,11 @@ on:
   workflow_dispatch:
     inputs:
       repository:
-        description: Server repository
-        default: Scinexx/Open-RotMG-Server
+        description: Server repository (owner/name of your fork)
+        required: true
       ref:
         description: Branch
-        default: public-characters-graveyard
+        required: true
 
 jobs:
   check:

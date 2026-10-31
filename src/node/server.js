@@ -6,6 +6,7 @@ import {readFileSync} from 'node:fs';
 import {join, normalize, extname, sep, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {makeApi, handleApiRequest, SECURITY_HEADERS} from '../core/site.js';
+import {pageMeta, renderIndex, robotsTxt, sitemapXml} from '../core/preview.js';
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const PUBLIC = join(ROOT, 'public');
@@ -65,8 +66,17 @@ export function startServer(db, settings, {port = 3000, host = '127.0.0.1', rate
       }
       const file = url.pathname === '/' ? null : resolvePublic(url.pathname);
       if (file && (await stat(file).catch(() => null))?.isFile()) return await sendFile(res, req.method, file);
-      // Single-page app: every other path renders index.html (same as Workers' SPA mode).
-      await sendFile(res, req.method, join(PUBLIC, 'index.html'));
+      // The same pages the Worker serves: robots.txt, sitemap.xml, and for every other path
+      // index.html with the page's own title and link preview (src/core/preview.js).
+      const origin = `http://${req.headers.host ?? host}`;
+      const send = (body, type) => {
+        res.writeHead(200, {...SECURITY_HEADERS, 'content-type': type});
+        res.end(req.method === 'HEAD' ? undefined : body);
+      };
+      if (url.pathname === '/robots.txt') return send(robotsTxt(origin), 'text/plain; charset=utf-8');
+      if (url.pathname === '/sitemap.xml') return send(await sitemapXml(db, origin), 'application/xml; charset=utf-8');
+      const html = await readFile(join(PUBLIC, 'index.html'), 'utf8');
+      send(renderIndex(html, origin, url.pathname, await pageMeta(db, catalog, url.pathname)), 'text/html; charset=utf-8');
     } catch (e) {
       log.error(e);
       res.writeHead(500, SECURITY_HEADERS);

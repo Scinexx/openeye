@@ -4,16 +4,22 @@
   "main": "src/worker.js",
   "compatibility_date": "2026-10-20",
 
-  // The site itself: everything in public/ is served as static files. Only /api/*
-  // runs the Worker; any other path falls back to index.html (single-page app).
+  // The site itself: files in public/ are served as they are. The Worker answers /api/* and
+  // the pages (index.html with each page's own title and link preview, see src/core/preview.js),
+  // robots.txt and sitemap.xml. The folders and files listed with ! never reach the Worker.
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": [
+      "/*",
+      "!/catalog/*", "!/fonts/*", "!/icons/*", "!/sfx/*", "!/fx/*",
+      "!/app.js", "!/style.css", "!/theme.js", "!/manifest.webmanifest"
+    ]
   },
 
-  // The database. Created in the Cloudflare account that owns openrotmgeye.com.
+  // The database. Self-hosting: create your own with `npx wrangler d1 create openeye` and put
+  // its database_id here (see SELF_HOSTING.md).
   "d1_databases": [
     {
       "binding": "DB",
@@ -37,11 +43,20 @@
     }
   ],
 
-  // The public address.
+  // The public address. Self-hosting: use your own domain, or remove "routes" to use the
+  // free workers.dev address.
   "routes": [
     { "pattern": "openrotmgeye.com", "custom_domain": true },
     { "pattern": "www.openrotmgeye.com", "custom_domain": true }
   ],
+
+  // The address the collector names in its user-agent, so the game server's operator can see
+  // who is calling. Self-hosting: set your own.
+  "vars": {
+    "SITE_URL": "https://openrotmgeye.com"
+  },
+  // Keep any variables set in the Cloudflare dashboard on deploy (see src/core/settings.js).
+  "keep_vars": true,
 
   // Logs in the Cloudflare dashboard (Workers > openeye > Logs).
   "observability": {

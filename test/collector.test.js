@@ -95,8 +95,8 @@ test('website API returns sensible shapes', async () => {
   const r = await t.api.rankings('collection');
   assert.equal(r.players[0].rank, 1);
   assert.ok(r.players.every((p, i, a) => i === 0 || a[i - 1].collection >= p.collection));
-  const p = await t.api.player('redbracket');
-  assert.equal(p.player.name, 'RedBracket');
+  const p = await t.api.player('bracken');
+  assert.equal(p.player.name, 'Bracken');
   assert.equal(p.collection.length, p.player.collection);
   const g = await t.api.graveyard({sort: 'fame'});
   assert.ok(g.rows[0].total_fame >= g.rows[1].total_fame);
@@ -111,6 +111,6 @@ test('website API returns sensible shapes', async () => {
   const listed = await rows(t.db, "SELECT rank, char_id FROM legends WHERE timespan = 'all' ORDER BY rank");
   assert.deepEqual(vanilla.rows.map(d => [d.rank, d.char_id]), listed.map(r => [r.rank, r.char_id]));
   assert.ok(vanilla.rows.some(d => d.is_bot), 'the mock board has bots');
-  assert.ok((await t.api.search('red')).players.some(x => x.name === 'RedBracket'));
+  assert.ok((await t.api.search('brac')).players.some(x => x.name === 'Bracken'));
   await assert.rejects(() => t.api.rankings('nope'));
 });
