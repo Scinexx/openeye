@@ -2022,7 +2022,7 @@ const THEME_NOTES = {
 function vault() {
   document.title = 'Vault | OpenEye';
   const byName = new Map([...ITEMS.values()].map(i => [i.name, i]));
-  const chests = [['Potions', POTIONS], ['Dungeon keys', KEYS], ['Rare finds', BREWS]];
+  const chests = [['Potions', POTIONS], ['Dungeon keys', KEYS], ['Consumables', BREWS]];
   const current = () => document.documentElement.dataset.theme ?? '';
   const slotOf = ([key, label, item]) => {
     const it = byName.get(item);
@@ -2296,7 +2296,7 @@ const KEYS = [
   ['undead', 'Undead Lair', 'Undead Lair Key'], ['sprite', 'Sprite World', 'Sprite World Key']
 ];
 const KEY_PROFILES = ['/player/cramshon', '/player/redbracket'];
-// Rare finds: every Nexus puts two of these consumables or dungeon keys (picked at random) in place of
+// Consumables: every Nexus puts two of these consumables or dungeon keys (picked at random) in place of
 // potions, each of the others still has a 1% chance to turn up too, and an item is certain to on the
 // page of an enemy that drops it. Each has
 // its own theme with moving effects, and using it does what the item does in the game
