@@ -2899,7 +2899,7 @@ function brewEffects(fx, at) {
     for (const n of cured) { clearTimeout(effectTimers.get(n)); effectTimers.delete(n); document.documentElement.classList.remove(n); }
     if (cured.includes('hallucinating')) hallucinate(false);
     if (cured.includes('hexed')) hex(false);
-    burst('fx-holy', at);
+    burst('fx-cleanse', at);
     if (cured.length) setTimeout(() => burst('fx-status fx-status-cure', {x: at.x, y: at.y - 48}, '', 'Purified'), 250);
   }
   if (fx.hexed) {

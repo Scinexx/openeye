@@ -24,9 +24,14 @@ test('keyframe names are unique', () => {
 });
 
 test('theme effect styles never reach the first-find auras', () => {
-  const auraClasses = new Set([...css.matchAll(/\.first-find\.(fx-[\w-]+)/g)].map(m => m[1]));
+  // The aura effects (AURA_FX in app.js) are classes on the first-find span; a page-wide rule for
+  // the same class name (say, an item effect's burst) would restyle the item itself.
+  const fxBlock = app.slice(app.indexOf('const AURA_FX = {'), app.indexOf('};', app.indexOf('const AURA_FX = {')));
+  const auraClasses = new Set([...css.matchAll(/\.first-find\.(fx-[\w-]+)/g)].map(m => m[1])
+    .concat([...fxBlock.matchAll(/^\s+(\w+): \{label/gm)].map(m => `fx-${m[1]}`), 'fx-sparks'));
   const leaks = selectors.flatMap(s => s.split(',')).map(s => s.trim())
-    .filter(s => [...s.matchAll(/\.(fx-[\w-]+)/g)].some(m => auraClasses.has(m[1])) && !s.includes('.first-find') && !s.includes('#theme-fx'));
+    .filter(s => [...s.matchAll(/\.(fx-[\w-]+)/g)].some(m => auraClasses.has(m[1])) && !s.includes('.first-find') && !s.includes('#theme-fx')
+      && !/^\.fx-[\w-]+( \.p|::)/.test(s));
   assert.deepEqual(leaks, []);
 });
 
